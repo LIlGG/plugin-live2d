@@ -1,0 +1,8 @@
+apiVersion: plugin.halo.run/v1alpha1
+kind: ReverseProxy
+metadata:
+  name: reverse-proxy-template
+rules:
+  - path: /static/**
+    file:
+      directory: static

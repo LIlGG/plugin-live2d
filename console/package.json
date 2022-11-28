@@ -1,0 +1,38 @@
+{
+  "name": "@halo-dev/plugin-starter",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "test:unit": "vitest --environment jsdom",
+    "type-check": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "@halo-dev/components": "^0.0.0-alpha.5",
+    "@halo-dev/console-shared": "^2.0.0-alpha.3",
+    "vue": "^3.2.41"
+  },
+  "devDependencies": {
+    "@rushstack/eslint-patch": "^1.2.0",
+    "@types/jsdom": "^20.0.0",
+    "@types/node": "^16.18.0",
+    "@vitejs/plugin-vue": "^3.1.2",
+    "@vitejs/plugin-vue-jsx": "^2.0.1",
+    "@vue/eslint-config-prettier": "^7.0.0",
+    "@vue/eslint-config-typescript": "^11.0.2",
+    "@vue/test-utils": "^2.2.0",
+    "@vue/tsconfig": "^0.1.3",
+    "eslint": "^8.26.0",
+    "eslint-plugin-vue": "^9.6.0",
+    "jsdom": "^19.0.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.7.1",
+    "typescript": "~4.7.4",
+    "vite": "^3.1.8",
+    "vitest": "^0.24.3",
+    "vue-tsc": "^1.0.9"
+  }
+}

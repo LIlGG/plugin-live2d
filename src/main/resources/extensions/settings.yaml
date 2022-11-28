@@ -1,0 +1,30 @@
+apiVersion: v1alpha1
+kind: Setting
+metadata:
+  name: starter-settings
+spec:
+  forms:
+    - group: basic
+      label: 基本设置
+      formSchema:
+        - $formkit: text
+          help: This will be used for your account.
+          label: Email
+          name: email
+          validation: required|email
+        - $formkit: text
+          label: 访问链接
+          name: url
+    - group: advanced
+      label: 高级设置
+      formSchema:
+        - $formkit: text
+          help: This will be used for your theme.
+          label: color
+          name: color
+          validation: required
+        - $formkit: color
+          help: This will be used for your theme.
+          label: color
+          name: color
+          validation: required

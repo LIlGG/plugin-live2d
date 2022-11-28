@@ -1,0 +1,40 @@
+server:
+  port: 8090
+spring:
+  profiles:
+    active: dev
+halo:
+  external-url: http://localhost:8090/
+  security:
+    initializer:
+      super-admin-username: admin
+      super-admin-password: P@88w0rd
+    oauth2:
+      jwt:
+        jwsAlgorithm: rs512
+        public-key-location: classpath:app.pub
+        private-key-location: classpath:app.key
+  plugin:
+    runtime-mode: development # development, deployment
+    classes-directories:
+      - "build/classes"
+      - "build/resources"
+    lib-directories:
+      - "libs"
+    fixedPluginPath:
+      - "/plugin"
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+  show-login-endpoint: false
+  show-actuator: false
+  use-management-port: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,startup,shutdown
+  server:
+    port: 8090

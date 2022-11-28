@@ -1,0 +1,14 @@
+services:
+  halo-next:
+    image: halohub/halo-dev:main
+    ports:
+      - 8090:8090
+    environment:
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:/etc/config/
+    volumes:
+      - ./application.yaml:/etc/config/application.yaml
+      - ../:/plugin
+    networks:
+      - halo
+networks:
+  halo: {}

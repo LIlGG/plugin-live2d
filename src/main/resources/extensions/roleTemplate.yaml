@@ -1,0 +1,30 @@
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-apple-view
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "Apple Management"
+    rbac.authorization.halo.run/ui-permissions: "[\"plugin:apples:view\"]"
+    rbac.authorization.halo.run/display-name: "苹果查看"
+rules:
+  - apiGroups: [ "plugins.api.halo.run" ]
+    resources: [ "plugins/apples" ]
+    verbs: [ "get", "list" ]
+---
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-apple-manage
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/dependencies: "[\"role-template-apple-view\"]"
+    rbac.authorization.halo.run/ui-permissions: "[\"plugin:apples:delete\",\"plugin:apples:update\"]"
+    rbac.authorization.halo.run/module: "Apple Management"
+    rbac.authorization.halo.run/display-name: "苹果管理"
+rules:
+  - apiGroups: [ "plugins.api.halo.run" ]
+    resources: [ "plugins/apples" ]
+    verbs: [ "create", "patch", "update", "delete", "deletecollection" ]
