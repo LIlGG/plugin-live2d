@@ -1,21 +1,19 @@
 apiVersion: plugin.halo.run/v1alpha1
 kind: Plugin
 metadata:
-  # The name defines how the plugin is invoked,A unique name
-  name: PluginStarter
+  name: PluginLive2d
 spec:
   enabled: true
-  # 'version' is a valid semantic version string (see semver.org).
   version: 1.0.0-SNAPSHOT
-  requires: "*"
-  author: halo-dev
-  logo: https://halo.run/logo
-  settingName: starter-settings
-  configMapName: starter-settings
-  # 'homepage' usually links to the GitHub repository of the plugin
-  homepage: https://github.com/halo-dev/plugin-starter
-  # 'displayName' explains what the plugin does in only a few words
-  displayName: "插件快速开始模板"
-  description: "这是一个插件快速开始模板"
+  requires: ">=2.0.0"
+  author:
+    name: LIlGG
+    website: https://lixingyong.com
+  logo: /plugins/PluginLive2d/assets/static/images/logo.gif
+  settingName: plugin-live2d-settings
+  configMapName: plugin-live2d-configs
+  homepage: https://github.com/LIlGG/plugin-live2d
+  displayName: "live2d 看板娘"
+  description: "为主题增加一个萌萌哒的看板娘吧！ʕ̯•͡ˑ͓•̯᷅ʔ"
   license:
     - name: "MIT"

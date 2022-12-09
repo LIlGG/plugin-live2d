@@ -1,7 +1,7 @@
 apiVersion: plugin.halo.run/v1alpha1
 kind: ReverseProxy
 metadata:
-  name: reverse-proxy-template
+  name: plugin-live2d-reverse-proxy
 rules:
   - path: /static/**
     file:

@@ -1,9 +1,0 @@
-apiVersion: run.halo.starter/v1alpha1
-kind: Apple
-metadata:
-  name: Fuji-apple
-spec:
-  varieties: Fuji
-  color: red
-  size: middle
-  producingArea: China

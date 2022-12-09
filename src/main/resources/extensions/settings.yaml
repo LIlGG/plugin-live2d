@@ -1,30 +1,199 @@
 apiVersion: v1alpha1
 kind: Setting
 metadata:
-  name: starter-settings
+  name: plugin-live2d-settings
 spec:
   forms:
-    - group: basic
+    - group: base
       label: 基本设置
       formSchema:
         - $formkit: text
-          help: This will be used for your account.
-          label: Email
-          name: email
-          validation: required|email
+          label: 默认模型编号
+          name: modelId
+          validation: required|Number
+          value: 1
         - $formkit: text
-          label: 访问链接
-          name: url
+          label: 默认材质编号
+          name: modelTexturesId
+          validation: required|Number
+          value: 53
+        - $formkit: radio
+          name: isTools
+          id: isTools
+          label: 右侧小工具
+          value: true
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: checkbox
+          if: "$get(isTools).value === true"
+          label: 选择需要开启/关闭的小工具
+          name: tools
+          value:
+            - hitokoto
+            - asteroids
+            - switch-model
+            - switch-texture
+            - photo
+            - info
+            - quit
+          options:
+            - value: hitokoto
+              label: 更换一言
+            - value: asteroids
+              label: 小游戏
+            - value: switch-model
+              label: 切换模型
+            - value: switch-texture
+              label: 切换材质（衣服）
+            - value: photo
+              label: 截图
+            - value: info
+              label: 个人信息
+            - value: quit
+              label: 退出 Live2d
+    - group: api
+      label: 接口设置
+      formSchema:
+        - $formkit: text
+          help: 用于加载 Live2d 模型的接口
+          label: Live2d 模型地址
+          name: apiPath
+          validation: required|url
+          value: https://api.zsq.im/live2d/
+        - $formkit: radio
+          name: showHitokoto
+          id: showHitokoto
+          label: 空闲时显示一言
+          value: true
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: text
+          if: "$get(showHitokoto).value === true"
+          label: 一言接口
+          name: hitokotoApi
+          validation: url
+          value: https://v1.hitokoto.cn
+    - group: tips
+      label: 事件及提示语绑定
+      formSchema:
+        - $formkit: radio
+          name: firstOpenSite
+          id: firstOpenSite
+          label: 首次打开网站事件
+          value: true
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: radio
+          name: backSite
+          id: backSite
+          key: backSite
+          label: 重新返回网页事件
+          value: true
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: text
+          if: "$get(backSite).value === true"
+          label: 返回网页提示语
+          name: backSiteTip
+          value: "哇，你终于回来了～"
+        - $formkit: radio
+          name: copyContent
+          id: copyContent
+          key: copyContent
+          label: 复制内容事件
+          value: true
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: text
+          if: "$get(copyContent).value === true"
+          label: 复制内容提示语
+          name: copyContentTip
+          value: "你都复制了些什么呀，转载要记得加上出处哦！"
+        - $formkit: radio
+          name: openConsole
+          id: openConsole
+          key: openConsole
+          label: 打开控制台事件
+          value: true
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: text
+          if: "$get(openConsole).value === true"
+          label: 打开控制台提示语
+          name: openConsoleTip
+          value: "你是想要看看我的小秘密吗？"
+        - $formkit: repeater
+          name: selectorTips
+          label: 选择器提示语
+          help: 根据 CSS 选择器自定义 Live2d 呈现的文本（各主题选择器可能不同）。
+          value: []
+          children:
+            - $formkit: select
+              name: mouseAction
+              label: 鼠标动作
+              value: mouseover
+              options:
+                - value: mouseover
+                  label: 鼠标移入
+                - value: click
+                  label: 鼠标点击
+            - $formkit: text
+              name: selector
+              label: CSS 选择器
+              validation: required
+            - $formkit: repeater
+              name: messageTexts
+              label: 提示语集合
+              help: 可以填写多个提示语，Live2d 将会随机选择一个
+              value: []
+              children:
+                - $formkit: text
+                  name: message
+                  label: 提示语
     - group: advanced
       label: 高级设置
       formSchema:
+        - $formkit: radio
+          name: consoleShowStatu
+          key: consoleShowStatu
+          label: 控制台显示加载状态
+          value: false
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
         - $formkit: text
-          help: This will be used for your theme.
-          label: color
-          name: color
+          help: 通过右侧小工具截图时保存的文件名
+          label: 截图文件名（不包括后缀）
+          name: photoName
           validation: required
-        - $formkit: color
-          help: This will be used for your theme.
-          label: color
-          name: color
-          validation: required
+          value: live2d
+        - $formkit: select
+          help: 页面何时加载 Live2d。网站带宽有限时，可选择优先加载页面全部内容再加载 Live2d。
+          label: Live2d 加载时机
+          name: loadTime
+          value: defer
+          options:
+            - value: defer
+              label: DOM 加载完成后，图片加载前
+            - value: async
+              label: 页面全部内容加载完成

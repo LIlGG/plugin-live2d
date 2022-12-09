@@ -7,5 +7,5 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-rootProject.name = 'plugin-starter'
+rootProject.name = 'plugin-live2d'
 
