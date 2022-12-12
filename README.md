@@ -124,7 +124,3 @@ live2d 渲染页面时将自动读取当前启用主题下的文件。
 
 ![Alt](https://repobeats.axiom.co/api/embed/1a0fed4cb4d4d2ea076c3481473cdbf9bc0471d6.svg "Repobeats analytics image")
 
-## Stargazers over time
-
-[![Stargazers over time](https://starchart.cc/LIlGG/plugin-live2d.svg)](https://starchart.cc/LIlGG/plugin-live2d)
-
