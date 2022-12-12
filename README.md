@@ -82,7 +82,7 @@ live2d 渲染页面时将自动读取当前启用主题下的文件。
 #### 3. 全量自定义 TIPS 文件
 当用户想完全自定义 TIPS 文件或者上述两种方式不满足用户的需求，例如想更改 `seasons, time, message` 属性时，可以采用此种方式。
 
-1. 用户可以参照 [默认 TIPS 文件](/src/main/resources/static/live2d-tips.json) 或者按照 [自定义TIPS文件](#自定义TIPS文件) 中的 TIPS 文件格式来编写 TIPS 文件。
+1. 用户可以参照 [默认 TIPS 文件](/src/main/resources/static/live2d-tips.json) 或者按照 [自定义TIPS文件](#自定义-tips-文件) 中的 TIPS 文件格式来编写 TIPS 文件。
 2. 使用 Halo 后台 `插件设置 -> 事件及提示语绑定 -> 自定义提示语文件`，更改对应的文件即可。
 
 > 小提示: 可以将文件上传到 Halo 附件内，再进行选择！
@@ -111,7 +111,7 @@ live2d 渲染页面时将自动读取当前启用主题下的文件。
 
 本仓库所使用的接口等版权均属原作者，仅供研究学习，不得用于商业用途，请善待接口。
 
-作者及其贡献者共有版权 （[帮助维护列表](https://github.com/LIlGG/plugin-live2d/graphs/contributors) 。
+作者及其贡献者共有版权 （[帮助维护列表](https://github.com/LIlGG/plugin-live2d/graphs/contributors) ）
 > [lixingyong.com](https://lixingyong.com) · GitHub [@LIlGG](https://github.com/LIlGG)
 
 
