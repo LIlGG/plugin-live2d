@@ -69,7 +69,7 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
             live2d.init("%1$s", %2$s)
             """.formatted(LIVE2D_SOURCE_PATH, config.toPrettyString());
         return """
-            <script src="%1$sjs/live2d-autoload.js" %2$s></script>
+            <script src="%1$sjs/live2d-autoload.min.js" %2$s></script>
             <script type="text/javascript">
                 %3$s
             </script>
