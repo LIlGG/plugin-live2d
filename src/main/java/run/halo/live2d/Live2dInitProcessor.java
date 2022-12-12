@@ -1,7 +1,6 @@
 package run.halo.live2d;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -55,7 +54,7 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
                               IElementModelStructureHandler structureHandler) {
         return live2dSetting.getConfig().map(config -> {
             if (log.isDebugEnabled()) {
-                log.info("live2d config {}", config.toPrettyString());
+                log.debug("live2d config {}", config.toPrettyString());
             }
             final IModelFactory modelFactory = context.getModelFactory();
             model.add(modelFactory.createText(live2dAutoloadScript(config)));
@@ -64,7 +63,11 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
     }
 
     private CharSequence live2dAutoloadScript(JsonNode config) {
-        String loadTime = this.live2dSetting.getValue("advanced", "loadTime").asText(LIVE2D_LOAD_TIME);
+        String loadTime = LIVE2D_LOAD_TIME;
+        JsonNode node = this.live2dSetting.getValue("advanced", "loadTime");
+        if (Objects.nonNull(node)) {
+            loadTime = node.asText(LIVE2D_LOAD_TIME);
+        }
         String template = """
             live2d.init("%1$s", %2$s)
             """.formatted(LIVE2D_SOURCE_PATH, config.toPrettyString());

@@ -38,11 +38,13 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
 
     public void initConfigNode() {
         this.configNode = new ObjectNode(this);
-        settingMap.forEach((group, jsonNode) -> {
-            JsonNode node = settingMap.get(group);
-            log.debug("live2d config -> {} group save settingMap json {}", group, node.toPrettyString());
+        this.settingMap.forEach((group, jsonNode) -> {
+            JsonNode node = this.settingMap.get(group);
+            if(log.isDebugEnabled()) {
+                log.debug("live2d config -> {} group save settingMap json {}", group, node.toPrettyString());
+            }
             if (jsonNode instanceof ObjectNode) {
-                configNode.setAll((ObjectNode) node);
+                this.configNode.setAll((ObjectNode) node);
             }
         });
         // 移除不必要的参数
@@ -51,18 +53,21 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
     }
 
     private void setThemeLive2dTipsPath() {
-        themeFetcher.getActiveThemeName().ifPresent(activeThemeName -> {
+        this.themeFetcher.getActiveThemeName().ifPresent(activeThemeName -> {
             this.configNode.put("themeTipsPath", THEME_TIPS_PATH_TEMPLATE.formatted(activeThemeName));
         });
     }
 
     @Override
     public JsonNode getValue(String groupName, String key) {
-        return settingMap.get(groupName).get(key);
+        return this.settingMap.getOrDefault(groupName, new ObjectNode(this)).get(key);
     }
 
     @Override
     public Optional<JsonNode> getConfig() {
+        if(log.isDebugEnabled()) {
+            log.debug("live2d config -> {}", configNode.toPrettyString());
+        }
         return Optional.of(configNode);
     }
 }

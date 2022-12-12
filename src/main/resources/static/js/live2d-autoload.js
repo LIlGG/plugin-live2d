@@ -359,18 +359,20 @@ function Live2d() {
       message: {}
     }
     // selector
-    config["selectorTips"].forEach(item => {
-      let texts = item['messageTexts'].map(text => text.message);
-      let obj = {
-        selector: item['selector'],
-        text: texts
-      }
-      if (item['mouseAction'] === 'click') {
-        tips.click.push(obj);
-      } else {
-        tips.mouseover.push(obj);
-      }
-    })
+    if (!!config["selectorTips"]) {
+      config["selectorTips"].forEach(item => {
+        let texts = item['messageTexts'].map(text => text.message);
+        let obj = {
+          selector: item['selector'],
+          text: texts
+        }
+        if (item['mouseAction'] === 'click') {
+          tips.click.push(obj);
+        } else {
+          tips.mouseover.push(obj);
+        }
+      })
+    }
     // message
     tips.message.visibilitychange = config["backSiteTip"];
     tips.message.copy = config["copyContentTip"];
