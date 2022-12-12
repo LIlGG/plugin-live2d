@@ -1,13 +1,13 @@
 <h1 align="center">Live2d Plugin for Halo</h1>
-
-> 难道不想为您的网站添加一只萌萌的看板娘吗？？ (ノ≧∇≦)ノ |
-
 <p align="center">
   <a href="https://github.com/halo-dev/halo"><img alt="Halo version" src="https://img.shields.io/badge/halo-2.0.0%2B-brightgreen?style=for-the-badge" /></a>
   <a href="https://github.com/LIlGG/halo-theme-sakura"><img alt="Build Status" src="https://img.shields.io/badge/build-positive-brightgreen?style=for-the-badge"></a>
   <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-1.0.0-blue?style=for-the-badge"></a>
   <a href="./LICENSE"><img alt="LICENSE MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge"></a>
 </p>
+
+> 难道不想为您的网站添加一只萌萌的看板娘吗？？ (ノ≧∇≦)ノ |
+
 ## 简介
 仅仅是一只可爱的看板娘哦！
 
@@ -120,4 +120,11 @@ live2d 渲染页面时将自动读取当前启用主题下的文件。
 作者及其贡献者共有版权 （[帮助维护列表](https://github.com/LIlGG/plugin-live2d/graphs/contributors) ）
 > [lixingyong.com](https://lixingyong.com) · GitHub [@LIlGG](https://github.com/LIlGG)
 
+## 希望你喜欢！
+
+![Alt](https://repobeats.axiom.co/api/embed/1a0fed4cb4d4d2ea076c3481473cdbf9bc0471d6.svg "Repobeats analytics image")
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/LIlGG/plugin-live2d.svg)](https://starchart.cc/LIlGG/plugin-live2d)
 
