@@ -22,7 +22,7 @@ function Live2d() {
       "apiPath": "//api.zsq.im/live2d/",
       "tools": ["hitokoto", "asteroids", "switch-model", "switch-texture", "photo", "info", "quit"],
       "updateTime": "2022.12.09",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "tipsPath": "live2d-tips.json"
     }
     /**

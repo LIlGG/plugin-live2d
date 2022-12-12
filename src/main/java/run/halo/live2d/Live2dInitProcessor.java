@@ -30,7 +30,7 @@ import run.halo.app.theme.dialect.TemplateHeadProcessor;
  *
  * @author LIlGG
  * @since 2022-11-30
- * @version 1.0.0
+ * @version 1.0.1
  */
 @Component
 @Slf4j
