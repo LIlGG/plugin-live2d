@@ -8,7 +8,6 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import run.halo.app.plugin.SettingFetcher;
-
 /**
  * Live2d 配置处理器
  *
@@ -19,12 +18,21 @@ import run.halo.app.plugin.SettingFetcher;
 @Slf4j
 public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetting {
 
+    /**
+     * 适用于主题的 tips 路径
+     */
+    private final static String THEME_TIPS_PATH_TEMPLATE = "/themes/%s/assets/live2d/tips.json";
+
+    private final ThemeFetcher themeFetcher;
+
     private final Map<String, JsonNode> settingMap;
 
     private ObjectNode configNode;
 
-    public Live2dSettingProcess(SettingFetcher settingFetcher) {
+    public Live2dSettingProcess(SettingFetcher settingFetcher,
+                                ThemeFetcher themeFetcher) {
         this.settingMap = settingFetcher.getValues();
+        this.themeFetcher = themeFetcher;
         initConfigNode();
     }
 
@@ -32,13 +40,20 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
         this.configNode = new ObjectNode(this);
         settingMap.forEach((group, jsonNode) -> {
             JsonNode node = settingMap.get(group);
-            log.debug("{} group save settingMap json {}", group, node.toPrettyString());
+            log.debug("live2d config -> {} group save settingMap json {}", group, node.toPrettyString());
             if (jsonNode instanceof ObjectNode) {
                 configNode.setAll((ObjectNode) node);
             }
         });
         // 移除不必要的参数
         this.configNode.remove("slots");
+        setThemeLive2dTipsPath();
+    }
+
+    private void setThemeLive2dTipsPath() {
+        themeFetcher.getActiveThemeName().ifPresent(activeThemeName -> {
+            this.configNode.put("themeTipsPath", THEME_TIPS_PATH_TEMPLATE.formatted(activeThemeName));
+        });
     }
 
     @Override

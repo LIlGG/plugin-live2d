@@ -39,6 +39,9 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
 
     private final static String LIVE2D_LOAD_TIME = "defer";
 
+    /**
+     * 插件静态资源地址
+     */
     private final static String LIVE2D_SOURCE_PATH = "/plugins/PluginLive2d/assets/static/";
 
     private final Live2dSetting live2dSetting;
@@ -90,8 +93,4 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
         }
         return template.formatted(loadingScript);
     }
-
-
-
-
 }

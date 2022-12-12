@@ -163,11 +163,16 @@ spec:
               name: messageTexts
               label: 提示语集合
               help: 可以填写多个提示语，Live2d 将会随机选择一个
+              min: 1
               value: []
               children:
                 - $formkit: text
                   name: message
                   label: 提示语
+        - $formkit: attachment
+          label: 自定义提示语文件
+          help: 可以参考 live2d-tips.json 文件编写【如果当前项被填写，则默认提示语则不再生效】
+          name: tipsPath
     - group: advanced
       label: 高级设置
       formSchema:

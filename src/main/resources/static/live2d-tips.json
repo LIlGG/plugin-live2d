@@ -7,10 +7,10 @@
     "text": ["猜猜我要说些什么？", "我从青蛙王子那里听到了不少人生经验。"]
   }, {
     "selector": "#live2d-tool-asteroids",
-    "text": ["要不要来玩飞机大战？", "这个按钮上写着「不要点击」。", "怎么，你想来和我玩个游戏？", "听说这样可以蹦迪！"]
+    "text": ["要不要来玩飞机大战？", "这个按钮上写着「不要点击」。", "想来和我一起玩个游戏吗？", "听说这样可以蹦迪！"]
   }, {
     "selector": "#live2d-tool-switch-model",
-    "text": ["你是不是不爱人家了呀，呜呜呜～", "要见见我的姐姐嘛？", "想要看我妹妹嘛？", "要切换看板娘吗？"]
+    "text": ["你是不是不爱人家了呀，呜呜呜～", "要见见我的姐姐嘛？", "想要看看我妹妹嘛？", "要切换看板娘吗？"]
   }, {
     "selector": "#live2d-tool-switch-texture",
     "text": ["喜欢换装 PLAY 吗？", "这次要扮演什么呢？", "变装！", "让我们看看接下来会发生什么！"]
@@ -39,13 +39,7 @@
     "selector": "a[href='/archives']",
     "text": ["翻页比较麻烦吗，那就来看看文章归档吧。", "文章目录都整理在这里啦！"]
   }, {
-    "selector": ".menu-item-friends a",
-    "text": ["这是我的朋友们哦ヾ(◍°∇°◍)ﾉﾞ", "要去大佬们的家看看吗？", "要去拜访一下我的朋友们吗？"]
-  }, {
-    "selector": ".menu-item-search a",
-    "text": ["找不到想看的内容？搜索看看吧！", "在找什么东西呢，需要帮忙吗？"]
-  }, {
-    "selector": ".menu-item a",
+    "selector": "#header-menu a",
     "text": ["快看看这里都有什么呢？"]
   }, {
     "selector": ".site-author",
@@ -53,9 +47,6 @@
   }, {
     "selector": ".site-state",
     "text": ["这是文章的统计信息～", "要不要点进去看看？"]
-  }, {
-    "selector": ".feed-link a",
-    "text": ["这里可以使用 RSS 订阅呢！", "利用 feed 订阅器，就能快速知道博客有没有更新了呢。"]
   }, {
     "selector": ".cc-opacity, .post-copyright-author",
     "text": ["要记得规范转载哦。", "所有文章均采用 CC BY-NC-SA 4.0 许可协议～", "转载前要先注意下文章的版权协议呢。"]
@@ -73,7 +64,7 @@
     "text": ["代码可以直接点击复制哟。"]
   }, {
     "selector": ".highlight .table-container, .gist",
-    "text": ["GitHub！我是新手！", "PHP 是最好的语言！"]
+    "text": ["GitHub！我是新手！", "有问题为什么不先问问神奇海螺呢？"]
   }, {
     "selector": "a[href^='mailto']",
     "text": ["邮件我会及时回复的！", "点击就可以发送邮件啦～"]
@@ -84,14 +75,11 @@
     "selector": "a[href^='/categories/']",
     "text": ["要去看看 <span>{text}</span> 分类么？", "点它可以查看此分类下的所有文章哟！"]
   }, {
-    "selector": ".post-title-link",
+    "selector": "#post-list > div",
     "text": ["要看看 <span>{text}</span> 这篇文章吗？"]
   }, {
     "selector": "a[rel='contents']",
     "text": ["点击来阅读全文哦。"]
-  }, {
-    "selector": "a[itemprop='discussionUrl']",
-    "text": ["要去看看评论吗？"]
   }, {
     "selector": ".beian a",
     "text": ["我也是有户口的人哦。", "我的主人可是遵纪守法的好主人。"]
@@ -110,12 +98,6 @@
   }, {
     "selector": "#alipay",
     "text": ["这是我的支付宝哦！"]
-  }, {
-    "selector": "#bitcoin",
-    "text": ["这是我的比特币账号！"]
-  }, {
-    "selector": "#needsharebutton-postbottom .btn",
-    "text": ["好东西要让更多人知道才行哦。", "觉得文章有帮助的话，可以分享给更多需要的朋友呢。"]
   }, {
     "selector": ".need-share-button_weibo",
     "text": ["微博？来分享一波喵！"]
@@ -147,42 +129,30 @@
     "selector": ".extend.prev",
     "text": ["去上一页看看吧。", "点它可以后退哦！", "要翻到上一页吗？"]
   }, {
-    "selector": "input.vnick",
-    "text": ["该怎么称呼你呢？", "留下你的尊姓大名！"]
-  }, {
-    "selector": ".vmail",
-    "text": ["留下你的邮箱，不然就是无头像人士了！", "记得设置好 Gravatar 头像哦！", "为了方便通知你最新消息，一定要留下邮箱！"]
-  }, {
-    "selector": ".vlink",
-    "text": ["快快告诉我你的家在哪里，好让我去参观参观！"]
-  }, {
-    "selector": ".veditor",
+    "selector": ".rounded-base",
     "text": ["想要去评论些什么吗？", "要说点什么吗？", "觉得博客不错？快来留言和主人交流吧！"]
   }, {
-    "selector": ".vcontrol a",
+    "selector": ".rounded-base a",
     "text": ["你会不会熟练使用 Markdown 呀？", "使用 Markdown 让评论更美观吧～"]
   }, {
-    "selector": ".vemoji-btn",
+    "selector": ".relative",
     "text": ["要插入一个萌萌哒的表情吗？", "要来一发表情吗？"]
   }, {
-    "selector": ".vpreview-btn",
-    "text": ["要预览一下你的发言吗？", "快看看你的评论有多少负熵！"]
+    "selector": ".btn-secondary",
+    "text": ["要对自己的发言负责哦～", "要提交了吗，请耐心等待回复哦～"]
   }, {
-    "selector": ".vsubmit",
-    "text": ["评论没有审核，要对自己的发言负责哦～", "要提交了吗，请耐心等待回复哦～"]
-  }, {
-    "selector": ".vcontent",
+    "selector": ".comment-item",
     "text": ["哇，快看看这个精彩评论！", "如果有疑问，请尽快留言哦～"]
   }],
   "click": [{
     "selector": "#live2d",
     "text": ["是…是不小心碰到了吧…", "萝莉控是什么呀？", "你看到我的小熊了吗？", "再摸的话我可要报警了！⌇●﹏●⌇", "110 吗，这里有个变态一直在摸我(ó﹏ò｡)", "不要摸我了，我会告诉老婆来打你的！", "干嘛动我呀！小心我咬你！", "别摸我，有什么好摸的！"]
   }, {
-    "selector": ".veditor",
+    "selector": ".rounded-base",
     "text": ["要吐槽些什么呢？", "一定要认真填写喵～", "有什么想说的吗？"]
   }, {
-    "selector": ".vsubmit",
-    "text": ["输入验证码就可以提交评论啦～"]
+    "selector": ".btn-secondary",
+    "text": ["提交评论啦～"]
   }],
   "seasons": [{
     "date": "01/01",
@@ -247,7 +217,7 @@
     "text": "你是夜猫子呀？这么晚还不睡觉，明天起的来嘛？"
   }],
   "message": {
-    "default": ["好久不见，日子过得好快呢……", "大坏蛋！你都多久没理人家了呀，嘤嘤嘤～", "嗨～快来逗我玩吧！", "拿小拳拳锤你胸口！", "记得把小家加入收藏夹哦！"],
+    "default": ["好久不见，日子过得好快呢……", "大坏蛋！你都多久没理人家了呀，嘤嘤嘤～", "呐～快来逗我玩吧！", "拿小拳拳锤你胸口！", "记得把小家加入收藏夹哦！"],
     "console": "哈哈，你打开了控制台，是想要看看我的小秘密吗？",
     "copy": "你都复制了些什么呀，转载要记得加上出处哦！",
     "visibilitychange": "哇，你终于回来了～"

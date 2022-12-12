@@ -1,7 +1,5 @@
 let live2d = new Live2d();
 // TODO 多语言化
-// TODO 压缩打包
-// TODO TIPS 文件及配置
 function Live2d() {
   /**
    * 包含通用工具方法
@@ -24,7 +22,8 @@ function Live2d() {
       "apiPath": "//api.zsq.im/live2d/",
       "tools": ["hitokoto", "asteroids", "switch-model", "switch-texture", "photo", "info", "quit"],
       "updateTime": "2022.12.09",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "tipsPath": "live2d-tips.json"
     }
     /**
      * Live2d 公开加载入口。
@@ -37,7 +36,7 @@ function Live2d() {
       if (screen.width >= 768) {
         Promise.all([
           util.loadExternalResource(path + "css/live2d.css", "css"),
-          util.loadExternalResource(path + "js/live2d.min.js", "js"),
+          util.loadExternalResource(path + "lib/live2d/live2d.min.js", "js"),
         ]).then(() => {
           this.#path = path;
           this.defaultConfig.tipsPath = path + "live2d-tips.json"
@@ -199,9 +198,42 @@ function Live2d() {
         eval(function(p,a,c,k,e,r){e=function(c){return(c<a?'':e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--)r[e(c)]=k[c]||e(c);k=[function(e){return r[e]}];e=function(){return'\\w+'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('8.d(" ");8.d("\\U,.\\y\\5.\\1\\1\\1\\1/\\1,\\u\\2 \\H\\n\\1\\1\\1\\1\\1\\b \', !-\\r\\j-i\\1/\\1/\\g\\n\\1\\1\\1 \\1 \\a\\4\\f\'\\1\\1\\1 L/\\a\\4\\5\\2\\n\\1\\1 \\1 /\\1 \\a,\\1 /|\\1 ,\\1 ,\\1\\1\\1 \',\\n\\1\\1\\1\\q \\1/ /-\\j/\\1\\h\\E \\9 \\5!\\1 i\\n\\1\\1\\1 \\3 \\6 7\\q\\4\\c\\1 \\3\'\\s-\\c\\2!\\t|\\1 |\\n\\1\\1\\1\\1 !,/7 \'0\'\\1\\1 \\X\\w| \\1 |\\1\\1\\1\\n\\1\\1\\1\\1 |.\\x\\"\\1\\l\\1\\1 ,,,, / |./ \\1 |\\n\\1\\1\\1\\1 \\3\'| i\\z.\\2,,A\\l,.\\B / \\1.i \\1|\\n\\1\\1\\1\\1\\1 \\3\'| | / C\\D/\\3\'\\5,\\1\\9.\\1|\\n\\1\\1\\1\\1\\1\\1 | |/i \\m|/\\1 i\\1,.\\6 |\\F\\1|\\n\\1\\1\\1\\1\\1\\1.|/ /\\1\\h\\G \\1 \\6!\\1\\1\\b\\1|\\n\\1\\1\\1 \\1 \\1 k\\5>\\2\\9 \\1 o,.\\6\\2 \\1 /\\2!\\n\\1\\1\\1\\1\\1\\1 !\'\\m//\\4\\I\\g\', \\b \\4\'7\'\\J\'\\n\\1\\1\\1\\1\\1\\1 \\3\'\\K|M,p,\\O\\3|\\P\\n\\1\\1\\1\\1\\1 \\1\\1\\1\\c-,/\\1|p./\\n\\1\\1\\1\\1\\1 \\1\\1\\1\'\\f\'\\1\\1!o,.:\\Q \\R\\S\\T v"+e.V+" / W "+e.N);8.d(" ");',60,60,'|u3000|uff64|uff9a|uff40|u30fd|uff8d||console|uff8a|uff0f|uff3c|uff84|log|this.#config|uff70|u00b4|uff49||u2010||u3000_|u3008||_|___|uff72|u2500|uff67|u30cf|u30fc||u30bd|u4ece|u30d8|uff1e|__|u30a4|k_|uff17_|u3000L_|u3000i|uff1a|u3009|uff34|uff70r|u30fdL__||___i|updateTime|u30f3|u30ce|nLive2D|u770b|u677f|u5a18|u304f__|version|LIlGG|u00b40i'.split('|'),0,{}));
       }
       model.loadModel(modelId, modelTexturesId);
-      fetch(this.#config["tipsPath"])
-        .then(response => response.json())
-        .then(result => this.#registerEventListener(result));
+      // 加载各个来源的 tips 文件并进行合并
+      this.#loadTips().then(result => this.#registerEventListener(result));
+    }
+
+    /**
+     * 从各个位置，获取 Live2d 提示文件，若配置的 tips 文件读取失败，则会回退到默认 tips 文件
+     *
+     * @returns {Promise<unknown>}
+     */
+    #loadTips() {
+      let config = this.#config;
+      return new Promise((resolve => {
+        Promise.all([
+          util.loadTipsResource(config["themeTipsPath"]),
+          util.loadTipsResource(config["tipsPath"])
+        ]).then(result => {
+          // 后台配置 tips，其中包含 mouseover 及 click 两种配置，以及单独配置的 message
+          let configTips = util.backendConfigConvert(config);
+          // 主题设置 tips，其中包含 mouseover 及 click 两种配置（会过滤掉其他配置）
+          let themeTips = {
+            click: result[0]["click"] || [],
+            mouseover: result[0]["mouseover"] || []
+          };
+          // 配置的 tips 文件，包含所有属性 （click, mouseover, seasons, time, message）
+          let defaultTips = result[1];
+          // 若配置的 tips 文件不存在，则回退到默认 tips
+          if (Object.keys(defaultTips).length === 0) {
+            util.loadTipsResource(this.defaultConfig.tipsPath)
+              .then(tips => {
+                resolve(util.mergeTips(configTips, themeTips, tips));
+              })
+          } else {
+            resolve(util.mergeTips(configTips, themeTips, defaultTips));
+          }
+        })
+      }))
     }
   }
 
@@ -290,6 +322,100 @@ function Live2d() {
    */
   util.randomSelection = function (obj) {
     return Array.isArray(obj) ? obj[Math.floor(Math.random() * obj.length)] : obj;
+  }
+
+  /**
+   * 读取 tips 资源
+   *
+   * @param url 资源链接
+   * @returns {Promise<unknown>}
+   */
+  util.loadTipsResource = function (url) {
+    let defaultObj = {}
+    return new Promise((resolve) => {
+      if (!url) {
+        resolve(defaultObj);
+      }
+      fetch(url)
+        .then(response => response.json())
+        .then(result => {
+          resolve(result)
+        })
+        .catch(() => {
+          resolve(defaultObj)
+        })
+    })
+  }
+
+  /**
+   * 将后台主题中的配置转为适合 TIPS 的格式
+   *
+   * @param config 配置文件
+   */
+  util.backendConfigConvert = function (config = {}) {
+    let tips = {
+      click: [],
+      mouseover: [],
+      message: {}
+    }
+    // selector
+    config["selectorTips"].forEach(item => {
+      let texts = item['messageTexts'].map(text => text.message);
+      let obj = {
+        selector: item['selector'],
+        text: texts
+      }
+      if (item['mouseAction'] === 'click') {
+        tips.click.push(obj);
+      } else {
+        tips.mouseover.push(obj);
+      }
+    })
+    // message
+    tips.message.visibilitychange = config["backSiteTip"];
+    tips.message.copy = config["copyContentTip"];
+    tips.message.console = config["openConsoleTip"];
+    return tips;
+  }
+
+  /**
+   * 合并各个渠道的 tips，根据获取位置不同，合并时优先级也不同。优先级按高到低的顺序为
+   *
+   * <ul>
+   *   <ol>后台插件配置文件中获得的 tips。（该配置文件只支持 mouseover 与 click 两种类型的 tips 属性，另外包括单独配置的 message）</ol>
+   *   <ol>主题文件中设置的 tips （该配置文件只支持 mouseover 与 click 两种类型的 tips 属性）</ol>
+   *   <ol>配置/默认的 tips 文件（该配置文件支持所有的 tips 属性，但其属性会被优先级高的覆盖）</ol>
+   * </ul>
+   *
+   * 请注意，此项返回值为修改后的 defaultTips，任何修改 defaultTips 的情况都将导致返回值同步修改。
+   *
+   * @param configTips 后台配置文件中设置的 tips
+   * @param themeTips 主题提供的 tips
+   * @param defaultTips 配置/默认的 tips
+   */
+  util.mergeTips = function (configTips, themeTips, defaultTips) {
+    let duplicateClick = [...configTips["click"], ...themeTips["click"], ...defaultTips["click"]];
+    let duplicateMouseover = [...configTips["mouseover"], ...themeTips["mouseover"], ...defaultTips["mouseover"]]
+    defaultTips.click = util.distinctArray(duplicateClick, "selector");
+    defaultTips.mouseover = util.distinctArray(duplicateMouseover, "selector");
+    defaultTips.message = {...defaultTips.message, ...configTips.message}
+    return defaultTips;
+  }
+
+  /**
+   * 去重对象数组
+   * @param dupArray 需要去重的数组
+   * @param key 对象数组 key
+   */
+  util.distinctArray = function (dupArray, key) {
+    let obj = {}
+    return dupArray.reduce((curr, next) => {
+      if (!obj[next[key]]) {
+        obj[next[key]] = true;
+        curr.push(next)
+      }
+      return curr;
+    }, [])
   }
 
   message.messageTimer = null;
@@ -427,7 +553,7 @@ function Live2d() {
           if (!window.ASTEROIDSPLAYERS) window.ASTEROIDSPLAYERS = [];
           window.ASTEROIDSPLAYERS.push(new Asteroids());
         } else {
-          util.loadExternalResource(live2d.path + "js/asteroids.js", "js").finally()
+          util.loadExternalResource(live2d.path + "lib/asteroids/asteroids.min.js", "js").finally()
         }
       }
     }
@@ -452,7 +578,6 @@ function Live2d() {
    * @param config
    * @returns {{icon: string, callback: callback}}
    */
-  // TODO 切换模组及纹理功能
   tools["switch-texture"] = function (config = {}) {
     return {
       "icon": config["switch-texture-icon"] || "fa-street-view",
@@ -502,7 +627,7 @@ function Live2d() {
    */
   tools.quit = function (config = {}) {
     return {
-      "icon": config["quitIcon"] || 'fa-times',
+      "icon": config["quitIcon"] || 'humbleicons:times',
       "callback": () => {
         localStorage.setItem("live2d-display", Date.now());
         message.showMessage("愿你有一天能与重要的人重逢。", 2000, 11);
@@ -523,16 +648,22 @@ function Live2d() {
    * @private 私有方法
    */
   tools._registerTools = function (model, config) {
-    tools["switch-model"].callback = () => model.loadOtherModel();
-    tools["switch-texture"].callback = () => model.loadRandModel();
     if (!Array.isArray(config.tools)) {
       config.tools = Object.keys(tools);
     }
     // TODO 小工具样式
     for (let tool of config.tools) {
       if (tools[tool]) {
-        const { icon, callback } = tools[tool](config);
-        document.getElementById("live2d-tool").insertAdjacentHTML("beforeend", `<span id="live2d-tool-${tool}"><i class="iconify" data-icon="${icon}"></i></span>`);
+        let { icon, callback } = tools[tool](config);
+        switch (tool) {
+          case "switch-model":
+            callback = () => model.loadOtherModel();
+            break;
+          case "switch-texture":
+            callback = () => model.loadRandModel();
+            break;
+        }
+        document.getElementById("live2d-tool").insertAdjacentHTML("beforeend", `<span id="live2d-tool-${tool}"><i class="iconify" data-icon="${icon}" data-width="20" data-height="20"></i></span>`);
         document.getElementById(`live2d-tool-${tool}`).addEventListener("click", callback);
       }
     }

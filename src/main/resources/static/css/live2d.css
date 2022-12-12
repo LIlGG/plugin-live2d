@@ -33,6 +33,13 @@
     z-index: 999999;
 }
 
+@media screen and (max-width: 768px) {
+    #live2d-plugin {
+        z-index: 1;
+        display: none;
+    }
+}
+
 #live2d-plugin:hover {
     transform: translateY(0);
 }
