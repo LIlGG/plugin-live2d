@@ -9,7 +9,7 @@ spec:
   author:
     name: LIlGG
     website: https://lixingyong.com
-  logo: /static/images/logo.gif
+  logo: logo.gif
   settingName: plugin-live2d-settings
   configMapName: plugin-live2d-configs
   homepage: https://github.com/LIlGG/plugin-live2d
