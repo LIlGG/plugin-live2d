@@ -9,11 +9,13 @@ spec:
       formSchema:
         - $formkit: text
           label: 默认模型编号
+          help: 默认模型编号为访客首次浏览网站时所展示的模型
           name: modelId
           validation: required|Number
           value: 1
         - $formkit: text
           label: 默认材质编号
+          help: 默认材质编号为访客首次浏览网站时所展示的材质
           name: modelTexturesId
           validation: required|Number
           value: 53
@@ -29,7 +31,7 @@ spec:
               label: 关闭
         - $formkit: checkbox
           if: "$get(isTools).value === true"
-          label: 选择需要开启/关闭的小工具
+          label: 选择需要启用的小工具
           name: tools
           value:
             - hitokoto
