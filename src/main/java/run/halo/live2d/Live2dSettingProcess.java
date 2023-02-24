@@ -3,11 +3,14 @@ package run.halo.live2d;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.util.Map;
 import java.util.Optional;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import run.halo.app.plugin.SettingFetcher;
+
 /**
  * Live2d 配置处理器
  *
@@ -25,36 +28,40 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
 
     private final ThemeFetcher themeFetcher;
 
-    private final Map<String, JsonNode> settingMap;
+    private final SettingFetcher settingFetcher;
 
     private ObjectNode configNode;
 
+    private Map<String, JsonNode> settingMap;
+
     public Live2dSettingProcess(SettingFetcher settingFetcher,
                                 ThemeFetcher themeFetcher) {
-        this.settingMap = settingFetcher.getValues();
+        this.settingFetcher = settingFetcher;
         this.themeFetcher = themeFetcher;
         initConfigNode();
     }
 
-    public void initConfigNode() {
+    public ObjectNode initConfigNode() {
+        this.settingMap = settingFetcher.getValues();
         this.configNode = new ObjectNode(this);
-        this.settingMap.forEach((group, jsonNode) -> {
-            JsonNode node = this.settingMap.get(group);
-            if(log.isDebugEnabled()) {
+        settingMap.forEach((group, jsonNode) -> {
+            JsonNode node = settingMap.get(group);
+            if (log.isDebugEnabled()) {
                 log.debug("live2d config -> {} group save settingMap json {}", group, node.toPrettyString());
             }
             if (jsonNode instanceof ObjectNode) {
-                this.configNode.setAll((ObjectNode) node);
+                configNode.setAll((ObjectNode) node);
             }
         });
         // 移除不必要的参数
-        this.configNode.remove("slots");
-        setThemeLive2dTipsPath();
+        configNode.remove("slots");
+        setThemeLive2dTipsPath(configNode);
+        return configNode;
     }
 
-    private void setThemeLive2dTipsPath() {
+    private void setThemeLive2dTipsPath(ObjectNode configNode) {
         this.themeFetcher.getActiveThemeName().ifPresent(activeThemeName -> {
-            this.configNode.put("themeTipsPath", THEME_TIPS_PATH_TEMPLATE.formatted(activeThemeName));
+            configNode.put("themeTipsPath", THEME_TIPS_PATH_TEMPLATE.formatted(activeThemeName));
         });
     }
 
@@ -65,9 +72,10 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
 
     @Override
     public Optional<JsonNode> getConfig() {
-        if(log.isDebugEnabled()) {
-            log.debug("live2d config -> {}", configNode.toPrettyString());
+        initConfigNode();
+        if (log.isDebugEnabled()) {
+            log.debug("live2d config -> {}", this.configNode.toPrettyString());
         }
-        return Optional.of(configNode);
+        return Optional.of(this.configNode);
     }
 }

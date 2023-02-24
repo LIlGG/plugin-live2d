@@ -1,7 +1,9 @@
 package run.halo.live2d;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import java.util.Objects;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.ITemplateContext;
@@ -26,11 +28,10 @@ import run.halo.app.theme.dialect.TemplateHeadProcessor;
  * 将在网站其他内容加载完成之后再进行初始化，尽量保证不阻塞页面运行。
  * </p>
  *
- * @see <a href="https://github.com/stevenjoezhang/live2d-widget">live2d-widget</a>
- *
  * @author LIlGG
- * @since 2022-11-30
  * @version 1.0.1
+ * @see <a href="https://github.com/stevenjoezhang/live2d-widget">live2d-widget</a>
+ * @since 2022-11-30
  */
 @Component
 @Slf4j
@@ -52,10 +53,8 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
     @Override
     public Mono<Void> process(ITemplateContext context, IModel model,
                               IElementModelStructureHandler structureHandler) {
-        return live2dSetting.getConfig().map(config -> {
-            if (log.isDebugEnabled()) {
-                log.debug("live2d config {}", config.toPrettyString());
-            }
+        return this.live2dSetting.getConfig().map(config -> {
+            log.info("live2d config {}", config.toPrettyString());
             final IModelFactory modelFactory = context.getModelFactory();
             model.add(modelFactory.createText(live2dAutoloadScript(config)));
             return Mono.empty();
@@ -69,30 +68,30 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
             loadTime = node.asText(LIVE2D_LOAD_TIME);
         }
         String template = """
-            live2d.init("%1$s", %2$s)
-            """.formatted(LIVE2D_SOURCE_PATH, config.toPrettyString());
+                live2d.init("%1$s", %2$s)
+                """.formatted(LIVE2D_SOURCE_PATH, config.toPrettyString());
         return """
-            <script src="%1$sjs/live2d-autoload.min.js" %2$s></script>
-            <script type="text/javascript">
-                %3$s
-            </script>
-            """.formatted(LIVE2D_SOURCE_PATH, loadTime, loadLive2d(loadTime, template));
+                <script src="%1$sjs/live2d-autoload.min.js" %2$s></script>
+                <script type="text/javascript">
+                    %3$s
+                </script>
+                """.formatted(LIVE2D_SOURCE_PATH, loadTime, loadLive2d(loadTime, template));
     }
 
     private CharSequence loadLive2d(String loadTime, String loadingScript) {
         String template;
         if (Objects.equals(loadTime, LIVE2D_LOAD_TIME)) {
             template = """
-                document.addEventListener('DOMContentLoaded', () => {
-                    %s
-                })
-                """;
+                    document.addEventListener('DOMContentLoaded', () => {
+                        %s
+                    })
+                    """;
         } else {
             template = """
-                windows.onload = function() {
-                    %s
-                }
-                """;
+                    window.onload = function() {
+                        %s
+                    }
+                    """;
         }
         return template.formatted(loadingScript);
     }

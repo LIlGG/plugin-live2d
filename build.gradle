@@ -1,5 +1,5 @@
 plugins {
-    id "io.github.guqing.plugin-development" version "0.0.6-SNAPSHOT"
+    id "io.github.guqing.plugin-development" version "0.0.8-SNAPSHOT"
     id 'java'
 }
 
