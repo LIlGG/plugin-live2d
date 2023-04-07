@@ -19,35 +19,39 @@ import run.halo.app.plugin.SettingFetcher;
  */
 @Component
 @Slf4j
-public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetting {
-
+public class Live2dSettingProcess extends JsonNodeFactory
+    implements Live2dSetting {
+    
     /**
      * 适用于主题的 tips 路径
      */
-    private final static String THEME_TIPS_PATH_TEMPLATE = "/themes/%s/assets/live2d/tips.json";
-
+    private final static String THEME_TIPS_PATH_TEMPLATE
+        = "/themes/%s/assets/live2d/tips.json";
+    
     private final ThemeFetcher themeFetcher;
-
+    
     private final SettingFetcher settingFetcher;
-
+    
     private ObjectNode configNode;
-
+    
     private Map<String, JsonNode> settingMap;
-
+    
     public Live2dSettingProcess(SettingFetcher settingFetcher,
-                                ThemeFetcher themeFetcher) {
+        ThemeFetcher themeFetcher) {
         this.settingFetcher = settingFetcher;
         this.themeFetcher = themeFetcher;
         initConfigNode();
     }
-
+    
     public ObjectNode initConfigNode() {
         this.settingMap = settingFetcher.getValues();
         this.configNode = new ObjectNode(this);
         settingMap.forEach((group, jsonNode) -> {
             JsonNode node = settingMap.get(group);
             if (log.isDebugEnabled()) {
-                log.debug("live2d config -> {} group save settingMap json {}", group, node.toPrettyString());
+                log.debug("live2d config -> {} group save settingMap json {}",
+                    group, node.toPrettyString()
+                );
             }
             if (jsonNode instanceof ObjectNode) {
                 configNode.setAll((ObjectNode) node);
@@ -58,18 +62,21 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
         setThemeLive2dTipsPath(configNode);
         return configNode;
     }
-
+    
     private void setThemeLive2dTipsPath(ObjectNode configNode) {
         this.themeFetcher.getActiveThemeName().ifPresent(activeThemeName -> {
-            configNode.put("themeTipsPath", THEME_TIPS_PATH_TEMPLATE.formatted(activeThemeName));
+            configNode.put("themeTipsPath",
+                THEME_TIPS_PATH_TEMPLATE.formatted(activeThemeName)
+            );
         });
     }
-
+    
     @Override
     public JsonNode getValue(String groupName, String key) {
-        return this.settingMap.getOrDefault(groupName, new ObjectNode(this)).get(key);
+        return this.settingMap.getOrDefault(groupName, new ObjectNode(this))
+            .get(key);
     }
-
+    
     @Override
     public Optional<JsonNode> getConfig() {
         initConfigNode();

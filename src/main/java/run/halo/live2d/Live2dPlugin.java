@@ -10,7 +10,7 @@ import run.halo.app.plugin.BasePlugin;
  */
 @Component
 public class Live2dPlugin extends BasePlugin {
-
+    
     public Live2dPlugin(PluginWrapper wrapper) {
         super(wrapper);
     }

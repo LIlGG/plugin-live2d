@@ -12,11 +12,11 @@ public interface Live2dSetting {
      * 根据 Key 获取 settings.yaml 内的值
      *
      * @param groupName 组
-     * @param key key
+     * @param key       key
      * @return JsonNode
      */
     JsonNode getValue(String groupName, String key);
-
+    
     /**
      * 获取适用于 Live2d 的配置
      *
