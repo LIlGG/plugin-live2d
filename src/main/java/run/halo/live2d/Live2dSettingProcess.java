@@ -3,13 +3,12 @@ package run.halo.live2d;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import java.util.Map;
-import java.util.Optional;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import run.halo.app.plugin.SettingFetcher;
+
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Live2d 配置处理器
@@ -66,8 +65,13 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
     }
 
     @Override
+    public JsonNode getGroup(String groupName) {
+        return this.settingMap.getOrDefault(groupName, new ObjectNode(this));
+    }
+
+    @Override
     public JsonNode getValue(String groupName, String key) {
-        return this.settingMap.getOrDefault(groupName, new ObjectNode(this)).get(key);
+        return getGroup(groupName).get(key);
     }
 
     @Override

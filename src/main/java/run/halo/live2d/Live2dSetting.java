@@ -8,6 +8,15 @@ import java.util.Optional;
  * @since 2022-12-04
  */
 public interface Live2dSetting {
+
+    /**
+     * 根据组名获取 settings.yaml 内的组数据集合
+     *
+     * @param groupName 组
+     * @return JsonNode
+     */
+    JsonNode getGroup(String groupName);
+
     /**
      * 根据 Key 获取 settings.yaml 内的值
      *
