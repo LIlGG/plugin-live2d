@@ -66,6 +66,7 @@ public class Live2dSettingProcess extends JsonNodeFactory implements Live2dSetti
 
     @Override
     public JsonNode getGroup(String groupName) {
+        initConfigNode();
         return this.settingMap.getOrDefault(groupName, new ObjectNode(this));
     }
 

@@ -175,6 +175,78 @@ spec:
           label: 自定义提示语文件
           help: 可以参考 live2d-tips.json 文件编写【如果当前项被填写，则默认提示语则不再生效】
           name: tipsPath
+    - group: openai
+      label: OpenAI 设置
+      formSchema:
+        - $formkit: radio
+          label: 启用 OpenAI
+          help: 启用后，Live2d 将可以使用 OpenAI 进行智能对话
+          name: isOpenai
+          id: isOpenai
+          key: isOpenai
+          value: false
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: text
+          if: "$get(isOpenai).value === true"
+          label: TOKEN
+          help: sk-xxx，可在 https://beta.openai.com/account/api-keys 获取
+          name: token
+          validation: required|String
+        - $formkit: text
+          if: "$get(isOpenai).value === true"
+          label: API_BASE_URL
+          help: 接口地址，国内如果访问不了，可考虑使用 openai-api-proxy
+          name: baseUrl
+          value: https://api.openai.com
+          validation: required|String
+        - $formkit: select
+          if: "$get(isOpenai).value === true"
+          name: model
+          label: 模型
+          help: 使用的 OpenAi 模型，可在 https://platform.openai.com/docs/models 查看
+          value: gpt-3.5-turbo
+          options:
+            - value: gpt-4
+              label: gpt-4
+            - value: gpt-3.5-turbo
+              label: gpt-3.5-turbo
+            - value: gpt-3.5-turbo-0301
+              label: gpt-3.5-turbo-0301
+            - value: text-davinci-003
+              label: text-davinci-003
+        - $formkit: text
+          if: "$get(isOpenai).value === true"
+          label: 接口超时时间（秒）
+          name: timeout
+          value: 30
+          validation: Number
+        - $formkit: radio
+          if: "$get(isOpenai).value === true"
+          label: 启用代理
+          help: 建议自建代理，而不是使用别人的公开代理
+          name: isProxy
+          id: isProxy
+          key: isProxy
+          value: false
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
+        - $formkit: text
+          if: "$get(isOpenai).value === true && $get(isProxy).value === true"
+          label: 代理地址
+          name: proxyHost
+          validation: String
+        - $formkit: text
+          if: "$get(isOpenai).value === true && $get(isProxy).value === true"
+          label: 代理端口
+          name: proxyPort
+          validation: Number
     - group: advanced
       label: 高级设置
       formSchema:
