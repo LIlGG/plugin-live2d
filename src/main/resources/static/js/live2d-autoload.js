@@ -15,6 +15,11 @@ function Live2d() {
    */
   const tools = {}
 
+  /**
+  * openai
+  */
+  const openai = {}
+
   class Live2d {
     #path;
     #config;
@@ -511,6 +516,15 @@ function Live2d() {
     return text;
   }
 
+  tools.openai = function (config = {}) {
+    return {
+      "icon": config["infoIcon"] || "fa-info-circle",
+      "callback": () => {
+        openai.chatWindows();
+      }
+    }
+  }
+
   /**
    * Live2d 右侧一言小工具
    *
@@ -650,9 +664,14 @@ function Live2d() {
    * @private 私有方法
    */
   tools._registerTools = function (model, config) {
+  debugger;
     if (!Array.isArray(config.tools)) {
       config.tools = Object.keys(tools);
     }
+//    if (config.isOpenai) {
+//      config.tools.push("openai");
+//    }
+    config.tools.unshift("openai");
     // TODO 小工具样式
     for (let tool of config.tools) {
       if (tools[tool]) {
@@ -669,6 +688,86 @@ function Live2d() {
         document.getElementById(`live2d-tool-${tool}`).addEventListener("click", callback);
       }
     }
+  }
+
+  /**
+   * 使用 openai 发送流式聊天消息
+   *
+   * @param {*} message
+   */
+  openai.sendMessage = async function (message) {
+    let historyMessages = localStorage.getItem("historyMessages") || [];
+    let newMessage = {
+      role: "user",
+      content: message
+    }
+    historyMessages.push(newMessage);
+    const response = await fetch('/apis/api.plugin.halo.run/v1alpha1/plugins/PluginLive2d/openai/chat-process', {
+      method: "POST",
+      cache: "no-cache",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream",
+      },
+      body: JSON.stringify({
+        message: historyMessages
+      }),
+    });
+
+    const reader = response.body.getReader();
+    while (true) {
+      const {value, done} = await reader.read();
+      if (done) {
+//        localStorage.setItem("historyMessages", historyMessages);
+        break;
+      }
+      console.log('get.message', new TextDecoder().decode(value));
+    }
+  }
+
+  openai.chatWindows = function() {
+    let model = document.getElementById("live2d-chat-model");
+    if (model) {
+        if (model.classList.contains("live2d-chat-model-active")) {
+            model.classList.remove("live2d-chat-model-active");
+        } else {
+            model.classList.add("live2d-chat-model-active");
+        }
+        return;
+    }
+    document.body.insertAdjacentHTML("beforeend",
+     `<div id="live2d-chat-model" class="live2d-chat-model-active">
+        <div class="live2d-chat-model-body">
+           <div class="live2d-chat-content">
+             <input id="live2d-chat-input" type="text" required />
+           </div>
+           <span id="live2d-chat-send">
+             <i class="iconify" data-icon="mingcute:send-plane-fill" data-width="20" data-height="20" style="color: white;"></i>
+           </span>
+        </div>
+      </div>`
+    );
+    let send = document.getElementById("live2d-chat-send");
+    let input = document.getElementById("live2d-chat-input");
+
+    input.addEventListener("input", (e) => {
+      let message = input.value;
+      if (message.length > 0) {
+        send.classList.add("active");
+        send.removeAttribute("disabled");
+      } else {
+        send.classList.remove("active");
+        send.setAttribute("disabled", "disabled");
+      }
+    });
+
+    send.addEventListener("click", () => {
+      let message = input.value;
+      if (message.length > 0) {
+        openai.sendMessage(message);
+      }
+    });
   }
 
   return new Live2d();

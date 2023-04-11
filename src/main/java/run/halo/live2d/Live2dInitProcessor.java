@@ -2,8 +2,10 @@ package run.halo.live2d;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Objects;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.ITemplateContext;
@@ -35,6 +37,7 @@ import run.halo.app.theme.dialect.TemplateHeadProcessor;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class Live2dInitProcessor implements TemplateHeadProcessor {
 
     private final static String LIVE2D_LOAD_TIME = "defer";
@@ -44,54 +47,65 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
      */
     private final static String LIVE2D_SOURCE_PATH = "/plugins/PluginLive2d/assets/static/";
 
-    private final Live2dSetting live2dSetting;
+    /**
+     * 适用于主题的 tips 路径
+     */
+    private final static String THEME_TIPS_PATH_TEMPLATE = "/themes/%s/assets/live2d/tips.json";
 
-    public Live2dInitProcessor(Live2dSetting live2dSetting) {
-        this.live2dSetting = live2dSetting;
-    }
+    private final ThemeFetcher themeFetcher;
+
+    private final Live2dSetting live2dSetting;
 
     @Override
     public Mono<Void> process(ITemplateContext context, IModel model,
-                              IElementModelStructureHandler structureHandler) {
-        return this.live2dSetting.getConfig().map(config -> {
-            log.info("live2d config {}", config.toPrettyString());
-            final IModelFactory modelFactory = context.getModelFactory();
-            model.add(modelFactory.createText(live2dAutoloadScript(config)));
-            return Mono.empty();
-        }).orElse(Mono.empty()).then();
+        IElementModelStructureHandler structureHandler) {
+        return this.live2dSetting.getConfig()
+            .flatMap(config -> themeFetcher.getActiveThemeName()
+                .map(themeName -> {
+                    ((ObjectNode) config).put("tips",
+                        String.format(THEME_TIPS_PATH_TEMPLATE, themeName));
+                    return config;
+                })
+            )
+            .flatMap(config -> {
+                log.info("live2d config {}", config.toPrettyString());
+                final IModelFactory modelFactory = context.getModelFactory();
+                return live2dAutoloadScript(config).flatMap(script -> {
+                    model.add(modelFactory.createText(script));
+                    return Mono.empty();
+                });
+            }).then();
     }
 
-    private CharSequence live2dAutoloadScript(JsonNode config) {
-        String loadTime = LIVE2D_LOAD_TIME;
-        JsonNode node = this.live2dSetting.getValue("advanced", "loadTime");
-        if (Objects.nonNull(node)) {
-            loadTime = node.asText(LIVE2D_LOAD_TIME);
-        }
+    private Mono<CharSequence> live2dAutoloadScript(JsonNode config) {
         String template = """
-                live2d.init("%1$s", %2$s)
-                """.formatted(LIVE2D_SOURCE_PATH, config.toPrettyString());
-        return """
-                <script src="%1$sjs/live2d-autoload.min.js" %2$s></script>
+            live2d.init("%1$s", %2$s)
+            """.formatted(LIVE2D_SOURCE_PATH, config.toPrettyString());
+        return this.live2dSetting.getValue("advanced", "loadTime")
+            .map(node -> node.asText(LIVE2D_LOAD_TIME))
+            .map(loadTime -> """
+                <script src="%1$sjs/live2d-autoload.js" %2$s></script>
                 <script type="text/javascript">
                     %3$s
                 </script>
-                """.formatted(LIVE2D_SOURCE_PATH, loadTime, loadLive2d(loadTime, template));
+                """.formatted(LIVE2D_SOURCE_PATH, loadTime, loadLive2d(loadTime, template))
+            );
     }
 
     private CharSequence loadLive2d(String loadTime, String loadingScript) {
         String template;
         if (Objects.equals(loadTime, LIVE2D_LOAD_TIME)) {
             template = """
-                    document.addEventListener('DOMContentLoaded', () => {
-                        %s
-                    })
-                    """;
+                document.addEventListener('DOMContentLoaded', () => {
+                    %s
+                })
+                """;
         } else {
             template = """
-                    window.onload = function() {
-                        %s
-                    }
-                    """;
+                window.onload = function() {
+                    %s
+                }
+                """;
         }
         return template.formatted(loadingScript);
     }

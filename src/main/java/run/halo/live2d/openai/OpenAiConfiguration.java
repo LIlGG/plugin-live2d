@@ -1,5 +1,6 @@
 package run.halo.live2d.openai;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
@@ -9,10 +10,10 @@ import run.halo.live2d.openai.service.OpenAiService;
 import run.halo.live2d.openai.service.impl.OpenAIServiceImpl;
 
 @Component
-public class OpenAiConfiguration  {
-
+public class OpenAiConfiguration {
+    
     private final Live2dSetting live2dSetting;
-
+    
     public OpenAiConfiguration(Live2dSetting live2dSetting) {
         this.live2dSetting = live2dSetting;
     }
@@ -21,6 +22,11 @@ public class OpenAiConfiguration  {
     @Bean
     @ConditionalOnMissingBean
     public OpenAiService openAiService() {
-        return new OpenAIServiceImpl(live2dSetting.getGroup("openai"));
+        JsonNode openai = live2dSetting.getGroup("openai").block();
+        if (openai.has("isOpenai") &&
+            openai.get("isOpenai").asBoolean()) {
+            return new OpenAIServiceImpl(openai);
+        }
+        return null;
     }
 }

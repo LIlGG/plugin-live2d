@@ -1,0 +1,16 @@
+apiVersion: v1alpha1
+kind: "Role"
+metadata:
+  name: role-template-live2d
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "Live2d"
+    rbac.authorization.halo.run/display-name: "Live2d"
+    rbac.authorization.halo.run/ui-permissions: |
+      ["plugin:PluginLive2d:live2d"]
+rules:
+  - apiGroups: [ "plugin.halo.run" ]
+    resources: [ "openai/chat-process" ]
+    resourceNames: [ "PluginLive2d" ]
+    verbs: [ "create" ]
