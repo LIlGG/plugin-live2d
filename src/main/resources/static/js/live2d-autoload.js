@@ -451,6 +451,47 @@ function Live2d() {
     }, timeout);
   }
 
+    /**
+     * 创建一个流式效果的消息框。
+     * 此消息框的优先级将大于所有其他消息框优先级，且不会被其他消息覆盖。
+     *
+     * @param timeout 等待消息流的最大时间，超过此时间将自动关闭流消息框
+     * @param showTimeout 消息全部接受完之后，展示时长
+     */
+    message.createStreamMessage = function (timeout, showTimeout) {
+      const priority = 99999;
+
+      const updateTimer = function(time) {
+        if (this.messageTimer) {
+            clearTimeout(this.messageTimer);
+            this.messageTimer = null;
+        }
+        this.messageTimer = setTimeout(() => {
+            sessionStorage.removeItem("live2d-priority");
+            tips.classList.remove("live2d-tips-active");
+        }, time);
+      }
+
+      sessionStorage.setItem("live2d-priority", priority);
+      const tips = document.getElementById("live2d-tips");
+      tips.innerHTML = "";
+      tips.classList.add("live2d-tips-active");
+      updateTimer(timeout);
+
+      const sendMessage = function(text) {
+        tips.innerHTML += text;
+      }
+
+      const stop = function() {
+        updateTimer(showTimeout);
+      }
+
+      return {
+        sendMessage,
+        stop
+      }
+    }
+
   /**
    * 显示一言
    *
@@ -520,7 +561,7 @@ function Live2d() {
     return {
       "icon": config["infoIcon"] || "fa-info-circle",
       "callback": () => {
-        openai.chatWindows();
+        openai.chatWindows(config);
       }
     }
   }
@@ -664,7 +705,6 @@ function Live2d() {
    * @private 私有方法
    */
   tools._registerTools = function (model, config) {
-  debugger;
     if (!Array.isArray(config.tools)) {
       config.tools = Object.keys(tools);
     }
@@ -693,15 +733,19 @@ function Live2d() {
   /**
    * 使用 openai 发送流式聊天消息
    *
-   * @param {*} message
+   * @param {*} msg
    */
-  openai.sendMessage = async function (message) {
-    let historyMessages = localStorage.getItem("historyMessages") || [];
-    let newMessage = {
+  openai.sendMessage = async function (msg, config = {}) {
+    openai.loading = true;
+    document.getElementById("loadingIcon").style.display = "block";
+    document.getElementById("send").style.display = "none";
+
+    let historyMessages = JSON.parse(localStorage.getItem("historyMessages")) || [];
+    let userMessage = {
       role: "user",
-      content: message
+      content: msg
     }
-    historyMessages.push(newMessage);
+    historyMessages.push(userMessage);
     const response = await fetch('/apis/api.plugin.halo.run/v1alpha1/plugins/PluginLive2d/openai/chat-process', {
       method: "POST",
       cache: "no-cache",
@@ -712,21 +756,75 @@ function Live2d() {
       },
       body: JSON.stringify({
         message: historyMessages
-      }),
+      })
     });
 
+    if (!response.ok) {
+        message.showMessage("对话接口异常了哦～快去联系我的主人吧！", 5000, 11);
+        console.log('get.message.error', response);
+        return;
+    }
+
+    let chatMessage = {
+        content: "",
+    };
+
     const reader = response.body.getReader();
+    const textDecoder = new TextDecoder();
+    const chat = message.createStreamMessage(
+      Number(config["chunkTimeout"] || 60) * 1000,
+      Number(config["showChatMessageTimeout"] || 10) * 1000
+    )
+
+    document.getElementById("send").style.display = "block";
+    document.getElementById("loadingIcon").style.display = "none";
+    openai.loading = false;
     while (true) {
       const {value, done} = await reader.read();
       if (done) {
-//        localStorage.setItem("historyMessages", historyMessages);
         break;
       }
-      console.log('get.message', new TextDecoder().decode(value));
+      let text = textDecoder.decode(value);
+      const textArrays = text.split("\n\n");
+      textArrays.forEach((text) => {
+        if (text.startsWith("data:")) {
+           let dataIndex = text.indexOf("data:");
+           if(dataIndex !== -1) {
+             text = text.substring(dataIndex + 5);
+           }
+           try {
+              let chunkJson = JSON.parse(text);
+              if (chunkJson.choices.length > 0) {
+                let choices = chunkJson.choices;
+                choices.forEach((choice) => {
+                   if (choice.finish_reason === "stop") {
+                    historyMessages.push(chatMessage);
+                    localStorage.setItem("historyMessages", JSON.stringify(historyMessages));
+                    chat.stop();
+                   }
+
+                   if (!!choice.message.role) {
+                     chatMessage.role = choice.message.role;
+                   }
+
+                   if (!!choice.message.content) {
+                     chatMessage.content += choice.message.content;
+                     chat.sendMessage(choice.message.content);
+                   }
+                })
+              }
+           } catch(error) {
+             console.log('get.message.error', error);
+           }
+        }
+      })
+      console.log('get.message', text);
     }
   }
 
-  openai.chatWindows = function() {
+  openai.loading = false;
+
+  openai.chatWindows = function(config = {}) {
     let model = document.getElementById("live2d-chat-model");
     if (model) {
         if (model.classList.contains("live2d-chat-model-active")) {
@@ -743,7 +841,8 @@ function Live2d() {
              <input id="live2d-chat-input" type="text" required />
            </div>
            <span id="live2d-chat-send">
-             <i class="iconify" data-icon="mingcute:send-plane-fill" data-width="20" data-height="20" style="color: white;"></i>
+             <i class="iconify" id="send" data-icon="mingcute:send-plane-fill" data-width="20" data-height="20" style="color: white;"></i>
+             <i class="iconify" id="loadingIcon" data-icon="line-md:loading-twotone-loop" data-width="20" data-height="20" style="color: white; display: none;"></i>
            </span>
         </div>
       </div>`
@@ -753,7 +852,7 @@ function Live2d() {
 
     input.addEventListener("input", (e) => {
       let message = input.value;
-      if (message.length > 0) {
+      if (message.length > 0 && !openai.loading) {
         send.classList.add("active");
         send.removeAttribute("disabled");
       } else {
@@ -764,8 +863,11 @@ function Live2d() {
 
     send.addEventListener("click", () => {
       let message = input.value;
-      if (message.length > 0) {
-        openai.sendMessage(message);
+      if (message.length > 0 && !openai.loading) {
+        input.value = "";
+        send.classList.remove("active");
+        send.setAttribute("disabled", "disabled");
+        openai.sendMessage(message, config);
       }
     });
   }

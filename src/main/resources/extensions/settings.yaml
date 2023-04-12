@@ -229,7 +229,21 @@ spec:
           if: "$get(isOpenai).value === true"
           label: 接口超时时间（秒）
           name: timeout
-          value: 30
+          value: 10
+          validation: Number
+        - $formkit: text
+          if: "$get(isOpenai).value === true"
+          label: 看板娘消息框最大等待时间（秒）
+          help: 请求接口数据时，看板娘消息框最大等待时间
+          name: chunkTimeout
+          value: 10
+          validation: Number
+        - $formkit: text
+          if: "$get(isOpenai).value === true"
+          label: 看板娘展示完整消息时间（秒）
+          help: 获取到完整消息后，看板娘展示的时间
+          name: showChatMessageTimeout
+          value: 10
           validation: Number
         - $formkit: radio
           if: "$get(isOpenai).value === true"

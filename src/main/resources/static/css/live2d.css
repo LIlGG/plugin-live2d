@@ -122,6 +122,11 @@
     transform: translate(-50%, -50%);
     overflow: hidden;
     z-index: 999999;
+    display: none;
+}
+
+#live2d-chat-model.live2d-chat-model-active {
+    display: block;
 }
 
 #live2d-chat-model .live2d-chat-model-body {

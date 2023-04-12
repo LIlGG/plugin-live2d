@@ -13,29 +13,46 @@ import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.util.Assert;
 import retrofit2.Retrofit;
 import run.halo.live2d.openai.service.OpenAiService;
 
 @Slf4j
 public class OpenAIServiceImpl implements OpenAiService {
     private final com.theokanning.openai.service.OpenAiService openAiService;
-    
+
     private final JsonNode openAiConfig;
-    
-    public OpenAIServiceImpl(JsonNode openAiConfig) {
+
+    private volatile static OpenAiService singleton;
+
+    public static OpenAiService getOpenAiService(JsonNode openAiConfig) {
+        Assert.notNull(openAiConfig, "OpenAI config must not be null");
+        if (!openAiConfig.has("isOpenai") || !openAiConfig.get("isOpenai").asBoolean()) {
+            return null;
+        }
+        if (singleton == null) {
+            synchronized (OpenAiService.class) {
+                if (singleton == null) {
+                    singleton = new OpenAIServiceImpl(openAiConfig);
+                }
+            }
+        }
+        return singleton;
+    }
+
+    private OpenAIServiceImpl(JsonNode openAiConfig) {
         this.openAiConfig = openAiConfig;
         OpenAiApi api = initOpenAiAPi();
-        this.openAiService = new com.theokanning.openai.service.OpenAiService(
-            api);
+        this.openAiService = new com.theokanning.openai.service.OpenAiService(api);
     }
-    
+
     private OpenAiApi initOpenAiAPi() {
         ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient();
         Retrofit retrofit = defaultRetrofit(client, mapper);
         return retrofit.create(OpenAiApi.class);
     }
-    
+
     Retrofit defaultRetrofit(OkHttpClient client, ObjectMapper mapper) {
         Retrofit retrofit
             = com.theokanning.openai.service.OpenAiService.defaultRetrofit(
@@ -47,19 +64,19 @@ public class OpenAIServiceImpl implements OpenAiService {
         }
         return retrofit;
     }
-    
+
     OkHttpClient defaultClient() {
         if (!openAiConfig.has("token") || StringUtils.isEmpty(
             openAiConfig.get("token").asText())) {
             throw new IllegalArgumentException("OpenAI token is required");
         }
-        
+
         OkHttpClient client
             = com.theokanning.openai.service.OpenAiService.defaultClient(
             openAiConfig.get("token").asText(),
             Duration.ofSeconds(openAiConfig.get("timeout").asInt())
         );
-        
+
         if (openAiConfig.get("isProxy").asBoolean()) {
             Proxy proxy = new Proxy(Proxy.Type.HTTP,
                 new InetSocketAddress(openAiConfig.get("proxyHost").asText(),
@@ -68,20 +85,20 @@ public class OpenAIServiceImpl implements OpenAiService {
             );
             client.newBuilder().proxy(proxy).build();
         }
-        
+
         return client;
     }
-    
+
     ObjectMapper defaultObjectMapper() {
         return com.theokanning.openai.service.OpenAiService.defaultObjectMapper();
     }
-    
+
     @Override
     public ChatCompletionResult createChatCompletion(
         ChatCompletionRequest request) {
         return openAiService.createChatCompletion(request);
     }
-    
+
     @Override
     public Flowable<ChatCompletionChunk> streamChatCompletion(
         ChatCompletionRequest request) {
