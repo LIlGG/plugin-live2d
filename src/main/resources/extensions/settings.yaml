@@ -234,8 +234,6 @@ spec:
               label: gpt-3.5-turbo
             - value: gpt-3.5-turbo-0301
               label: gpt-3.5-turbo-0301
-            - value: text-davinci-003
-              label: text-davinci-003
         - $formkit: text
           if: "$get(isOpenai).value === true"
           label: 接口超时时间（秒）

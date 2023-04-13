@@ -38,7 +38,6 @@ public class OpenAiController {
     @PostMapping(value = "/chat-process", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     Flux<ChatCompletionChunk> chatProcess(@RequestBody ChatRequest body,
         @AuthenticationPrincipal Authentication authentication) {
-        System.out.println(authentication);
         return this.live2dSetting.getValue("openai", "isAnonymous").doOnNext(
             isAnonymous -> {
                 if (!isAnonymous.asBoolean() && !isAuthenticated(
