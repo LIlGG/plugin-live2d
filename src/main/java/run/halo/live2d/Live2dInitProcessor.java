@@ -1,17 +1,14 @@
 package run.halo.live2d;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Objects;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.context.ITemplateContext;
 import org.thymeleaf.model.IModel;
 import org.thymeleaf.model.IModelFactory;
-
 import org.thymeleaf.processor.element.IElementModelStructureHandler;
 import reactor.core.publisher.Mono;
 import run.halo.app.theme.dialect.TemplateHeadProcessor;
@@ -66,6 +63,7 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
                         String.format(THEME_TIPS_PATH_TEMPLATE, themeName));
                     return config;
                 })
+                .map(this::preprocessConfig)
             )
             .flatMap(config -> {
                 log.info("live2d config {}", config.toPrettyString());
@@ -75,6 +73,18 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
                     return Mono.empty();
                 });
             }).then();
+    }
+
+    private JsonNode preprocessConfig(JsonNode config) {
+        ((ObjectNode)config).remove("isLogin");
+        ((ObjectNode)config).remove("baseUrl");
+        ((ObjectNode)config).remove("systemMessage");
+        ((ObjectNode)config).remove("model");
+        ((ObjectNode)config).remove("token");
+        ((ObjectNode)config).remove("isProxy");
+        ((ObjectNode)config).remove("proxyHost");
+        ((ObjectNode)config).remove("proxyPort");
+        return config;
     }
 
     private Mono<CharSequence> live2dAutoloadScript(JsonNode config) {
