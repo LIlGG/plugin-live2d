@@ -94,7 +94,7 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
         return this.live2dSetting.getValue("advanced", "loadTime")
             .map(node -> node.asText(LIVE2D_LOAD_TIME))
             .map(loadTime -> """
-                <script src="%1$sjs/live2d-autoload.js" %2$s></script>
+                <script src="%1$sjs/live2d-autoload.min.js" %2$s></script>
                 <script type="text/javascript">
                     %3$s
                 </script>
