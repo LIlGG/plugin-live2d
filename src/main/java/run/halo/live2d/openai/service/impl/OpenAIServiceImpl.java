@@ -58,8 +58,12 @@ public class OpenAIServiceImpl implements OpenAiService {
             = com.theokanning.openai.service.OpenAiService.defaultRetrofit(
             client, mapper);
         if (openAiConfig.has("baseUrl")) {
+            String baseUrl = openAiConfig.get("baseUrl").asText();
+            if (!baseUrl.endsWith("/")) {
+                baseUrl += "/";
+            }
             retrofit.newBuilder()
-                .baseUrl(openAiConfig.get("baseUrl").asText())
+                .baseUrl(baseUrl)
                 .build();
         }
         return retrofit;

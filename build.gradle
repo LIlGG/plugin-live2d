@@ -18,8 +18,10 @@ jar {
     manifest.attributes(
             'Plugin-Version': "${project.version}",
     )
-    into('lib') {
-        from configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
     }
 }
 
