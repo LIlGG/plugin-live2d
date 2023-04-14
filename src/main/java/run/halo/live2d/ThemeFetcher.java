@@ -1,17 +1,12 @@
 package run.halo.live2d;
 
-import com.nimbusds.jose.util.JSONObjectUtils;
-
-import java.text.ParseException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
-import run.halo.app.core.extension.Theme;
+import reactor.core.publisher.Mono;
 import run.halo.app.extension.ConfigMap;
-import run.halo.app.extension.ExtensionClient;
+import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.infra.SystemSetting;
+import run.halo.app.infra.utils.JsonUtils;
 
 /**
  * @author LIlGG
@@ -20,23 +15,19 @@ import run.halo.app.infra.SystemSetting;
 @Component
 public class ThemeFetcher {
 
-    private final ExtensionClient extensionClient;
+    private final ReactiveExtensionClient extensionClient;
 
-    public ThemeFetcher(ExtensionClient extensionClient) {
+    public ThemeFetcher(ReactiveExtensionClient extensionClient) {
         this.extensionClient = extensionClient;
     }
 
-    public Optional<String> getActiveThemeName() {
-        final Map<String, String> configMap = this.extensionClient
-                .fetch(ConfigMap.class, SystemSetting.SYSTEM_CONFIG)
-                .map(ConfigMap::getData)
-                .orElse(new HashMap<>());
-        try {
-            Map<String, Object> activeJson = JSONObjectUtils.parse(configMap.get("theme"));
-            return Optional.ofNullable((String) activeJson.get("active"));
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return Optional.empty();
+    public Mono<String> getActiveThemeName() {
+        return this.extensionClient.fetch(ConfigMap.class,
+                SystemSetting.SYSTEM_CONFIG
+            )
+            .map(ConfigMap::getData)
+            .map(data -> JsonUtils.jsonToObject(
+                data.get("theme"), JsonNode.class).get("active").asText()
+            );
     }
 }

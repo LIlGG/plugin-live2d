@@ -1,15 +1,15 @@
 plugins {
+    id "io.freefair.lombok" version "8.0.0-rc2"
     id "io.github.guqing.plugin-development" version "0.0.8-SNAPSHOT"
     id 'java'
 }
 
-group 'run.halo.starter'
+group 'run.halo.live2d'
 sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/releases' }
-    maven { url 'https://repo.spring.io/milestone' }
     mavenCentral()
+    maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
 }
 
 jar {
@@ -26,20 +26,17 @@ jar {
 }
 
 dependencies {
-    compileOnly platform("run.halo.dependencies:halo-dependencies:1.0.0")
-    compileOnly 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'com.theokanning.openai-gpt3-java:service:0.12.0'
 
-    compileOnly files("lib/halo-2.0.0-SNAPSHOT-plain.jar")
+    implementation platform('run.halo.tools.platform:plugin:2.5.0-SNAPSHOT')
+    compileOnly 'run.halo.app:api'
 
-    compileOnly 'org.projectlombok:lombok:1.18.22'
-    annotationProcessor 'org.projectlombok:lombok:1.18.22'
-
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testImplementation 'run.halo.app:api'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
+test {
+    useJUnitPlatform()
 }
 
 build {
