@@ -1,8 +1,8 @@
 <h1 align="center">Live2d Plugin for Halo</h1>
 <p align="center">
-  <a href="https://github.com/halo-dev/halo"><img alt="Halo version" src="https://img.shields.io/badge/halo-2.0.0%2B-brightgreen?style=for-the-badge" /></a>
+  <a href="https://github.com/halo-dev/halo"><img alt="Halo version" src="https://img.shields.io/badge/halo-2.4.0%2B-brightgreen?style=for-the-badge" /></a>
   <a href="https://github.com/LIlGG/halo-theme-sakura"><img alt="Build Status" src="https://img.shields.io/badge/build-positive-brightgreen?style=for-the-badge"></a>
-  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-1.0.2-blue?style=for-the-badge"></a>
+  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-1.1.0-blue?style=for-the-badge"></a>
   <a href="./LICENSE"><img alt="LICENSE MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge"></a>
 </p>
 
@@ -19,6 +19,15 @@
 1. 前往 [Github Release](https://github.com/LIlGG/plugin-live2d/releases/latest) 下载 jar 包
 2. 通过 Halo-2.x [安装插件](https://docs.halo.run/user-guide/plugins#%E5%AE%89%E8%A3%85%E6%8F%92%E4%BB%B6) 功能安装本插件
 3. 打开网站，即可在左下角看到萌萌哒的看板娘哦~
+
+## 功能介绍
+- [x] 一只萌萌的看板娘，为网站增添一份活力
+- [x] 基于 OpenAi 的对话交互功能【会思考的萌娘】
+- [x] 一键换装、换肤
+- [x] 支持一言功能
+- [x] 小飞机游戏（把坏人全都打跑！）
+- [x] 自定义看板娘接口
+- [x] 支持外部自定义 TIPS 文件，更适合你的网站
 
 ## 自定义配置
 > 此部分内容建议初步尝试过 Live2d 的用户观看。
