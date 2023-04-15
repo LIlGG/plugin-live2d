@@ -95,9 +95,14 @@ function Live2d() {
             <div id="live2d-tool"></div>
         </div>`
       );
+      let live2dDom = document.getElementById("live2d-plugin");
       setTimeout(() => {
-        document.getElementById("live2d-plugin").style.bottom = 0;
+        live2dDom.style.bottom = 0;
       }, 0);
+      if (this.#config["live2dLocation"] === 'right') {
+        live2dDom.style.right = '50px';
+        live2dDom.style.left = 'auto';
+      }
       const model = new Model(this.#config);
       // 加载右侧小工具
       if (this.#config["isTools"] === true) {

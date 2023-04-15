@@ -297,6 +297,15 @@ spec:
           validation: required
           value: live2d
         - $formkit: select
+          label: 看板娘位置
+          name: live2dLocation
+          value: left
+          options:
+            - value: left
+              label: 屏幕左侧
+            - value: right
+              label: 屏幕右侧
+        - $formkit: select
           help: 页面何时加载 Live2d。网站带宽有限时，可选择优先加载页面全部内容再加载 Live2d。
           label: Live2d 加载时机
           name: loadTime
