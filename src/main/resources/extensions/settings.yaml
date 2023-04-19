@@ -271,12 +271,11 @@ spec:
           if: "$get(isOpenai).value === true && $get(isProxy).value === true"
           label: 代理地址
           name: proxyHost
-          validation: url
         - $formkit: text
           if: "$get(isOpenai).value === true && $get(isProxy).value === true"
           label: 代理端口
           name: proxyPort
-          validation: Number
+          validation: Number|between:0,65535
     - group: advanced
       label: 高级设置
       formSchema:
