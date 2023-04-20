@@ -213,7 +213,7 @@ spec:
           help: 接口地址，国内如果访问不了，可考虑使用 openai-api-proxy
           name: baseUrl
           value: https://api.openai.com
-          validation: required|String
+          validation: required|url
         - $formkit: textarea
           if: "$get(isOpenai).value === true"
           label: 角色设定
@@ -271,12 +271,11 @@ spec:
           if: "$get(isOpenai).value === true && $get(isProxy).value === true"
           label: 代理地址
           name: proxyHost
-          validation: String
         - $formkit: text
           if: "$get(isOpenai).value === true && $get(isProxy).value === true"
           label: 代理端口
           name: proxyPort
-          validation: Number
+          validation: Number|between:0,65535
     - group: advanced
       label: 高级设置
       formSchema:

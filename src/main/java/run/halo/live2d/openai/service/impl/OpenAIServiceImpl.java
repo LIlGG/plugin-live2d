@@ -30,6 +30,11 @@ public class OpenAIServiceImpl implements OpenAiService {
         if (!openAiConfig.has("isOpenai") || !openAiConfig.get("isOpenai").asBoolean()) {
             return null;
         }
+
+        if (singleton != null && !openAiConfig.equals(singleton.getOpenAiConfig())) {
+            singleton = null;
+        }
+
         if (singleton == null) {
             synchronized (OpenAiService.class) {
                 if (singleton == null) {
@@ -75,11 +80,11 @@ public class OpenAIServiceImpl implements OpenAiService {
             throw new IllegalArgumentException("OpenAI token is required");
         }
 
-        OkHttpClient client
+        OkHttpClient.Builder builder
             = com.theokanning.openai.service.OpenAiService.defaultClient(
             openAiConfig.get("token").asText(),
             Duration.ofSeconds(openAiConfig.get("timeout").asInt())
-        );
+        ).newBuilder();
 
         if (openAiConfig.get("isProxy").asBoolean()) {
             Proxy proxy = new Proxy(Proxy.Type.HTTP,
@@ -87,10 +92,10 @@ public class OpenAIServiceImpl implements OpenAiService {
                     openAiConfig.get("proxyPort").asInt()
                 )
             );
-            client.newBuilder().proxy(proxy).build();
+            builder.proxy(proxy).build();
         }
 
-        return client;
+        return builder.build();
     }
 
     ObjectMapper defaultObjectMapper() {
@@ -107,5 +112,9 @@ public class OpenAIServiceImpl implements OpenAiService {
     public Flowable<ChatCompletionChunk> streamChatCompletion(
         ChatCompletionRequest request) {
         return openAiService.streamChatCompletion(request);
+    }
+
+    public JsonNode getOpenAiConfig() {
+        return openAiConfig;
     }
 }
