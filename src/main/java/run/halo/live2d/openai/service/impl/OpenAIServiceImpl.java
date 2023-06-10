@@ -67,7 +67,7 @@ public class OpenAIServiceImpl implements OpenAiService {
             if (!baseUrl.endsWith("/")) {
                 baseUrl += "/";
             }
-            retrofit.newBuilder()
+            retrofit = retrofit.newBuilder()
                 .baseUrl(baseUrl)
                 .build();
         }
