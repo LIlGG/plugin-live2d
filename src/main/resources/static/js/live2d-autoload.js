@@ -257,7 +257,7 @@ function Live2d() {
     #loadTips() {
       let config = this.#config;
       return new Promise((resolve) => {
-        Promise.all([util.loadTipsResource(config["themeTipsPath"]), util.loadTipsResource(config["tipsPath"])]).then(
+        Promise.all([util.loadTipsResource(config["tipsPath"]), util.loadTipsResource(config["tipsPath"])]).then(
           (result) => {
             // 后台配置 tips，其中包含 mouseover 及 click 两种配置，以及单独配置的 message
             let configTips = util.backendConfigConvert(config);
