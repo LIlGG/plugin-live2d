@@ -4,6 +4,6 @@
   "compilerOptions": {
     "composite": true,
     "types": ["node"],
-    "lib": ["esnext"]
+    "lib": ["esnext", "dom"],
   }
 }

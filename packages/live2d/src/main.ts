@@ -1,5 +1,4 @@
 import { createApp } from "vue";
-import Index from "./Index.vue";
-import "./style/index.css";
+import App from "./App.vue";
 
-createApp(Index).mount("#app");
+createApp(App).mount("#app");

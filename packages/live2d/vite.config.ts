@@ -6,9 +6,7 @@ import Vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [
-    Vue({
-      customElement: true,
-    }),
+    Vue(),
   ],
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),

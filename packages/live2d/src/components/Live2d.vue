@@ -1,17 +1,23 @@
 <script setup lang="ts">
-import { useLocalStorage } from "@vueuse/core";
-import { computed } from "vue";
+import type { Live2dPluginConfig } from "@/types";
+import { onMounted, ref } from "vue";
+import type { ModelReturn } from "./model/type"
 
-const [live2dHide, setLive2dHide] = useLocalStorage<number>("live2d-hide", undefined);
+const props = defineProps<{
+  config: Live2dPluginConfig;
+}>();
 
-const visibleLive2d = computed(() => {
-  return !(live2dHide || (live2dHide - new Date().getTime() > 0));
+const model = ref<ModelReturn>();
+
+onMounted(() => {
+  import("./model").then((m) => {
+    model.value = m.useLive2dModel("");
+  });
 });
-
 </script>
 <template>
-  <div id="live2d-toggle">
-    <span>看板娘</span>
-  </div>
-  
+  <div id="live2d-tips"></div>
+  <canvas id="live2d" width="800" height="800"></canvas>
+  <div id="live2d-tool"></div>
 </template>
+<style></style>
