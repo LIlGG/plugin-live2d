@@ -1,0 +1,26 @@
+{
+  "name": "live2d",
+  "private": false,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check build-only",
+    "type-check": "vue-tsc --noEmit -p tsconfig.json --composite false",
+    "build-only": "vite build",
+    "preview": "vite preview --port 4173",
+    "test:unit": "vitest --environment jsdom",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "prettier": "prettier --write './src/**/*.{vue,js,jsx,ts,tsx,css,scss,json,yml,yaml,html}'"
+  },
+  "dependencies": {
+    "@vueuse/components": "8.9.4",
+    "@vueuse/core": "8.9.4",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2"
+  }
+}

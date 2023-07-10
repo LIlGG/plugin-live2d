@@ -1,6 +1,7 @@
 plugins {
-    id "io.freefair.lombok" version "8.0.0-rc2"
-    id "io.github.guqing.plugin-development" version "0.0.8-SNAPSHOT"
+    id "com.github.node-gradle.node" version "5.0.0"
+    id "run.halo.plugin.devtools" version "0.0.5"
+    id "io.freefair.lombok" version "8.0.1"
     id 'java'
 }
 
@@ -8,8 +9,8 @@ group 'run.halo.live2d'
 sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
-    mavenCentral()
     maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
+    mavenCentral()
 }
 
 jar {
@@ -39,7 +40,23 @@ test {
     useJUnitPlatform()
 }
 
+node {
+    pnpmVersion = '8'
+    nodeProjectDir = file("${project.projectDir}")
+}
+
+task buildFrontend(type: NpxTask) {
+    command = 'pnpm'
+    args = ['build:packages']
+}
+
+task pnpmInstall(type: NpxTask) {
+    command = "pnpm"
+    args = ["install"]
+}
+
 build {
     // build frontend before build
-    tasks.getByName('compileJava')
+    tasks.getByName('compileJava').dependsOn('buildFrontend')
+    tasks.getByName("buildFrontend").dependsOn("pnpmInstall")
 }

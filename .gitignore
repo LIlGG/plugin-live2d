@@ -70,5 +70,8 @@ application-local.yml
 application-local.yaml
 application-local.properties
 
-/admin-frontend/node_modules/
+/node_modules/
+/console/node_modules/
+/packages/**/node_modules/
 /workplace/
+/src/main/resources/console/
