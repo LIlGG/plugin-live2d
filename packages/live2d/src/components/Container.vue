@@ -1,8 +1,36 @@
 <script setup lang="ts" name="Live2dContainer">
 import { useLocalStorage } from "@vueuse/core";
-import { computed } from "vue";
+import { computed, provide, readonly } from "vue";
 import Live2dToggle from "./Toggle.vue";
+import Live2dTip from "./Tip.vue";
 import Live2d from "./Live2d.vue";
+import Live2dTools from "./Tools.vue";
+import type { Live2dPluginConfig } from "@/types";
+
+const props = defineProps<{
+  path: string;
+  config: Live2dPluginConfig;
+}>();
+
+const defaultConfig: Live2dPluginConfig = {
+  apiPath: "//api.zsq.im/live2d/",
+  tools: ["hitokoto", "asteroids", "switch-model", "switch-texture", "photo", "info", "quit"],
+  updateTime: new Date("2022.12.09").getUTCDate(),
+  version: "1.0.1",
+  defaultTipsPath: "../data/live2d-tips.json",
+};
+
+const config = computed(() => {
+  const config = {
+    ...defaultConfig,
+    ...props.config,
+  };
+  config.tipsPath = props.path + config.tipsPath;
+  config.defaultTipsPath = props.path + config.defaultTipsPath;
+  return readonly(config);
+});
+
+provide("config", config);
 
 // live2d 关闭时间，最多关闭一天
 const ONE_DAY_TIME = 24 * 60 * 60 * 1000;
@@ -25,7 +53,9 @@ const handleHideLive2d = () => {
     <Live2dToggle v-if="!visibleLive2d" @click="handleShowLive2d" />
     <Transition name="plugin">
       <main v-if="visibleLive2d" class="live2d-main">
-        <Live2d config="" @close="handleHideLive2d"/>
+        <Live2dTip></Live2dTip>
+        <Live2d @close="handleHideLive2d" />
+        <Live2dTools></Live2dTools>
       </main>
     </Transition>
   </div>
@@ -47,7 +77,7 @@ const handleHideLive2d = () => {
   line-height: 0;
   transform: translateY(3px);
   transition: transform 0.3s ease-in-out;
-  background-color:aqua;
+  background-color: aqua;
 }
 
 .live2d-main:hover {

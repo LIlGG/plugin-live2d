@@ -1,4 +1,4 @@
-import "@/lib/live2d.min.js";
+import "@/libs/live2d.min.js";
 import type { ModelReturn } from "./type";
 
 declare function loadlive2d(domId: string, apiPath: string, poi: any): any;

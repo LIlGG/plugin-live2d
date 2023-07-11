@@ -4,7 +4,7 @@
   "description": "为你的网站领养一只可爱的看板娘吧！ Live2d Plugin for Halo",
   "scripts": {
     "build:packages": "pnpm --filter \"./packages/**\" build",
-    "example:dev": "pnpm --filter \"./packages/example\" dev",
+    "live2d:dev": "pnpm --filter \"./packages/live2d\" dev",
     "release:packages": "pnpm --filter \"./packages/**\" release"
   },
   "keywords": [

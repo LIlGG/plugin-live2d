@@ -20,6 +20,7 @@
     "@vueuse/components": "8.9.4",
     "@vueuse/core": "8.9.4",
     "autoprefixer": "^10.4.14",
+    "mitt": "^3.0.1",
     "postcss": "^8.4.24"
   }
 }
