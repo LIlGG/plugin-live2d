@@ -17,7 +17,7 @@ const defaultConfig: Live2dPluginConfig = {
   tools: ["hitokoto", "asteroids", "switch-model", "switch-texture", "photo", "info", "quit"],
   updateTime: new Date("2022.12.09").getUTCDate(),
   version: "1.0.1",
-  defaultTipsPath: "../data/live2d-tips.json",
+  modelSize: 600,
 };
 
 const config = computed(() => {
@@ -52,8 +52,10 @@ const handleHideLive2d = () => {
     <Live2dToggle v-if="!visibleLive2d" @click="handleShowLive2d" />
     <Transition name="plugin">
       <main v-if="visibleLive2d" class="live2d-main">
-        <Live2dTip></Live2dTip>
-        <Live2d @close="handleHideLive2d" />
+        <div class="tip-inner" :style="{ marginBottom: `-${(config.modelSize || 800) * 0.2}px` }">
+          <Live2dTip></Live2dTip>
+        </div>
+        <Live2d :size="config.modelSize || 800" @close="handleHideLive2d" />
         <Live2dTools></Live2dTools>
       </main>
     </Transition>
@@ -96,5 +98,11 @@ const handleHideLive2d = () => {
 .plugin-enter-to,
 .plugin-leave-from {
   bottom: 0;
+}
+
+.tip-inner {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 20px;
 }
 </style>

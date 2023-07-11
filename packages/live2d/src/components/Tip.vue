@@ -151,7 +151,7 @@ const loadTips = (): Promise<Tip> => {
       let allTips = result[1];
       // 若配置的 tips 文件不存在，则回退到默认 tips
       if (Object.keys(allTips).length === 0) {
-        import(config.defaultTipsPath).then((tips: Tip) => {
+        import("../data/live2d-tips.json").then((tips: Tip) => {
           resolve(mergeTips(configTips, themeTips, tips));
         });
       } else {
@@ -211,18 +211,26 @@ const backendConfigConvert = () => {
  * @param defaultTips 配置/默认的 tips
  */
 const mergeTips = (configTips: Tip, themeTips: Tip, defaultTips: Tip): Tip => {
+  let mergeTip = {
+    mouseover: defaultTips.mouseover,
+    click: defaultTips.click,
+    seasons: defaultTips.seasons,
+    time: defaultTips.time,
+    message: defaultTips.message,
+  } as Tip;
   let duplicateClick = [...configTips["click"], ...themeTips["click"], ...defaultTips["click"]];
   let duplicateMouseover = [...configTips["mouseover"], ...themeTips["mouseover"], ...defaultTips["mouseover"]];
-  defaultTips.click = distinctArray(duplicateClick, "selector");
-  defaultTips.mouseover = distinctArray(duplicateMouseover, "selector");
-  defaultTips.message = { ...defaultTips.message, ...configTips.message };
-  return defaultTips;
+  mergeTip.click = distinctArray(duplicateClick, "selector");
+  mergeTip.mouseover = distinctArray(duplicateMouseover, "selector");
+  mergeTip.message = { ...defaultTips.message, ...configTips.message };
+  return mergeTip;
 };
 
 const live2dMessageText = ref<string>("");
 const messageTimer = ref<number>(0);
 const showMessage = computed(() => {
-  return !!live2dMessageText.value && !messageTimer.value;
+  console.log(!!live2dMessageText.value, !!messageTimer.value)
+  return !!live2dMessageText.value && !!messageTimer.value;
 });
 
 const live2dPriority = useSessionStorage("live2dPriority", 0);
@@ -362,15 +370,14 @@ eventBus.on("showHitokoto", (hitokoto) => {
   box-shadow: 0 3px 15px 2px rgba(191, 158, 118, 0.2);
   font-size: 14px;
   line-height: 24px;
-  margin: -30px 20px;
   min-height: 70px;
   overflow: hidden;
   padding: 5px 10px;
-  position: absolute;
   text-overflow: ellipsis;
   transition: opacity 1s;
-  width: 250px;
   word-break: break-all;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 @keyframes shake {

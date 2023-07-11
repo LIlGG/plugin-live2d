@@ -4,6 +4,10 @@ import { inject, onMounted, ref } from "vue";
 import type { ModelReturn } from "./model/type";
 import { useLocalStorage } from "@vueuse/core";
 
+const props = defineProps<{
+  size: number;
+}>();
+
 const config = inject("config") as Live2dPluginConfig;
 
 const model = ref<ModelReturn>();
@@ -23,6 +27,14 @@ const initModel = () => {
 };
 </script>
 <template>
-  <canvas id="live2d" width="800" height="800"></canvas>
+  <canvas id="live2d" :width="props.size" :height="props.size"></canvas>
 </template>
-<style></style>
+<style>
+#live2d {
+  cursor: grab;
+}
+
+#live2d:active {
+  cursor: grabbing;
+}
+</style>

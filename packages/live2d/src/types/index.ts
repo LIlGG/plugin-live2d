@@ -4,7 +4,6 @@ export interface Live2dPluginConfig {
   updateTime?: number;
   version?: string;
   tipsPath?: string;
-  defaultTipsPath: string;
   modelId?: number;
   modelTexturesId?: number;
   themeTipsPath?: string;
@@ -16,6 +15,7 @@ export interface Live2dPluginConfig {
   openConsole?: boolean;
   copyContent?: boolean;
   backSite?: boolean;
+  modelSize?: number;
 }
 
 export interface SelectorTip {
