@@ -211,7 +211,6 @@ const backendConfigConvert = () => {
  * @param defaultTips 配置/默认的 tips
  */
 const mergeTips = (configTips: Tip, themeTips: Tip, defaultTips: Tip): Tip => {
-  debugger
   let duplicateClick = [...configTips["click"], ...themeTips["click"], ...defaultTips["click"]];
   let duplicateMouseover = [...configTips["mouseover"], ...themeTips["mouseover"], ...defaultTips["mouseover"]];
   defaultTips.click = distinctArray(duplicateClick, "selector");

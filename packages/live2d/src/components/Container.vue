@@ -26,11 +26,10 @@ const config = computed(() => {
     ...props.config,
   };
   config.tipsPath = props.path + config.tipsPath;
-  config.defaultTipsPath = props.path + config.defaultTipsPath;
-  return readonly(config);
+  return config;
 });
 
-provide("config", config);
+provide("config", readonly(config.value));
 
 // live2d 关闭时间，最多关闭一天
 const ONE_DAY_TIME = 24 * 60 * 60 * 1000;
