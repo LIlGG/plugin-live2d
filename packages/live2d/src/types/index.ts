@@ -16,6 +16,8 @@ export interface Live2dPluginConfig {
   copyContent?: boolean;
   backSite?: boolean;
   modelSize?: number;
+  isTools?: boolean;
+  isOpenai?: boolean;
 }
 
 export interface SelectorTip {

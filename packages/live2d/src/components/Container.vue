@@ -46,6 +46,10 @@ const handleShowLive2d = () => {
 const handleHideLive2d = () => {
   live2dHideTime.value = new Date().getTime();
 };
+
+const showTool = computed(() => {
+  return config.value.tools && config.value.tools.length > 0;
+});
 </script>
 <template>
   <div class="live2d-container">
@@ -56,7 +60,7 @@ const handleHideLive2d = () => {
           <Live2dTip></Live2dTip>
         </div>
         <Live2d :size="config.modelSize || 800" @close="handleHideLive2d" />
-        <Live2dTools></Live2dTools>
+        <Live2dTools v-if="showTool"></Live2dTools>
       </main>
     </Transition>
   </div>
