@@ -3,10 +3,14 @@ import { fileURLToPath, URL } from "url";
 import { defineConfig } from "vite";
 import path from "path";
 import Vue from "@vitejs/plugin-vue";
+import PurgeIcons from "vite-plugin-purge-icons";
 
 export default defineConfig({
   plugins: [
     Vue(),
+    PurgeIcons({
+      content: ["./src/**/*.vue"],
+    }),
   ],
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),

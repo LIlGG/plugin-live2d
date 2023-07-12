@@ -3,6 +3,7 @@ import type { Live2dPluginConfig } from "@/types";
 import { inject, onMounted, ref } from "vue";
 import type { ModelReturn } from "./model/type";
 import { useLocalStorage } from "@vueuse/core";
+import eventBus from "@/libs/eventBus";
 
 const props = defineProps<{
   size: number;
@@ -11,6 +12,14 @@ const props = defineProps<{
 const config = inject("config") as Live2dPluginConfig;
 
 const model = ref<ModelReturn>();
+
+eventBus.on("loadOtherModel", () => {
+  model.value?.switchModel();
+});
+
+eventBus.on("loadModelTexture", () => {
+  model.value?.loadModelTexture();
+});
 
 onMounted(() => {
   import("./model").then((m) => {

@@ -4,9 +4,9 @@
  * @param url 资源链接
  * @returns {Promise<unknown>}
  */
-export const loadTipsResource = (url: string) => {
-  let defaultObj = {};
-  return new Promise((resolve) => {
+export const loadTipsResource = <T>(url: string): Promise<T> => {
+  let defaultObj: T = {} as T;
+  return new Promise<T>((resolve) => {
     if (!url) {
       resolve(defaultObj);
     }
@@ -44,6 +44,6 @@ export const distinctArray = <T>(dupArray: T[], key: keyof T): T[] => {
  * @param obj 需要获取随机数的数组
  * @returns {Object} 数组内的任意一个数据或原数据
  */
-export const randomSelection = (obj: string[]) => {
+export const randomSelection = (obj: string | string[]) => {
   return Array.isArray(obj) ? obj[Math.floor(Math.random() * obj.length)] : obj;
 };

@@ -94,7 +94,7 @@ const registerEventListener = (tips: Tip) => {
       now.getDate() <= Number(before.split("/")[1])
     ) {
       let messageText = randomSelection(text);
-      messageText = messageText.replace("{year}", now.getFullYear());
+      messageText = messageText.replace("{year}", now.getFullYear().toString());
       messageArray.push(messageText);
     }
   });
@@ -136,28 +136,30 @@ const registerEventListener = (tips: Tip) => {
 
 const loadTips = (): Promise<Tip> => {
   return new Promise((resolve) => {
-    Promise.all([loadTipsResource(config.themeTipsPath), loadTipsResource(config.tipsPath)]).then((result) => {
-      // 后台配置 tips，其中包含 mouseover 及 click 两种配置，以及单独配置的 message
-      let configTips = backendConfigConvert();
-      // 主题设置 tips，其中包含 mouseover 及 click 两种配置（会过滤掉其他配置）
-      let themeTips: Tip = {
-        click: result[0]["click"] || [],
-        mouseover: result[0]["mouseover"] || [],
-      } as {
-        click: Selector[];
-        mouseover: Selector[];
-      };
-      // 配置的 tips 文件，包含所有属性 （click, mouseover, seasons, time, message）
-      let allTips = result[1];
-      // 若配置的 tips 文件不存在，则回退到默认 tips
-      if (Object.keys(allTips).length === 0) {
-        import("../data/live2d-tips.json").then((tips: Tip) => {
-          resolve(mergeTips(configTips, themeTips, tips));
-        });
-      } else {
-        resolve(mergeTips(configTips, themeTips, allTips));
+    Promise.all([loadTipsResource<Tip>(config.themeTipsPath), loadTipsResource<Tip>(config.tipsPath)]).then(
+      (result: [Tip, Tip]) => {
+        // 后台配置 tips，其中包含 mouseover 及 click 两种配置，以及单独配置的 message
+        let configTips = backendConfigConvert();
+        // 主题设置 tips，其中包含 mouseover 及 click 两种配置（会过滤掉其他配置）
+        let themeTips: Tip = {
+          click: result[0]["click"] || [],
+          mouseover: result[0]["mouseover"] || [],
+        } as {
+          click: Selector[];
+          mouseover: Selector[];
+        };
+        // 配置的 tips 文件，包含所有属性 （click, mouseover, seasons, time, message）
+        let allTips = result[1];
+        // 若配置的 tips 文件不存在，则回退到默认 tips
+        if (Object.keys(allTips).length === 0) {
+          import("../data/live2d-tips.json").then((tips: Tip) => {
+            resolve(mergeTips(configTips, themeTips, tips));
+          });
+        } else {
+          resolve(mergeTips(configTips, themeTips, allTips));
+        }
       }
-    });
+    );
   });
 };
 
@@ -229,7 +231,6 @@ const mergeTips = (configTips: Tip, themeTips: Tip, defaultTips: Tip): Tip => {
 const live2dMessageText = ref<string>("");
 const messageTimer = ref<number>(0);
 const showMessage = computed(() => {
-  console.log(!!live2dMessageText.value, !!messageTimer.value)
   return !!live2dMessageText.value && !!messageTimer.value;
 });
 
@@ -280,7 +281,7 @@ const resetMessage = (time: number) => {
   }, time);
 };
 
-const sendMessage = (text: string, timeout: number, priority: number) => {
+const sendMessage = (text: string | string[], timeout: number, priority: number) => {
   if (!text) {
     return;
   }
@@ -343,7 +344,7 @@ eventBus.on("showHitokoto", (hitokoto) => {
 </script>
 <template>
   <Transition name="tips">
-    <div class="live2d-tips" v-show="showMessage">{{ live2dMessageText }}</div>
+    <div class="live2d-tips" v-show="showMessage" v-html="live2dMessageText"></div>
   </Transition>
 </template>
 <style scoped>

@@ -3,10 +3,10 @@ export interface Live2dPluginConfig {
   tools?: string[];
   updateTime?: number;
   version?: string;
-  tipsPath?: string;
+  tipsPath: string;
   modelId?: number;
   modelTexturesId?: number;
-  themeTipsPath?: string;
+  themeTipsPath: string;
   selectorTips?: SelectorTip[];
   backSiteTip?: string | string[];
   copyContentTip?: string | string[];
@@ -18,6 +18,8 @@ export interface Live2dPluginConfig {
   modelSize?: number;
   isTools?: boolean;
   isOpenai?: boolean;
+  photoName?: string;
+  hitokotoApi?: string;
 }
 
 export interface SelectorTip {

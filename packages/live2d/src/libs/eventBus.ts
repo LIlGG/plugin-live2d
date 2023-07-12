@@ -41,6 +41,16 @@ export type Events = {
     api: string;
     callback: Function;
   };
+
+  /**
+   * 切换其他模型
+   */
+  loadOtherModel: void;
+
+  /**
+   * 切换纹路
+   */
+  loadModelTexture: void;
 };
 
 export default mitt<Events>();
