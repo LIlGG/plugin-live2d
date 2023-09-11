@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import eventBus from "@/libs/eventBus";
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref } from "vue";
 
 const chatInput = ref();
 const chatMessage = ref("");
@@ -9,19 +9,21 @@ const loading = ref(false);
 const emit = defineEmits(["close"]);
 
 onMounted(() => {
-  chatInput.value.focus();
-});
+  nextTick(() => {
+    console.log(chatInput.value);
+    chatInput.value.focus();
+    chatInput.value.addEventListener("keyup", (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleSendClick();
+        return;
+      }
 
-chatInput.value.addEventListener("keyup", (e: KeyboardEvent) => {
-  if (e.key === "Enter") {
-    handleSendClick();
-    return;
-  }
-
-  if (e.key === "Escape") {
-    emit("close");
-    return;
-  }
+      if (e.key === "Escape") {
+        emit("close");
+        return;
+      }
+    });
+  });
 });
 
 const handleInputFocus = () => {
