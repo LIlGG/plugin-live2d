@@ -20,6 +20,9 @@ export interface Live2dPluginConfig {
   isOpenai?: boolean;
   photoName?: string;
   hitokotoApi?: string;
+  chunkTimeout?: number;
+  showChatMessageTimeout?: number;
+  maxHistoryMessage: number;
 }
 
 export interface SelectorTip {

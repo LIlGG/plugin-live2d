@@ -502,7 +502,7 @@ function Live2d() {
    * @param timeout 等待消息流的最大时间，超过此时间将自动关闭流消息框
    * @param showTimeout 消息全部接受完之后，展示时长
    */
-  message.createStreamMessage = function (timeout, showTimeout) {
+  message.createStreamMessageTunnel = function (timeout, showTimeout) {
     const priority = 99999;
 
     const updateTimer = function (time) {
@@ -849,7 +849,7 @@ function Live2d() {
 
     const reader = response.body.getReader();
     const textDecoder = new TextDecoder();
-    const chat = message.createStreamMessage(
+    const chat = message.createStreamMessageTunnel(
       Number(config["chunkTimeout"] || 60) * 1000,
       Number(config["showChatMessageTimeout"] || 10) * 1000
     );

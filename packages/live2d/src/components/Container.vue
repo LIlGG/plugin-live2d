@@ -14,10 +14,11 @@ const props = defineProps<{
 
 const defaultConfig: Live2dPluginConfig = {
   apiPath: "//api.zsq.im/live2d/",
-  tools: ["hitokoto", "asteroids", "switch-model", "switch-texture", "photo", "info", "quit"],
+  tools: ["openai", "hitokoto", "asteroids", "switch-model", "switch-texture", "photo", "info", "quit"],
   updateTime: new Date("2022.12.09").getUTCDate(),
   version: "1.0.1",
   modelSize: 600,
+  isOpenai: true,
 };
 
 const config = computed(() => {

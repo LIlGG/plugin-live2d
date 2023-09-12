@@ -1,8 +1,9 @@
 <script setup lang="ts" name="Live2dTools">
 import type { Live2dPluginConfig } from "@/types";
-import { computed, inject, onMounted } from "vue";
+import { computed, createApp, getCurrentInstance, h, inject, onMounted, ref } from "vue";
 import "@purge-icons/generated";
 import eventBus from "@/libs/eventBus";
+import Chat from "./Chat.vue";
 
 const config = inject("config") as Live2dPluginConfig;
 declare const Live2D: any;
@@ -25,13 +26,14 @@ const props = withDefaults(
 
 const emit = defineEmits(["close"]);
 
+const chatVisible = ref(false);
 const defaultTools: Tool[] = [
   {
     name: "openai",
     icon: "ph-chats-circle-fill",
     title: "OpenAi",
     onClick: () => {
-      
+      chatVisible.value = !chatVisible.value;
     },
   },
   {
@@ -41,7 +43,7 @@ const defaultTools: Tool[] = [
     onClick: () => {
       const api = config.hitokotoApi || "https://v1.hitokoto.cn";
       eventBus.emit("showHitokoto", {
-        api: "https://v1.hitokoto.cn",
+        api: api,
         callback: (result: any) => {
           return [
             result["hitokoto"],
@@ -128,8 +130,6 @@ const enableTools = (name: string): boolean => {
   }
   return false;
 };
-
-onMounted(() => {});
 </script>
 <template>
   <div class="live2d-tool">
@@ -144,6 +144,9 @@ onMounted(() => {});
         ></span>
       </span>
     </template>
+    <div>
+      <Chat :visible="chatVisible"></Chat>
+    </div>
   </div>
 </template>
 

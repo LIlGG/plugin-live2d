@@ -1,4 +1,5 @@
 import mitt from "mitt";
+import type { Ref } from "vue";
 
 export type Events = {
   /**
@@ -23,11 +24,11 @@ export type Events = {
    * @param sendMessage 发送消息的方法
    * @param stop 停止消息流
    */
-  createStreamMessage: {
+  createStreamMessageTunnel: {
     timeout: number;
     showTimeout: number;
-    sendMessage: (message: string) => void;
-    stop: () => void;
+    sendMessage: Ref<string>;
+    stop: Ref<boolean>;
   };
 
   /**

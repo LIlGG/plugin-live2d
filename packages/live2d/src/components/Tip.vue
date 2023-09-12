@@ -1,6 +1,6 @@
 <script setup lang="ts" name="Live2dTip">
 import type { Live2dPluginConfig, Message, Selector, Time, Tip } from "@/types";
-import { computed, inject, onMounted, ref } from "vue";
+import { computed, inject, onMounted, ref, watch } from "vue";
 import { distinctArray, loadTipsResource, randomSelection } from "@/utils";
 import eventBus from "@/libs/eventBus";
 import { useSessionStorage } from "@vueuse/core";
@@ -278,6 +278,7 @@ const resetMessage = (time: number) => {
   messageTimer.value = setTimeout(() => {
     live2dPriority.value = 0;
     messageTimer.value = 0;
+    live2dMessageText.value = "";
   }, time);
 };
 
@@ -312,18 +313,30 @@ eventBus.on("showMessage", (message) => {
  * @param timeout 等待消息流的最大时间，超过此时间将自动关闭流消息框
  * @param showTimeout 消息全部接受完之后，展示时长
  */
-eventBus.on("createStreamMessage", (message) => {
+eventBus.on("createStreamMessageTunnel", (message) => {
   const priority = 999;
   live2dPriority.value = priority;
   resetMessage(message.timeout);
 
-  message.sendMessage = (text: string) => {
-    live2dMessageText.value += text;
-  };
+  watch(
+    () => message.sendMessage.value,
+    (value) => {
+      live2dMessageText.value += value;
+    },
+    {
+      immediate: true,
+    }
+  );
 
-  message.stop = () => {
-    resetMessage(message.showTimeout);
-  };
+  watch(
+    () => message.stop,
+    (value) => {
+      if (value) {
+        resetMessage(message.showTimeout);
+        eventBus.off("createStreamMessageTunnel");
+      }
+    }
+  );
 });
 
 eventBus.on("showHitokoto", (hitokoto) => {
@@ -379,6 +392,10 @@ eventBus.on("showHitokoto", (hitokoto) => {
   word-break: break-all;
   box-sizing: border-box;
   width: 100%;
+}
+
+.live2d-tips span {
+  color: #0099cc;
 }
 
 @keyframes shake {
