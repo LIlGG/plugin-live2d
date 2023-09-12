@@ -2,7 +2,7 @@
 import eventBus from "@/libs/eventBus";
 import type { Live2dPluginConfig } from "@/types";
 import { useLocalStorage } from "@vueuse/core";
-import { computed, inject, onMounted, ref, watch } from "vue";
+import { computed,nextTick, inject, onMounted, ref, watch } from "vue";
 
 const props = defineProps<{
   visible: boolean;
@@ -27,19 +27,21 @@ watch(
 );
 
 onMounted(() => {
-  chatInput.value.focus();
-});
+  nextTick(() => {
+    console.log(chatInput.value);
+    chatInput.value.focus();
+    chatInput.value.addEventListener("keyup", (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleSendClick();
+        return;
+      }
 
-chatInput.value.addEventListener("keyup", (e: KeyboardEvent) => {
-  if (e.key === "Enter") {
-    handleSendClick();
-    return;
-  }
-
-  if (e.key === "Escape") {
-    visible.value = false;
-    return;
-  }
+      if (e.key === "Escape") {
+        emit("close");
+        return;
+      }
+    });
+  });
 });
 
 const handleInputFocus = () => {

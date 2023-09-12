@@ -1,6 +1,6 @@
 <script setup lang="ts" name="Live2dTools">
 import type { Live2dPluginConfig } from "@/types";
-import { computed, createApp, getCurrentInstance, h, inject, onMounted, ref } from "vue";
+import { computed, h, inject, onMounted, render ,ref } from "vue";
 import "@purge-icons/generated";
 import eventBus from "@/libs/eventBus";
 import Chat from "./Chat.vue";
@@ -33,7 +33,8 @@ const defaultTools: Tool[] = [
     icon: "ph-chats-circle-fill",
     title: "OpenAi",
     onClick: () => {
-      chatVisible.value = !chatVisible.value;
+      const app = h(Chat);
+      render(app, document.body);
     },
   },
   {
