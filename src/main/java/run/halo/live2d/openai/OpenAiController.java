@@ -28,40 +28,43 @@ import run.halo.live2d.openai.service.impl.OpenAIServiceImpl;
 @RestController
 @RequestMapping("/openai")
 public class OpenAiController {
-    
+
     private final Live2dSetting live2dSetting;
-    
+
     public OpenAiController(Live2dSetting live2dSetting) {
         this.live2dSetting = live2dSetting;
     }
-    
+
     @PostMapping(value = "/chat-process", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     Flux<ChatCompletionChunk> chatProcess(@RequestBody ChatRequest body,
         @AuthenticationPrincipal Authentication authentication) {
-        return this.live2dSetting.getValue("openai", "isAnonymous").doOnNext(
-            isAnonymous -> {
+        return this.live2dSetting.getValue("openai", "isAnonymous")
+            .doOnNext(isAnonymous -> {
                 if (!isAnonymous.asBoolean() && !isAuthenticated(
                     authentication)) {
                     throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "请先登录"
                     );
                 }
-            }).then(this.buildChatCompletionRequest(body)).flatMap(
-            request -> this.live2dSetting.getGroup("openai")
-                .map(OpenAIServiceImpl::getOpenAiService)
-                .map(openAiService -> openAiService.streamChatCompletion(
-                    request))).flatMapMany(Flux::from);
+            })
+            .then(this.buildChatCompletionRequest(body))
+            .flatMap(
+                request -> this.live2dSetting.getGroup("openai")
+                    .map(OpenAIServiceImpl::getOpenAiService)
+                    .map(openAiService -> openAiService.streamChatCompletion(request))
+            )
+            .flatMapMany(Flux::from);
     }
-    
+
     private boolean isAuthenticated(Authentication authentication) {
         return !isAnonymousUser(authentication.getName()) &&
             authentication.isAuthenticated();
     }
-    
+
     private boolean isAnonymousUser(String name) {
         return "anonymousUser".equals(name);
     }
-    
+
     private Mono<ChatCompletionRequest> buildChatCompletionRequest(
         ChatRequest body) {
         return Mono.just(ChatCompletionRequest.builder().stream(true)).flatMap(
