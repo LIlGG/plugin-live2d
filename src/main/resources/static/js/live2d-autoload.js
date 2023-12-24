@@ -99,9 +99,9 @@ function Live2d() {
       setTimeout(() => {
         live2dDom.style.bottom = 0;
       }, 0);
-      if (this.#config["live2dLocation"] === 'right') {
-        live2dDom.style.right = '50px';
-        live2dDom.style.left = 'auto';
+      if (this.#config["live2dLocation"] === "right") {
+        live2dDom.style.right = "50px";
+        live2dDom.style.left = "auto";
       }
       const model = new Model(this.#config);
       // 加载右侧小工具
@@ -763,7 +763,7 @@ function Live2d() {
     if (!Array.isArray(config.tools)) {
       config.tools = Object.keys(tools);
     }
-    if (config.isOpenai) {
+    if (config.isAiChat) {
       config.tools.unshift("openai");
     }
     // TODO 小工具样式
@@ -815,7 +815,21 @@ function Live2d() {
       content: msg,
     };
     historyMessages.push(userMessage);
-    const response = await fetch("/apis/api.plugin.halo.run/v1alpha1/plugins/PluginLive2d/openai/chat-process", {
+
+    const controller = new AbortController();
+    const requestTimeoutId = setTimeout(() => {
+      abort();
+    }, Number(config["chunkTimeout"] || 60) * 1000);
+
+    const abort = () => {
+      controller.abort();
+      clearTimeout(this.messageTimer);
+      clearTimeout(requestTimeoutId);
+      openai.loading = false;
+      document.getElementById("loadingIcon").style.display = "none";
+      document.getElementById("send").style.display = "block";
+    }
+    const response = await fetch("/apis/api.live2d.halo.run/v1alpha1/live2d/ai/chat-process", {
       method: "POST",
       cache: "no-cache",
       keepalive: true,
@@ -826,6 +840,7 @@ function Live2d() {
       body: JSON.stringify({
         message: historyMessages,
       }),
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -835,11 +850,7 @@ function Live2d() {
         message.showMessage("对话接口异常了哦～快去联系我的主人吧！", 5000, 4);
       }
       console.log("get.message.error", response);
-      clearTimeout(this.messageTimer);
-      this.messageTimer = null;
-      openai.loading = false;
-      document.getElementById("loadingIcon").style.display = "none";
-      document.getElementById("send").style.display = "block";
+      abort();
       return;
     }
 
@@ -864,39 +875,35 @@ function Live2d() {
       }
       let text = textDecoder.decode(value);
       const textArrays = text.split("\n\n");
-      textArrays.forEach((text) => {
-        if (text.startsWith("data:")) {
-          let dataIndex = text.indexOf("data:");
+      textArrays.forEach((decoder) => {
+        if (!decoder) return;
+        if (decoder.startsWith("data:")) {
+          let dataIndex = decoder.indexOf("data:");
           if (dataIndex !== -1) {
-            text = text.substring(dataIndex + 5);
-          }
-          try {
-            let chunkJson = JSON.parse(text);
-            if (chunkJson.choices.length > 0) {
-              let choices = chunkJson.choices;
-              choices.forEach((choice) => {
-                if (choice.finish_reason === "stop") {
-                  historyMessages.push(chatMessage);
-                  localStorage.setItem("historyMessages", JSON.stringify(historyMessages));
-                  chat.stop();
-                }
-
-                if (!!choice.message.role) {
-                  chatMessage.role = choice.message.role;
-                }
-
-                if (!!choice.message.content) {
-                  chatMessage.content += choice.message.content;
-                  chat.sendMessage(choice.message.content);
-                }
-              });
-            }
-          } catch (error) {
-            console.log("get.message.error", error);
+            decoder = decoder.substring(dataIndex + 5);
           }
         }
+        const chatResult = JSON.parse(decoder);
+        const { text, status } = chatResult;
+        try {
+          if (status === 200) {
+            chatMessage.role = "assistant";
+            if (text === "[DONE]") {
+              historyMessages.push(chatMessage);
+              localStorage.setItem("historyMessages", JSON.stringify(historyMessages));
+              chat.stop();
+            } else {
+              chatMessage.content += text;
+              chat.sendMessage(text);
+            }
+          } else {
+            throw new Error(text);
+          }
+        } catch (e) {
+          console.error("[Request] parse error", text);
+          chat.sendMessage(`聊天接口出现异常了：${text}`);
+        }
       });
-      console.log("get.message", text);
     }
   };
 
@@ -978,6 +985,10 @@ function Live2d() {
     });
 
     model.classList.add("live2d-chat-model-active");
+  };
+
+  window.onload = function () {
+    localStorage.removeItem("historyMessages");
   };
 
   return new Live2d();

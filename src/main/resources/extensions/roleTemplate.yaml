@@ -11,7 +11,7 @@ metadata:
     rbac.authorization.halo.run/ui-permissions: |
       ["plugin:PluginLive2d:live2d"]
 rules:
-  - apiGroups: [ "api.plugin.halo.run" ]
-    resources: [ "plugins/openai" ]
-    resourceNames: [ "PluginLive2d" ]
+  - apiGroups: [ "api.live2d.halo.run" ]
+    resources: [ "live2d/chat-process" ]
+    resourceNames: [ "ai" ]
     verbs: [ "create" ]
