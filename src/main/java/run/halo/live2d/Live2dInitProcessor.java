@@ -2,6 +2,7 @@ package run.halo.live2d;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Arrays;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,14 +77,9 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
     }
 
     private JsonNode preprocessConfig(JsonNode config) {
-        ((ObjectNode)config).remove("isLogin");
-        ((ObjectNode)config).remove("baseUrl");
-        ((ObjectNode)config).remove("systemMessage");
-        ((ObjectNode)config).remove("model");
-        ((ObjectNode)config).remove("token");
-        ((ObjectNode)config).remove("isProxy");
-        ((ObjectNode)config).remove("proxyHost");
-        ((ObjectNode)config).remove("proxyPort");
+        ((ObjectNode) config).remove(Arrays.asList("proxySetting", "openAiSetting"));
+        ((ObjectNode) config.get("aiChatBaseSetting")).remove(
+            Arrays.asList("isAnonymous", "systemMessage"));
         return config;
     }
 

@@ -1,4 +1,4 @@
-package run.halo.live2d.openai;
+package run.halo.live2d.chat;
 
 import com.theokanning.openai.completion.chat.ChatMessage;
 import java.util.List;
