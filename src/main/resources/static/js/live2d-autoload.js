@@ -203,18 +203,12 @@ function Live2d() {
     }
 
     #initModel(model) {
-      if(this.#config["isForceUseDeafultConfig"] === true){
-        // 强制使用默认模型和材质id
-          modelId = this.#config["modelId"] || 1; // 模型 ID
-          modelTexturesId = this.#config["modelTexturesId"] || 53; // 材质 ID
-      }else{
-        let modelId = localStorage.getItem("modelId"),
-        modelTexturesId = localStorage.getItem("modelTexturesId");
-        if (modelId === null) {
-          // 首次访问加载 指定模型 的 指定材质
-          modelId = this.#config["modelId"] || 1; // 模型 ID
-          modelTexturesId = this.#config["modelTexturesId"] || 53; // 材质 ID
-        }
+      let modelId = localStorage.getItem("modelId");
+      let modelTexturesId = localStorage.getItem("modelTexturesId");
+      if (modelId === null || !!this.#config["isForceUseDefaultConfig"]) {
+        // 加载指定模型的指定材质
+        modelId = this.#config["modelId"] || 1; // 模型 ID
+        modelTexturesId = this.#config["modelTexturesId"] || 53; // 材质 ID
       }
       
       if (this.#config["consoleShowStatu"]) {

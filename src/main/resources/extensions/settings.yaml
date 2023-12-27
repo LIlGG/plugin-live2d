@@ -20,16 +20,15 @@ spec:
           validation: required|Number
           value: 53
         - $formkit: radio
-            name: isForceUseDeafultConfig
-            id: isForceUseDeafultConfig
-            label: 强制使用默认模型和材质
-            help: 开启此项后，忽略前台用户自行切换模型和材质ID，固定使用上面默认模型和材质编号
-            value: false
-            options:
-              - value: true
-                label: 开启
-              - value: false
-                label: 关闭
+          name: isForceUseDefaultConfig
+          label: 强制使用默认模型和材质
+          help: 开启此项后，忽略前台用户自行切换模型和材质ID，固定使用上面默认模型和材质编号
+          value: false
+          options:
+            - value: true
+              label: 开启
+            - value: false
+              label: 关闭
         - $formkit: radio
           name: isTools
           id: isTools
