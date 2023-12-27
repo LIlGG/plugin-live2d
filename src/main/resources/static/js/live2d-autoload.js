@@ -828,7 +828,7 @@ function Live2d() {
       openai.loading = false;
       document.getElementById("loadingIcon").style.display = "none";
       document.getElementById("send").style.display = "block";
-    }
+    };
     const response = await fetch("/apis/api.live2d.halo.run/v1alpha1/live2d/ai/chat-process", {
       method: "POST",
       cache: "no-cache",
@@ -858,6 +858,8 @@ function Live2d() {
       content: "",
     };
 
+    clearTimeout(this.messageTimer);
+    clearTimeout(requestTimeoutId);
     const reader = response.body.getReader();
     const textDecoder = new TextDecoder();
     const chat = message.createStreamMessage(
