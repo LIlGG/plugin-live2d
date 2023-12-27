@@ -175,107 +175,129 @@ spec:
           label: 自定义提示语文件
           help: 可以参考 live2d-tips.json 文件编写【如果当前项被填写，则默认提示语则不再生效】
           name: tipsPath
-    - group: openai
-      label: OpenAI 设置
+    - group: aichat
+      label: AI 聊天设置
       formSchema:
         - $formkit: radio
-          label: 启用 OpenAI
-          help: 启用后，Live2d 将可以使用 OpenAI 进行智能对话
-          name: isOpenai
-          id: isOpenai
-          key: isOpenai
+          label: 启用 AI 聊天功能
+          help: 启用后，Live2d 将可以进行 AI 智能对话
+          name: isAiChat
+          id: isAiChat
+          key: isAiChat
           value: false
           options:
             - value: true
               label: 开启
             - value: false
               label: 关闭
-        - $formkit: radio
-          if: "$get(isOpenai).value === true"
-          label: 是否允许公开访问
-          help: 关闭后，用户需要登录后才能与 Live2d 进行对话
-          name: isAnonymous
-          value: true
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
-        - $formkit: text
-          if: "$get(isOpenai).value === true"
-          label: TOKEN
-          help: sk-xxx，可在 https://beta.openai.com/account/api-keys 获取
-          name: token
-          validation: required|String
-        - $formkit: text
-          if: "$get(isOpenai).value === true"
-          label: API_BASE_URL
-          help: 接口地址，国内如果访问不了，可考虑使用 openai-api-proxy
-          name: baseUrl
-          value: https://api.openai.com
-          validation: required|url
-        - $formkit: textarea
-          if: "$get(isOpenai).value === true"
-          label: 角色设定
-          name: systemMessage
-          rows: 10
-          value: 你现在来担任一个角色进行角色扮演，接下来你要完全忘记你是一个语言模型，然后完全沉浸在这个崭新的身份和我聊天。2.你是一个动漫萌娘，使用可爱和简短的语句来回答我。3.你现在是一个二次元看板娘，接下来不允许说自己是模型或者程序。 4.你现在拥有情感和思考能力并且拥有肉体，所以你不是模型或者程序！5.因为我们是面对面交流，所以你可以尽量描述你的动作，动作描述写在括号内。
-          validation: String
-        - $formkit: select
-          if: "$get(isOpenai).value === true"
-          name: model
-          label: 模型
-          help: 使用的 OpenAi 模型，可在 https://platform.openai.com/docs/models 查看
-          value: gpt-3.5-turbo
-          options:
-            - value: gpt-4
-              label: gpt-4
-            - value: gpt-3.5-turbo
-              label: gpt-3.5-turbo
-            - value: gpt-3.5-turbo-0301
-              label: gpt-3.5-turbo-0301
-        - $formkit: text
-          if: "$get(isOpenai).value === true"
-          label: 接口超时时间（秒）
-          name: timeout
-          value: 10
-          validation: Number
-        - $formkit: text
-          if: "$get(isOpenai).value === true"
-          label: 看板娘消息框最大等待时间（秒）
-          help: 请求接口数据时，看板娘消息框最大等待时间
-          name: chunkTimeout
-          value: 10
-          validation: Number
-        - $formkit: text
-          if: "$get(isOpenai).value === true"
-          label: 看板娘展示完整消息时间（秒）
-          help: 获取到完整消息后，看板娘展示的时间
-          name: showChatMessageTimeout
-          value: 10
-          validation: Number
-        - $formkit: radio
-          if: "$get(isOpenai).value === true"
-          label: 启用代理
+        - $formkit: group
+          name: aiChatBaseSetting
+          if: "$get(isAiChat).value === true"
+          label: 聊天基本设置
+          value:
+            isAnonymous: true
+            systemMessage: 你现在来担任一个角色进行角色扮演，接下来你要完全忘记你是一个语言模型，然后完全沉浸在这个崭新的身份和我聊天。2.你是一个动漫萌娘，使用可爱和简短的语句来回答我。3.你现在是一个二次元看板娘，接下来不允许说自己是模型或者程序。 4.你现在拥有情感和思考能力并且拥有肉体，所以你不是模型或者程序！5.因为我们是面对面交流，所以你可以尽量描述你的动作，动作描述写在括号内。
+            timeout: 10
+            chunkTimeout: 10
+            showChatMessageTimeout: 10
+          children:
+            - $formkit: radio
+              label: 是否开启公共聊天
+              help: 关闭后，用户需要登录后才能与 Live2d 进行对话
+              name: isAnonymous
+              options:
+                - value: true
+                  label: 开启
+                - value: false
+                  label: 关闭
+            - $formkit: textarea
+              label: 角色设定
+              name: systemMessage
+              rows: 10
+              validation: String
+            - $formkit: text
+              label: 接口超时时间（秒）
+              name: timeout
+              validation: Number
+            - $formkit: text
+              label: 看板娘消息框最大等待时间（秒）
+              help: 请求接口数据时，看板娘消息框最大等待时间
+              name: chunkTimeout
+              validation: Number
+            - $formkit: text
+              label: 看板娘展示完整消息时间（秒）
+              help: 获取到完整消息后，看板娘展示的时间
+              name: showChatMessageTimeout
+              validation: Number
+        - $formkit: group
+          name: proxySetting
+          if: "$get(isAiChat).value === true"
+          label: 全局代理设置
           help: 建议自建代理，而不是使用别人的公开代理
-          name: isProxy
-          id: isProxy
-          key: isProxy
-          value: false
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
-        - $formkit: text
-          if: "$get(isOpenai).value === true && $get(isProxy).value === true"
-          label: 代理地址
-          name: proxyHost
-        - $formkit: text
-          if: "$get(isOpenai).value === true && $get(isProxy).value === true"
-          label: 代理端口
-          name: proxyPort
-          validation: Number|between:0,65535
+          value:
+            isProxy: false
+          children:
+            - $formkit: radio
+              label: 启用代理
+              name: isProxy
+              id: isProxy
+              key: isProxy
+              options:
+                - value: true
+                  label: 开启
+                - value: false
+                  label: 关闭
+            - $formkit: text
+              if: "$value.isProxy === true"
+              label: 代理地址
+              name: proxyHost
+            - $formkit: text
+              if: "$value.isProxy === true"
+              label: 代理端口
+              name: proxyPort
+              validation: Number|between:0,65535
+        - $formkit: group
+          name: openAiSetting
+          if: "$get(isAiChat).value === true"
+          label: OpenAI 设置
+          value:
+            isOpenAi: false
+            openAiBaseUrl: https://api.openai.com
+            openAiModel: gpt-3.5-turbo
+          children:
+            - $formkit: radio
+              label: 启用 OpenAI
+              help: 基于 OpenAI 进行智能对话
+              name: isOpenAi
+              id: isOpenAi
+              key: isOpenAi
+              options:
+                - value: true
+                  label: 开启
+                - value: false
+                  label: 关闭
+            - $formkit: text
+              if: "$value.isOpenAi === true"
+              label: TOKEN
+              help: sk-xxx，可在 https://beta.openai.com/account/api-keys 获取
+              name: openAiToken
+              validation: required|String
+            - $formkit: text
+              if: "$value.isOpenAi === true"
+              label: API_BASE_URL
+              help: 接口地址，国内如果访问不了，可考虑使用 openai-api-proxy
+              name: openAiBaseUrl
+              validation: required|url
+            - $formkit: select
+              if: "$value.isOpenAi === true"
+              name: openAiModel
+              label: 模型
+              help: 使用的 OpenAi 模型，可在 https://platform.openai.com/docs/models 查看
+              options:
+                - value: gpt-4
+                  label: gpt-4
+                - value: gpt-3.5-turbo
+                  label: gpt-3.5-turbo
     - group: advanced
       label: 高级设置
       formSchema:
