@@ -84,19 +84,17 @@ public class AiChatEndpoint implements CustomEndpoint {
 
     private Flux<ServerSentEvent<ChatResult>> chatCompletion(ChatRequest body) {
         return reactiveSettingFetcher.fetch("aichat", AiChatConfig.class)
-            .doOnNext(aiChatConfig -> ReactiveSecurityContextHolder.getContext()
+            .map(aiChatConfig -> ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
-                .doOnNext(authentication -> {
+                .flatMapMany(authentication -> {
                     if (!aiChatConfig.aiChatBaseSetting.isAnonymous && !isAuthenticated(
                         authentication)) {
                         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录");
                     }
+                    String systemMessage = aiChatConfig.aiChatBaseSetting.systemMessage;
+                    List<ChatMessage> messages = this.buildChatMessage(systemMessage, body);
+                    return aiChatService.streamChatCompletion(messages);
                 }))
-            .map(aiChatConfig -> {
-                String systemMessage = aiChatConfig.aiChatBaseSetting.systemMessage;
-                List<ChatMessage> messages = this.buildChatMessage(systemMessage, body);
-                return aiChatService.streamChatCompletion(messages);
-            })
             .flatMapMany(Flux::from);
     }
 
