@@ -67,7 +67,6 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
                 .map(this::preprocessConfig)
             )
             .flatMap(config -> {
-                log.info("live2d config {}", config.toPrettyString());
                 final IModelFactory modelFactory = context.getModelFactory();
                 return live2dAutoloadScript(config).flatMap(script -> {
                     model.add(modelFactory.createText(script));
