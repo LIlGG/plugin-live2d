@@ -1,0 +1,1 @@
+{"root":["./src/demo.tsx","./src/env.d.ts","./src/index.ts","./src/common/unolitelement.ts","./src/components/live2dtoggle.tsx","./src/events/index.ts","./src/styles/unocss.global.css.d.ts","./src/util/unomixin.ts"],"version":"5.7.3"}
