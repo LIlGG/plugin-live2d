@@ -107,9 +107,9 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
                 """;
         } else {
             template = """
-                window.onload = function() {
+                window.addEventListener('load', () => {
                     %s
-                }
+                })
                 """;
         }
         return template.formatted(loadingScript);
