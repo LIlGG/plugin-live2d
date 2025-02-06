@@ -79,3 +79,5 @@ class Model {
     this.loadModel(result.model.id, 0, result.model.message);
   }
 }
+
+export default Model;
