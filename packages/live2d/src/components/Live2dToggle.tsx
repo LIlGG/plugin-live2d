@@ -23,7 +23,7 @@ export class Live2dToggle extends UnoLitElement {
   }
 
   render(): TemplateResult {
-    return html`<div class="fixed bottom-16 left-0 rounded-md color-black cursor-pointer text-3">
+    return html`<div class="fixed bottom-16 left-0 rounded-md bg-[#fa0] color-white cursor-pointer text-3 py-1.5 px-0.5 writing-vertical-rl -ml-1 w-9 hover:transform-translate-x-0 ${this._isShow ? '-transform-translate-x-4' : '-transform-translate-x-full'} transition-transform duration-1000">
         看板娘
       </div>`;
   }

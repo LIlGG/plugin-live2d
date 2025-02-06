@@ -6,4 +6,9 @@ export default defineConfig({
   },
   presets: [presetUno()],
   transformers: [transformerDirectives()],
+  rules: [
+    ['writing-vertical-rl', {
+      "writing-mode": "vertical-rl"
+    }]
+  ]
 });
