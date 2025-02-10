@@ -5,6 +5,7 @@ import React from "react";
 import "./Live2dWidget";
 import { provide } from "@lit/context";
 import { configContext, type Live2dConfig } from "../context/config-context";
+import "../events";
 
 export class Live2dContext extends UnoLitElement {
 	@provide({ context: configContext })

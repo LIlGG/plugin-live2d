@@ -2,9 +2,8 @@ import { html, type TemplateResult } from "lit";
 import { UnoLitElement } from "../common/UnoLitElement";
 import { createComponent } from "@lit/react";
 import React from "react";
-import { TOGGLE_CANVAS_EVENT } from "../events";
+import { type Live2dToggleEventDetail, TOGGLE_CANVAS_EVENT } from "../events/types";
 import { state } from "lit/decorators.js";
-import type { Live2dToggleEventDetail } from "../types";
 
 export class Live2dToggle extends UnoLitElement {
 	@state()

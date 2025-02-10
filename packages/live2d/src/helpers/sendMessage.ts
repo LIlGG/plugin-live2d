@@ -1,4 +1,4 @@
-import { LIVE2d_MESSAGE_EVENT } from "../events";
+import { LIVE2d_MESSAGE_EVENT } from "../events/types";
 
 /**
  * 向 Live2D 发送消息事件

@@ -1,11 +1,13 @@
-import { html, type TemplateResult } from "lit";
+import { html, type PropertyValues, type TemplateResult } from "lit";
 import { UnoLitElement } from "../common/UnoLitElement";
 import { createComponent } from "@lit/react";
 import React from "react";
-import { property, state } from "lit/decorators.js";
+import { property, query, state } from "lit/decorators.js";
 import Model from "../live2d/model";
 import { consume } from "@lit/context";
 import { configContext, type Live2dConfig } from "../context/config-context";
+import "../libs/live2d.min.js";
+import { LIVE2D_BEFORE_INIT_EVENT } from "../events/types.js";
 
 export class Live2dCanvas extends UnoLitElement {
 	@consume({ context: configContext })
@@ -15,17 +17,34 @@ export class Live2dCanvas extends UnoLitElement {
 	@state()
 	private _model: unknown;
 
-	connectedCallback(): void {
-		super.connectedCallback();
-		this._model = new Model(this.config);
-	}
+	@query("#live2d")
+	private _live2d;
 
 	render(): TemplateResult {
 		return html`
-    <div id="live2d" width="800" height="800">
+    <canvas id="live2d" width="800" height="800" class="h-75 w-75">
       
-    </div>
+    </canvas>
     `;
+	}
+
+	connectedCallback(): void {
+		super.connectedCallback();
+		// 发出 Live2d beforeInit 事件
+		window.dispatchEvent(
+			new CustomEvent(LIVE2D_BEFORE_INIT_EVENT, {
+				detail: {
+					config: this.config,
+				},
+			}),
+		);
+	}
+
+	protected firstUpdated(_changedProperties: PropertyValues): void {
+		super.firstUpdated(_changedProperties);
+		if (this.config && this._live2d) {
+			this._model = new Model(this._live2d, this.config);
+		}
 	}
 }
 

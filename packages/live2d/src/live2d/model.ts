@@ -1,5 +1,5 @@
+import type { Live2dConfig } from "../context/config-context";
 import { sendMessage } from "../helpers/sendMessage";
-import type { Live2dConfig } from "../types";
 import { isNotEmptyString } from "../util/isString";
 
 declare const loadlive2d: any;
@@ -20,8 +20,9 @@ interface ModelResult {
 class Model {
   #apiPath: string;
   #config: Live2dConfig;
+  #live2dRootElement: HTMLElement;
 
-  constructor(config: Live2dConfig) {
+  constructor(root: HTMLElement, config: Live2dConfig) {
     const apiPath = config.apiPath;
     if (!isNotEmptyString(apiPath)) {
       throw new Error("Invalid initWidget argument!");
@@ -29,6 +30,20 @@ class Model {
 
     this.#apiPath = apiPath.endsWith("/") ? apiPath : `${apiPath}/`;
     this.#config = config;
+    this.#live2dRootElement = root;
+
+    this._loadingModel();
+  }
+
+  private _loadingModel() {
+    let modelId = localStorage.getItem("modelId");
+    let modelTexturesId = localStorage.getItem("modelTexturesId");
+    if (modelId === null || !!this.#config.isForceUseDefaultConfig) {
+      // 加载指定模型的指定材质
+      modelId = String(this.#config.modelId || 1); // 模型 ID
+      modelTexturesId = String(this.#config.modelTexturesId || 53); // 材质 ID
+    }
+    this.loadModel(Number(modelId), Number(modelTexturesId), "Live2D 模型加载中...");
   }
 
   /**
@@ -38,17 +53,17 @@ class Model {
    * @param modelTexturesId 纹理编号
    * @param text 加载时的消息
    */
-  async loadModel(modelId: number, modelTexturesId: number, text: string) {
+  async loadModel(modelId: number, modelTexturesId: number, text?: string) {
     localStorage.setItem("modelId", String(modelId));
     localStorage.setItem("modelTexturesId", String(modelTexturesId));
     // 发送消息事件
-    sendMessage(text, 4000, 3);
+    if (text) {
+      sendMessage(text, 4000, 3);
+    }
     loadlive2d(
-      "live2d",
+      this.#live2dRootElement,
       `${this.#apiPath}get/?id=${modelId}-${modelTexturesId}`,
-      this.#config.consoleShowStatus === true
-        ? console.log(`[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`)
-        : null
+      console.log(`[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`)
     );
   }
 

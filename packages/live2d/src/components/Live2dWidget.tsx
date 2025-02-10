@@ -2,11 +2,12 @@ import { html, type TemplateResult } from "lit";
 import { UnoLitElement } from "../common/UnoLitElement";
 import { createComponent } from "@lit/react";
 import React from "react";
-import type { Live2dToggleEventDetail } from "../types";
 import { state } from "lit/decorators.js";
 
 import "./Live2dToggle";
+import "./Live2dTips";
 import "./Live2dCanvas";
+import type { Live2dToggleEventDetail } from "../events/types";
 
 export class Live2dWidget extends UnoLitElement {
 	@state()
@@ -14,7 +15,7 @@ export class Live2dWidget extends UnoLitElement {
 
 	render(): TemplateResult {
 		return html`
-    <live2d-toggle @toggle-canvas=${this.handleToggleWidget}></live2d-toggle>
+    <live2d-toggle @live2d:toggle-canvas=${this.handleToggleWidget}></live2d-toggle>
     ${this.renderLive2dWidget()}
     `;
 	}
@@ -22,6 +23,7 @@ export class Live2dWidget extends UnoLitElement {
 	renderLive2dWidget() {
 		if (this._isShow) {
 			return html`<div id="live2d-plugin">
+        <live2d-tips></live2d-tips>
         <live2d-canvas></live2d-canvas>
       </div>`;
 		}
