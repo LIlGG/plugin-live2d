@@ -1,4 +1,4 @@
 import { LitElement } from "lit";
-import { UNO } from "../util/UnoMixin";
+import { UNO } from "../utils/unoMixin";
 
 export const UnoLitElement = UNO(LitElement)

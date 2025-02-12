@@ -1,1 +1,1 @@
-import "./load-tips";
+import "./tip-events";

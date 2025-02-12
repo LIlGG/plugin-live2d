@@ -1,5 +1,5 @@
 import type { TipConfig } from "../context/config-context";
-import { distinctArray } from "../util/distinctArray";
+import { distinctArray } from "../utils/distinctArray";
 
 /**
  * 合并各个渠道的 tips，根据获取位置不同，合并时优先级也不同。优先级按高到低的顺序为

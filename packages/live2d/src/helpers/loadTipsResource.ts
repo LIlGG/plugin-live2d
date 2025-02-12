@@ -12,6 +12,7 @@ export function loadTipsResource(url?: string) {
     click: [],
     seasons: [],
     message: {},
+    time: [],
   };
   return new Promise<TipConfig
     | undefined>((resolve) => {

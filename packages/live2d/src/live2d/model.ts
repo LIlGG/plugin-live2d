@@ -1,6 +1,6 @@
 import type { Live2dConfig } from "../context/config-context";
 import { sendMessage } from "../helpers/sendMessage";
-import { isNotEmptyString } from "../util/isString";
+import { isNotEmptyString } from "../utils/isString";
 
 declare const loadlive2d: any;
 

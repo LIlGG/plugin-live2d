@@ -1,4 +1,5 @@
 import type { Live2dConfig, TipConfig } from "../context/config-context";
+import { isNotEmpty } from "../utils/isNotEmpty";
 
 /**
  * 整合插件配置中的 tips 元素。
@@ -21,6 +22,7 @@ export const getPluginTips = (config: Live2dConfig): TipConfig => {
     seasons: [],
     click: [],
     mouseover: [],
+    time: [],
     message: {},
   };
   // selector
@@ -42,11 +44,14 @@ export const getPluginTips = (config: Live2dConfig): TipConfig => {
     }
   }
   // message
-  if (tips.message) {
+  if (isNotEmpty(config.backSiteTip)) {
     tips.message.visibilitychange = config.backSiteTip;
+  }
+  if (isNotEmpty(config.copyContentTip)) {
     tips.message.copy = config.copyContentTip;
+  }
+  if (isNotEmpty(config.openConsoleTip)) {
     tips.message.console = config.openConsoleTip;
   }
-
   return tips;
 }

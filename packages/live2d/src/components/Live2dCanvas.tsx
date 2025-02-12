@@ -7,7 +7,6 @@ import Model from "../live2d/model";
 import { consume } from "@lit/context";
 import { configContext, type Live2dConfig } from "../context/config-context";
 import "../libs/live2d.min.js";
-import { LIVE2D_BEFORE_INIT_EVENT } from "../events/types.js";
 
 export class Live2dCanvas extends UnoLitElement {
 	@consume({ context: configContext })
@@ -32,7 +31,7 @@ export class Live2dCanvas extends UnoLitElement {
 		super.connectedCallback();
 		// 发出 Live2d beforeInit 事件
 		window.dispatchEvent(
-			new CustomEvent(LIVE2D_BEFORE_INIT_EVENT, {
+			new CustomEvent<Live2dBeforeInitEventDetail>("live2d:before-init", {
 				detail: {
 					config: this.config,
 				},

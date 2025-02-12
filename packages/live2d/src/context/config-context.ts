@@ -1,24 +1,40 @@
 import { createContext } from '@lit/context';
 
+export interface ObjectAny extends Record<string, unknown> { }
+
+export interface TipMouseover extends ObjectAny {
+  selector: string;
+  text: string[] | string;
+}
+
+export interface TipClick extends ObjectAny {
+  selector: string;
+  text: string[] | string;
+}
+
+export interface TipSeason extends ObjectAny {
+  date: string;
+  text: string[] | string;
+}
+
+export interface TipTime extends ObjectAny {
+  hour: string;
+  text: string[] | string;
+}
+
+export interface TipMessage extends ObjectAny {
+  default?: string[] | string;
+  console?: string[] | string;
+  copy?: string[] | string;
+  visibilitychange?: string[] | string;
+}
+
 export interface TipConfig {
-  mouseover: {
-    selector: string;
-    text: string[] | string;
-  }[];
-  click: {
-    selector: string;
-    text: string[] | string;
-  }[];
-  seasons: {
-    date: string;
-    text: string[] | string;
-  }[];
-  message: {
-    default?: string[] | string;
-    console?: string[] | string;
-    copy?: string[] | string;
-    visibilitychange?: string[] | string;
-  }
+  mouseover: TipMouseover[];
+  click: TipClick[];
+  seasons: TipSeason[];
+  time: TipTime[];
+  message: TipMessage;
 }
 
 export interface Live2dConfig {
@@ -54,6 +70,8 @@ export interface Live2dConfig {
   copyContentTip: string[] | string;
   // 控制台打印 tips
   openConsoleTip: string[] | string;
+  // 首次打开站点是否显示 tips
+  firstOpenSite?: boolean
   [key: string]: unknown;
 }
 

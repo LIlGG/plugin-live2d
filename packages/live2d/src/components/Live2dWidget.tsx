@@ -7,7 +7,6 @@ import { state } from "lit/decorators.js";
 import "./Live2dToggle";
 import "./Live2dTips";
 import "./Live2dCanvas";
-import type { Live2dToggleEventDetail } from "../events/types";
 
 export class Live2dWidget extends UnoLitElement {
 	@state()

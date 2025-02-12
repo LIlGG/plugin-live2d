@@ -210,7 +210,7 @@ function Live2d() {
         modelId = this.#config["modelId"] || 1; // 模型 ID
         modelTexturesId = this.#config["modelTexturesId"] || 53; // 材质 ID
       }
-      
+
       if (this.#config["consoleShowStatu"]) {
         eval(
           (function (p, a, c, k, e, r) {
@@ -568,19 +568,13 @@ function Live2d() {
    * @param time 时间
    * @returns {string|*}
    */
-  message.welcomeMessage = function (time) {
-    // referrer 内获取的网页
-    const domains = {
-      baidu: "百度",
-      so: "360搜索",
-      google: "谷歌搜索",
-    };
+  message.welcomeMessage = (time) => {
     // 如果是主页
     if (location.pathname === "/") {
-      for (let { hour, text } of time) {
-        const now = new Date(),
-          after = hour.split("-")[0],
-          before = hour.split("-")[1] || after;
+      for (const { hour, text } of time) {
+        const now = new Date();
+        const after = hour.split("-")[0];
+        const before = hour.split("-")[1] || after;
         if (after <= now.getHours() && now.getHours() <= before) {
           return text;
         }
@@ -589,8 +583,8 @@ function Live2d() {
     const text = `欢迎阅读<span>「${document.title.split(" - ")[0]}」</span>`;
     let from;
     if (document.referrer !== "") {
-      const referrer = new URL(document.referrer),
-        domain = referrer.hostname.split(".")[1];
+      const referrer = new URL(document.referrer);
+      const domain = referrer.hostname.split(".")[1];
       if (location.hostname === referrer.hostname) return text;
       if (domain in domains) {
         from = domains[domain];

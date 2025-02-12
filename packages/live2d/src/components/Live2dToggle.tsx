@@ -2,7 +2,6 @@ import { html, type TemplateResult } from "lit";
 import { UnoLitElement } from "../common/UnoLitElement";
 import { createComponent } from "@lit/react";
 import React from "react";
-import { type Live2dToggleEventDetail, TOGGLE_CANVAS_EVENT } from "../events/types";
 import { state } from "lit/decorators.js";
 
 export class Live2dToggle extends UnoLitElement {
@@ -49,7 +48,7 @@ export class Live2dToggle extends UnoLitElement {
 			localStorage.setItem("live2d-display", Date.now().toString());
 		}
 		this.dispatchEvent(
-			new CustomEvent<Live2dToggleEventDetail>(TOGGLE_CANVAS_EVENT, {
+			new CustomEvent<Live2dToggleEventDetail>("live2d:toggle-canvas", {
 				bubbles: true,
 				composed: true,
 				detail: {
