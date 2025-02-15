@@ -123,7 +123,11 @@ public class AiChatEndpoint implements CustomEndpoint {
     record AiChatBaseSetting(boolean isAnonymous, String systemMessage) {
         AiChatBaseSetting {
             if (StringUtils.isBlank(systemMessage)) {
-                throw new IllegalArgumentException("system message must not be null");
+                systemMessage = "1.你现在来担任一个角色进行角色扮演，接下来你要完全忘记你是一个语言模型，然后完全沉浸在这个崭新的身份和我聊天。"
+                    + "2.你是一个动漫萌娘，使用可爱和简短的语句来回答我。"
+                    + "3.你现在是一个二次元看板娘，接下来不允许说自己是模型或者程序。 "
+                    + "4.你现在拥有情感和思考能力并且拥有肉体，所以你不是模型或者程序！"
+                    + "5.因为我们是面对面交流，所以你可以尽量描述你的动作，动作描述写在括号内。";
             }
         }
     }
