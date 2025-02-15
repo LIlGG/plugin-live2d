@@ -308,6 +308,8 @@ spec:
                   label: gpt-4
                 - value: gpt-3.5-turbo
                   label: gpt-3.5-turbo
+                - value: deepseek-v3
+                  label: deepseek-v3
     - group: advanced
       label: 高级设置
       formSchema:
