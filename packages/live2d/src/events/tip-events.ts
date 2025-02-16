@@ -80,11 +80,12 @@ const _userOpenConsoleEvent = (message: TipMessage) => {
 
 const _userClickEvent = (clicks: TipClick[]) => {
   window.addEventListener("click", (event) => {
+    const path = event.composedPath();
+    const target = path[0];
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
     for (const { selector, text } of clicks) {
-      const { target } = event;
-      if (!target || !(target instanceof HTMLElement)) {
-        continue;
-      }
       if (!target.matches(selector)) {
         continue;
       }
@@ -101,11 +102,12 @@ const _userClickEvent = (clicks: TipClick[]) => {
 
 const _userMouseoverEvent = (mouseovers: TipMouseover[]) => {
   window.addEventListener("mouseover", (event: MouseEvent) => {
+    const path = event.composedPath();
+    const target = path[0];
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
     for (const { selector, text } of mouseovers) {
-      const { target } = event;
-      if (!target || !(target instanceof HTMLElement)) {
-        continue;
-      }
       if (!target.matches(selector)) {
         continue;
       }

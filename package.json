@@ -1,10 +1,6 @@
 {
 	"name": "plugin-live2d",
 	"private": true,
-	"scripts": {
-		"build": "pnpm run build:packages",
-		"example:dev": "pnpm dev --filter ./packages/** "
-	},
 	"author": {
 		"name": "LIlGG",
 		"url": "https://github.com/LIlGG"

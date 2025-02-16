@@ -21,9 +21,11 @@ export class Live2dWidget extends UnoLitElement {
 
 	renderLive2dWidget() {
 		if (this._isShow) {
-			return html`<div id="live2d-plugin">
-        <live2d-tips></live2d-tips>
-        <live2d-canvas></live2d-canvas>
+			return html`<div id="live2d-plugin" class="inline-block">
+        <div class="flex flex-col items-center">
+          <live2d-tips class="-mb-10"></live2d-tips>
+          <live2d-canvas class="inline-block h-full"></live2d-canvas>
+        </div>
       </div>`;
 		}
 	}

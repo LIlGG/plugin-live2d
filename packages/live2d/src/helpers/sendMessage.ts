@@ -8,7 +8,7 @@ export function sendMessage(text: string | string[] | undefined, timeout = 3000,
   if (!text) {
     return;
   }
-  const event = new CustomEvent<Live2dMessageEventDetail>("live2d", {
+  const event = new CustomEvent<Live2dMessageEventDetail>("live2d:send-message", {
     detail: {
       text,
       timeout,
