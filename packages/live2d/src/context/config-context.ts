@@ -37,15 +37,40 @@ export interface TipConfig {
   message: TipMessage;
 }
 
-export interface Live2dConfig {
+export interface Live2dToolsConfig {
+  // 是否显示右侧工具栏
+  isTools?: boolean;
+  // openai 图标
+  openaiIcon?: string;
+  // 一言图标
+  hitokotoIcon?: string;
+  // 一言API
+  hitokotoApi?: string;
+  // 小宇宙游戏图标
+  asteroidsIcon?: string;
+  // 切换模型图标
+  switchModelIcon?: string;
+  // 切换纹理图标
+  switchTextureIcon?: string;
+  // 截图生成的图片名称
+  screenshotName?: string;
+  // 截图图标
+  screenshotIcon?: string;
+  // 信息图标
+  infoIcon?: string;
+  // 信息站点地址
+  infoSite?: string;
+  // 退出 Live2d 图标
+  exitIcon?: string;
+}
+
+export interface Live2dConfig extends Live2dToolsConfig {
   // Live2d API 路径
   apiPath: string;
   // Live2d 定位
   live2dLocation: "left" | "right";
   // 是否在控制台显示状态
   consoleShowStatus?: boolean;
-  // 是否显示右侧工具栏
-  isTools?: boolean;
   // 是否强制使用默认配置
   isForceUseDefaultConfig?: boolean;
   // 模型编号

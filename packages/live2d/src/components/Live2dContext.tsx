@@ -9,7 +9,7 @@ import "../events";
 
 export class Live2dContext extends UnoLitElement {
 	@provide({ context: configContext })
-	logger = {
+	config = {
 		apiPath: "https://live2d.fghrsh.net/api",
 		live2dLocation: "right",
 		consoleShowStatus: false,

@@ -1,31 +1,36 @@
 {
-  "compilerOptions": {
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-    "target": "ES2020",
-    "noEmit": true,
-    "skipLibCheck": true,
+	"compilerOptions": {
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"jsx": "react-jsx",
+		"target": "ES2020",
+		"noEmit": true,
+		"skipLibCheck": true,
 
-    /* modules */
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
+		/* modules */
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
 
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
+		/* Linting */
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
 
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "plugins": [
-      {
-        "name": "ts-lit-plugin"
-      }
-    ]
-  },
-  "include": ["src"]
+		"experimentalDecorators": true,
+		"useDefineForClassFields": false,
+		"plugins": [
+			{
+				"name": "ts-lit-plugin"
+			}
+		],
+		"baseUrl": "./src",
+		"paths": {
+			"@libs/*": ["libs/*"], // 定义别名
+			"@utils/*": ["utils/*"]
+		}
+	},
+	"include": ["src"]
 }
