@@ -8,9 +8,13 @@ import { timeWithinRange } from "../helpers/timeWithinRange";
 import { isNotEmptyString, isString } from "../utils/isString";
 import { randomSelection } from "../utils/randomSelection";
 import { documentTitle, getReferrerDomain, hasWebsiteHome } from "../utils/util";
+import { AddDefaultMessageEvent } from "./add-default-message";
 
 window.addEventListener("live2d:before-init", async (e) => {
   const config = e.detail.config;
+  if (!config) {
+    return;
+  }
   const tips = await _loadTips(config);
   if (!tips) {
     return;
@@ -43,13 +47,7 @@ const _welcomeEvent = (times: TipTime[]) => {
 const _holidayEvent = (seasons: TipSeason[]) => {
   for (const { date, text } of seasons) {
     if (dataWithinRange(date)) {
-      window.dispatchEvent(
-        new CustomEvent<Live2dAddDefaultMessageEventDetail>("live2d:add-default-message", {
-          detail: {
-            message: text,
-          }
-        })
-      );
+      window.dispatchEvent(new AddDefaultMessageEvent({ message: text }));
     }
   }
 }

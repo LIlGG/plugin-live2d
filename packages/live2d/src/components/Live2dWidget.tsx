@@ -9,6 +9,7 @@ import "./Live2dToggle";
 import "./Live2dTips";
 import "./Live2dCanvas";
 import "./Live2dTools";
+import { ToggleCanvasEvent } from "../events/toggle-canvas";
 
 export class Live2dWidget extends UnoLitElement {
 	@consume({ context: configContext })
@@ -43,7 +44,8 @@ export class Live2dWidget extends UnoLitElement {
 		}
 	}
 
-	handleToggleWidget(e: CustomEvent<Live2dToggleEventDetail>) {
+	handleToggleWidget(e: ToggleCanvasEvent) {
+    console.log(e);
 		this._isShow = e.detail.isShow;
 	}
 }

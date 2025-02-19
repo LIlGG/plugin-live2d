@@ -1,7 +1,7 @@
 import type { Live2dConfig } from "context/config-context";
-import { isNotEmptyString } from "../../utils/isString";
+import { isNotEmptyString } from "utils/isString";
 import { Tool } from "./tools";
-import { _getFullOrDefaultTips } from '../../events/tip-events';
+import { _getFullOrDefaultTips } from '../events/tip-events';
 
 export type CustomToolConfig = {
   name: string;

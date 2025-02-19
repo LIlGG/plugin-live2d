@@ -9,6 +9,7 @@ import { isNotEmpty } from "../utils/isNotEmpty";
 import { randomSelection } from "../utils/randomSelection";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { classMap } from "lit/directives/class-map.js";
+import { SendMessageEvent } from "../events/send-message";
 
 export class Live2dTips extends UnoLitElement {
 	@consume({ context: configContext })
@@ -52,7 +53,7 @@ export class Live2dTips extends UnoLitElement {
 		window.removeEventListener("live2d:send-message", this.handleMessage.bind(this));
 	}
 
-	handleMessage(e: CustomEvent<Live2dMessageEventDetail>): void {
+	handleMessage(e: SendMessageEvent): void {
 		const { text, timeout, priority } = e.detail;
 		if (!isNotEmpty(text)) {
 			return;

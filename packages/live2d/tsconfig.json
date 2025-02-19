@@ -28,8 +28,8 @@
 		],
 		"baseUrl": "./src",
 		"paths": {
-			"@libs/*": ["libs/*"], // 定义别名
-			"@utils/*": ["utils/*"]
+			"@libs/*": ["libs/*"],
+			"@utils/*": ["utils/*"],
 		}
 	},
 	"include": ["src"]
