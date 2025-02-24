@@ -11,10 +11,7 @@ declare global {
  * 小宇宙小游戏工具
  */
 export class AsteroidsTool extends Tool {
-  name() {
-    return "Asteroids";
-  }
-
+  priority = 80;
   icon() {
     const icon = this.getConfig().asteroidsIcon;
     return isNotEmptyString(icon) ? icon : "ph-paper-plane-tilt-fill";
@@ -22,7 +19,7 @@ export class AsteroidsTool extends Tool {
 
   execute() {
     // @ts-ignore
-    import("@libs/asteroids.min.js").then((module) => {
+    import("../../libs/asteroids.min.js").then((module) => {
       new module.default();
     });
   }

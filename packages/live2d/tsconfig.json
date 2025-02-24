@@ -25,12 +25,7 @@
 			{
 				"name": "ts-lit-plugin"
 			}
-		],
-		"baseUrl": "./src",
-		"paths": {
-			"@libs/*": ["libs/*"],
-			"@utils/*": ["utils/*"],
-		}
+		]
 	},
-	"include": ["src"]
+	"include": ["src/**/*"]
 }

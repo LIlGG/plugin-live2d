@@ -5,9 +5,7 @@ import { Tool } from "./tools";
  * AI 聊天工具
  */
 export class AIChatTool extends Tool {
-  name() {
-    return "AIChat";
-  }
+  priority = 100;
 
   icon() {
     const icon = this.getConfig().aiChatUrl;

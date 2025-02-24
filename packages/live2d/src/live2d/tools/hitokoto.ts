@@ -6,15 +6,13 @@ import { sendMessage } from "../../helpers/sendMessage";
 /**
  * 一言工具，使用一言接口获取一句话
  * 如需使用自定义的接口，则需要满足 hitokoto 的接口规范。
- * 
+ *
  * @link https://developer.hitokoto.cn/sentence/demo.html
  */
 export class HitokotoTool extends Tool {
-  _default_api = "https://v1.hitokoto.cn";
+  priority = 90;
 
-  name() {
-    return "Hitokoto";
-  }
+  _default_api = "https://v1.hitokoto.cn";
 
   icon() {
     const icon = this.getConfig().aiChatUrl;
@@ -22,7 +20,7 @@ export class HitokotoTool extends Tool {
   }
 
   async execute() {
-    const { hitokoto, description } = await this._getHitokotoMessage() || {};
+    const { hitokoto, description } = (await this._getHitokotoMessage()) || {};
     if (isNotEmptyString(hitokoto)) {
       sendMessage(hitokoto, 6000, 2);
       setTimeout(() => {
@@ -31,7 +29,9 @@ export class HitokotoTool extends Tool {
     }
   }
 
-  private async _getHitokotoMessage(): Promise<{ hitokoto: string, description: string } | undefined> {
+  private async _getHitokotoMessage(): Promise<
+    { hitokoto: string; description: string } | undefined
+  > {
     const unverifiedApi = this.getConfig().hitokotoApi || this._default_api;
     const parsedApi = queryString.parseUrl(unverifiedApi);
     const newParams = { ...parsedApi.query, encode: "json", charset: "utf-8" };
@@ -40,14 +40,14 @@ export class HitokotoTool extends Tool {
     if (isNotEmptyString(hitokoto)) {
       return {
         hitokoto: "hitokoto",
-        description: `这句一言来自 <span>「${from}」</span>，是 <span>${creator}</span> 在 hitokoto.cn 投稿的。`
-      }
+        description: `这句一言来自 <span>「${from}」</span>，是 <span>${creator}</span> 在 hitokoto.cn 投稿的。`,
+      };
     }
   }
 
   private _fetchHitokoto(hitokotoApi: string): Promise<HitokotoResult> {
     return fetch(hitokotoApi)
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((result: HitokotoResult) => {
         return result;
       });
@@ -70,4 +70,4 @@ export type HitokotoResult = {
   commit_from?: string;
   created_at?: string;
   length?: number;
-}
+};

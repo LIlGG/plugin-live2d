@@ -1,4 +1,5 @@
 import { createContext } from '@lit/context';
+import { CustomToolConfig } from 'live2d/tools/custom-tool';
 
 export interface ObjectAny extends Record<string, unknown> { }
 
@@ -40,6 +41,10 @@ export interface TipConfig {
 export interface Live2dToolsConfig {
   // 是否显示右侧工具栏
   isTools?: boolean;
+  // 显示的预设工具
+  tools?: string[];
+  // 自定义工具
+  customTools?: CustomToolConfig[];
   // openai 图标
   openaiIcon?: string;
   // 一言图标

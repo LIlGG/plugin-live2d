@@ -22,7 +22,7 @@ export class Live2dCanvas extends UnoLitElement {
 
 	render(): TemplateResult {
 		return html`
-    <canvas id="live2d" width="800" height="800" class="h-75 w-75">
+    <canvas id="live2d" width="800" height="800" class="h-75 w-75 cursor-grab">
       
     </canvas>
     `;

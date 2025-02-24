@@ -5,9 +5,7 @@ import { Tool } from "./tools";
  * 切换模型工具
  */
 export class SwitchModelTool extends Tool {
-  name() {
-    return "SwitchModel";
-  }
+  priority = 70;
 
   icon() {
     const icon = this.getConfig().switchModelIcon;

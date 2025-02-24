@@ -1,15 +1,13 @@
-import { sendMessage } from "helpers/sendMessage";
-import { isNotEmptyString } from "@utils/isString";
+import { sendMessage } from "../../helpers/sendMessage";
+import { isNotEmptyString } from "../../utils/isString";
 import { Tool } from "./tools";
-import { ToggleCanvasEvent } from "../events/toggle-canvas";
+import { ToggleCanvasEvent } from "../../events/toggle-canvas";
 
 /**
  * 退出 Live2d 工具
  */
 export class ExitTool extends Tool {
-  name() {
-    return "ExitTool";
-  }
+  priority = 10;
 
   icon() {
     const icon = this.getConfig().exitIcon;
@@ -21,6 +19,6 @@ export class ExitTool extends Tool {
     setTimeout(() => {
       // 触发退出 Live2d 事件
       window.dispatchEvent(new ToggleCanvasEvent({ isShow: false }));
-    }, 3000)
+    }, 3000);
   }
 }

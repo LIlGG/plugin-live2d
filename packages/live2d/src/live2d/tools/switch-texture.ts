@@ -5,13 +5,11 @@ import { Tool } from "./tools";
  * 切换纹理工具
  */
 export class SwitchTextureTool extends Tool {
-  name() {
-    return "SwitchTexture";
-  }
+  priority = 60;
 
   icon() {
     const icon = this.getConfig().switchTextureIcon;
-    return isNotEmptyString(icon) ? icon : "ph-camera-fill";
+    return isNotEmptyString(icon) ? icon : "ph-arrows-counter-clockwise-fill";
   }
 
   execute() {
