@@ -1,28 +1,33 @@
+import * as PIXI from "pixi.js";
 import type { Live2dConfig } from "../context/config-context";
 import { sendMessage } from "../helpers/sendMessage";
 import { isNotEmptyString } from "../utils/isString";
+import "../libs/live2d.min.js";
+import "../libs/live2dcubismcore.min.js";
+import { Live2DModel } from "pixi-live2d-display";
 
-declare const loadlive2d: any;
+window.PIXI = PIXI;
 
 interface ModelTexturesResult {
   textures: {
     id: number;
-  }
+  };
 }
 
 interface ModelResult {
   model: {
     id: number;
     message: string;
-  }
+  };
 }
 
 class Model {
   #apiPath: string;
   #config: Live2dConfig;
-  #live2dRootElement: HTMLElement;
+  #live2dRootElement: HTMLCanvasElement;
+  #app: PIXI.Application;
 
-  constructor(root: HTMLElement, config: Live2dConfig) {
+  constructor(root: HTMLCanvasElement, config: Live2dConfig) {
     const apiPath = config.apiPath;
     if (!isNotEmptyString(apiPath)) {
       throw new Error("Invalid initWidget argument!");
@@ -31,7 +36,13 @@ class Model {
     this.#apiPath = apiPath.endsWith("/") ? apiPath : `${apiPath}/`;
     this.#config = config;
     this.#live2dRootElement = root;
-
+    this.#app = new PIXI.Application({
+      view: this.#live2dRootElement,
+      autoStart: true,
+      resizeTo: window,
+      // 透明背景
+      backgroundColor: 0x00000000,
+    });
     this._loadingModel();
   }
 
@@ -43,12 +54,16 @@ class Model {
       modelId = String(this.#config.modelId || 1); // 模型 ID
       modelTexturesId = String(this.#config.modelTexturesId || 53); // 材质 ID
     }
-    this.loadModel(Number(modelId), Number(modelTexturesId), "Live2D 模型加载中...");
+    this.loadModel(
+      Number(modelId),
+      Number(modelTexturesId),
+      "Live2D 模型加载中..."
+    );
   }
 
   /**
    * 为 Live2d 加载模型。
-   * 
+   *
    * @param modelId 模型编号
    * @param modelTexturesId 纹理编号
    * @param text 加载时的消息
@@ -60,11 +75,19 @@ class Model {
     if (text) {
       sendMessage(text, 4000, 3);
     }
-    loadlive2d(
-      this.#live2dRootElement,
-      `${this.#apiPath}get/?id=${modelId}-${modelTexturesId}`,
-      console.log(`[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`)
+    const model = await Live2DModel.from(
+      "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/haru/haru_greeter_t03.model3.json",
+      {
+        onLoad: () => {
+          console.log(
+            `[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`
+          );
+        },
+      }
     );
+    this.#app.stage.addChild(model);
+
+    model.scale.set(0.25);
   }
 
   /**
@@ -74,8 +97,9 @@ class Model {
     const modelId = Number(localStorage.getItem("modelId"));
     const modelTexturesId = Number(localStorage.getItem("modelTexturesId"));
     // 可选 "rand"(随机), "switch"(顺序)
-    const result = await fetch(`${this.#apiPath}rand_textures/?id=${modelId}-${modelTexturesId}`)
-      .then((response) => response.json()) as ModelTexturesResult;
+    const result = (await fetch(
+      `${this.#apiPath}rand_textures/?id=${modelId}-${modelTexturesId}`
+    ).then((response) => response.json())) as ModelTexturesResult;
     const texturesId = result.textures.id;
     if (texturesId === 1 && (modelTexturesId === 1 || modelTexturesId === 0)) {
       sendMessage("我还没有其他衣服呢！", 4000, 3);
@@ -89,8 +113,9 @@ class Model {
    */
   async loadOtherModel() {
     const modelId = Number(localStorage.getItem("modelId"));
-    const result = await fetch(`${this.#apiPath}switch/?id=${modelId}`)
-      .then((response) => response.json()) as ModelResult;
+    const result = (await fetch(`${this.#apiPath}switch/?id=${modelId}`).then(
+      (response) => response.json()
+    )) as ModelResult;
     this.loadModel(result.model.id, 0, result.model.message);
   }
 }
