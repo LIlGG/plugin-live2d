@@ -1,6 +1,6 @@
 plugins {
     id "io.freefair.lombok" version "8.0.1"
-    id "run.halo.plugin.devtools" version "0.0.7"
+    id "run.halo.plugin.devtools" version "0.5.0"
     id 'java'
 }
 
