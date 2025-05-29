@@ -1,8 +1,8 @@
 package run.halo.live2d;
 
-import org.pf4j.PluginWrapper;
 import org.springframework.stereotype.Component;
 import run.halo.app.plugin.BasePlugin;
+import run.halo.app.plugin.PluginContext;
 
 /**
  * @author LIlGG
@@ -11,7 +11,7 @@ import run.halo.app.plugin.BasePlugin;
 @Component
 public class Live2dPlugin extends BasePlugin {
 
-    public Live2dPlugin(PluginWrapper wrapper) {
-        super(wrapper);
+    public Live2dPlugin(PluginContext context) {
+        super(context);
     }
 }
