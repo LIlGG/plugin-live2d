@@ -1,7 +1,7 @@
-import { Live2dConfig } from "context/config-context";
-import { Live2dEvent } from "./types";
+import type { Live2dConfig } from 'context/config-context';
+import { Live2dEvent } from './types';
 
-export const BEFORE_INIT_EVENT_NAME = "live2d:before-init" as const;
+export const BEFORE_INIT_EVENT_NAME = 'live2d:before-init' as const;
 
 declare global {
   interface GlobalEventHandlersEventMap {
@@ -10,7 +10,7 @@ declare global {
 }
 
 export interface Live2dBeforeInitEventDetail {
-  config?: Live2dConfig
+  config?: Live2dConfig;
 }
 
 /**

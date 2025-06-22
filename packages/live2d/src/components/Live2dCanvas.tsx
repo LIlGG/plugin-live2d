@@ -1,12 +1,12 @@
-import { html, type PropertyValues, type TemplateResult } from "lit";
-import { UnoLitElement } from "../common/UnoLitElement";
-import { createComponent } from "@lit/react";
-import React from "react";
-import { property, query, state } from "lit/decorators.js";
-import Model from "../live2d/model";
 import { consume } from "@lit/context";
-import { configContext, type Live2dConfig } from "../context/config-context";
+import { createComponent } from "@lit/react";
+import { type PropertyValues, type TemplateResult, html } from "lit";
+import { property, query, state } from "lit/decorators.js";
+import React from "react";
+import { UnoLitElement } from "../common/UnoLitElement";
+import { type Live2dConfig, configContext } from "../context/config-context";
 import { BeforeInitEvent } from "../events/before-init.js";
+import Model from "../live2d/model";
 
 export class Live2dCanvas extends UnoLitElement {
   @consume({ context: configContext })
@@ -17,18 +17,10 @@ export class Live2dCanvas extends UnoLitElement {
   private _model: unknown;
 
   @query("#live2d")
-  private _live2d;
+  private _live2d: HTMLCanvasElement;
 
   render(): TemplateResult {
-    return html`
-      <canvas
-        id="live2d"
-        width="800"
-        height="800"
-        class="h-75 w-75 cursor-grab"
-      >
-      </canvas>
-    `;
+    return html` <canvas id="live2d" class="cursor-grab"> </canvas> `;
   }
 
   connectedCallback(): void {

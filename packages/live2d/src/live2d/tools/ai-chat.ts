@@ -1,5 +1,5 @@
-import { isNotEmptyString } from "../../utils/isString";
-import { Tool } from "./tools";
+import { isNotEmptyString } from '../../utils/isString';
+import { Tool } from './tools';
 
 /**
  * AI 聊天工具
@@ -9,7 +9,7 @@ export class AIChatTool extends Tool {
 
   icon() {
     const icon = this.getConfig().aiChatUrl;
-    return isNotEmptyString(icon) ? icon : "ph-chats-circle-fill";
+    return isNotEmptyString(icon) ? icon : 'ph-chats-circle-fill';
   }
 
   execute() {

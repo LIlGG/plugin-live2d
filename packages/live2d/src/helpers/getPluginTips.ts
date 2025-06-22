@@ -1,9 +1,9 @@
-import type { Live2dConfig, TipConfig } from "../context/config-context";
-import { isNotEmpty } from "../utils/isNotEmpty";
+import type { Live2dConfig, TipConfig } from '../context/config-context';
+import { isNotEmpty } from '../utils/isNotEmpty';
 
 /**
  * 整合插件配置中的 tips 元素。
- * 
+ *
  * 插件配置中的元素如下所示：
  * "selectorTips" : [ {
  *   "mouseAction" : "mouseover",
@@ -36,7 +36,7 @@ export const getPluginTips = (config: Live2dConfig): TipConfig => {
         selector: item.selector,
         text: texts,
       };
-      if (item.mouseAction === "click") {
+      if (item.mouseAction === 'click') {
         tips.click?.push(obj);
       } else {
         tips.mouseover?.push(obj);
@@ -54,4 +54,4 @@ export const getPluginTips = (config: Live2dConfig): TipConfig => {
     tips.message.console = config.openConsoleTip;
   }
   return tips;
-}
+};

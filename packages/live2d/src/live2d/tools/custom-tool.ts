@@ -1,6 +1,6 @@
-import type { Live2dConfig } from "../../context/config-context";
-import { isNotEmptyString } from "../../utils/isString";
-import { Tool } from "./tools";
+import type { Live2dConfig } from '../../context/config-context';
+import { isNotEmptyString } from '../../utils/isString';
+import { Tool } from './tools';
 
 export type CustomToolConfig = {
   name: string;
@@ -20,7 +20,7 @@ export class CustomTool extends Tool {
 
   constructor(
     config: Live2dConfig,
-    { name, icon, execute, priority }: CustomToolConfig
+    { name, icon, execute, priority }: CustomToolConfig,
   ) {
     super(config);
     this._name = name;
@@ -35,11 +35,11 @@ export class CustomTool extends Tool {
 
   icon() {
     const icon = this._icon;
-    return isNotEmptyString(icon) ? icon : "ph-question-fill";
+    return isNotEmptyString(icon) ? icon : 'ph-question-fill';
   }
 
   execute() {
-    if (typeof this._execute === "string") {
+    if (typeof this._execute === 'string') {
       const customClass = new Function(`
         return class {
           ${this._execute}

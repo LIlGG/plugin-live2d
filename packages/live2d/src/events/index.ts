@@ -1,1 +1,1 @@
-import "./tip-events";
+import './tip-events';

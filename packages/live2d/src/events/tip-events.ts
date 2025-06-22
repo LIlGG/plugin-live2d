@@ -1,16 +1,28 @@
-import type { Live2dConfig, TipClick, TipConfig, TipMessage, TipMouseover, TipSeason, TipTime } from "../context/config-context";
-import { dataWithinRange } from "../helpers/dateWithinRange";
-import { getPluginTips } from "../helpers/getPluginTips";
-import { loadTipsResource } from "../helpers/loadTipsResource";
-import { mergeTips } from "../helpers/mergeTips";
-import { sendMessage } from "../helpers/sendMessage";
-import { timeWithinRange } from "../helpers/timeWithinRange";
-import { isNotEmptyString, isString } from "../utils/isString";
-import { randomSelection } from "../utils/randomSelection";
-import { documentTitle, getReferrerDomain, hasWebsiteHome } from "../utils/util";
-import { AddDefaultMessageEvent } from "./add-default-message";
+import type {
+  Live2dConfig,
+  TipClick,
+  TipConfig,
+  TipMessage,
+  TipMouseover,
+  TipSeason,
+  TipTime,
+} from '../context/config-context';
+import { dataWithinRange } from '../helpers/dateWithinRange';
+import { getPluginTips } from '../helpers/getPluginTips';
+import { loadTipsResource } from '../helpers/loadTipsResource';
+import { mergeTips } from '../helpers/mergeTips';
+import { sendMessage } from '../helpers/sendMessage';
+import { timeWithinRange } from '../helpers/timeWithinRange';
+import { isNotEmptyString, isString } from '../utils/isString';
+import { randomSelection } from '../utils/randomSelection';
+import {
+  documentTitle,
+  getReferrerDomain,
+  hasWebsiteHome,
+} from '../utils/util';
+import { AddDefaultMessageEvent } from './add-default-message';
 
-window.addEventListener("live2d:before-init", async (e) => {
+window.addEventListener('live2d:before-init', async (e) => {
   const config = e.detail.config;
   if (!config) {
     return;
@@ -20,7 +32,7 @@ window.addEventListener("live2d:before-init", async (e) => {
     return;
   }
   _registerTipEventListener(config, tips);
-})
+});
 
 const _getWelComeMessage = (times: TipTime[]) => {
   if (hasWebsiteHome) {
@@ -33,8 +45,10 @@ const _getWelComeMessage = (times: TipTime[]) => {
 
   const message = `欢迎阅读<span>「${documentTitle}」</span>`;
   const domain = getReferrerDomain();
-  return domain ? `Hello！来自 <span>${domain}</span> 的朋友<br>${message}` : message;
-}
+  return domain
+    ? `Hello！来自 <span>${domain}</span> 的朋友<br>${message}`
+    : message;
+};
 
 const _welcomeEvent = (times: TipTime[]) => {
   const message = _getWelComeMessage(times);
@@ -42,7 +56,7 @@ const _welcomeEvent = (times: TipTime[]) => {
     return;
   }
   sendMessage(message, 7000, 4);
-}
+};
 
 const _holidayEvent = (seasons: TipSeason[]) => {
   for (const { date, text } of seasons) {
@@ -50,34 +64,34 @@ const _holidayEvent = (seasons: TipSeason[]) => {
       window.dispatchEvent(new AddDefaultMessageEvent({ message: text }));
     }
   }
-}
+};
 
 const _userLeaveEvent = (message: TipMessage) => {
   const { visibilitychange } = message;
-  document.addEventListener("visibilitychange", () => {
+  document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       sendMessage(visibilitychange, 6000, 2);
     }
   });
-}
+};
 
 const _userCopyEvent = (message: TipMessage) => {
   const { copy } = message;
-  window.addEventListener("copy", () => {
+  window.addEventListener('copy', () => {
     sendMessage(copy, 6000, 2);
   });
-}
+};
 
 const _userOpenConsoleEvent = (message: TipMessage) => {
   const { console } = message;
-  const devtools = () => { };
+  const devtools = () => {};
   devtools.toString = () => {
     sendMessage(console, 6000, 2);
   };
-}
+};
 
 const _userClickEvent = (clicks: TipClick[]) => {
-  window.addEventListener("click", (event) => {
+  window.addEventListener('click', (event) => {
     const path = event.composedPath();
     const target = path[0];
     if (!(target instanceof HTMLElement)) {
@@ -91,15 +105,15 @@ const _userClickEvent = (clicks: TipClick[]) => {
       if (!message) {
         continue;
       }
-      message = message.replace("{text}", target.innerText);
+      message = message.replace('{text}', target.innerText);
       sendMessage(message, 4000, 1);
       return;
     }
   });
-}
+};
 
 const _userMouseoverEvent = (mouseovers: TipMouseover[]) => {
-  window.addEventListener("mouseover", (event: MouseEvent) => {
+  window.addEventListener('mouseover', (event: MouseEvent) => {
     const path = event.composedPath();
     const target = path[0];
     if (!(target instanceof HTMLElement)) {
@@ -113,12 +127,12 @@ const _userMouseoverEvent = (mouseovers: TipMouseover[]) => {
       if (!message) {
         continue;
       }
-      message = message.replace("{text}", target.innerText);
+      message = message.replace('{text}', target.innerText);
       sendMessage(message, 4000, 1);
       return;
     }
   });
-}
+};
 
 /**
  * 监听用户是否处于活动状态，如果用户长时间不活动，则向 Live2d 发送消息
@@ -127,22 +141,24 @@ const _userActionEvent = (message: TipMessage) => {
   let userAction = false;
   let userActionTimer: number | undefined;
   const defaultMessage = message.default;
-  const idleMessage: string[] = isString(defaultMessage) ? [defaultMessage] : (defaultMessage || []);
+  const idleMessage: string[] = isString(defaultMessage)
+    ? [defaultMessage]
+    : defaultMessage || [];
 
-  window.addEventListener("mousemove", () => {
+  window.addEventListener('mousemove', () => {
     userAction = true;
   });
-  window.addEventListener("keydown", () => {
+  window.addEventListener('keydown', () => {
     userAction = true;
   });
-  window.addEventListener("live2d:add-default-message", (ev) => {
+  window.addEventListener('live2d:add-default-message', (ev) => {
     const message = ev.detail.message;
     if (Array.isArray(message)) {
       idleMessage.push(...message);
     } else {
       idleMessage.push(message);
     }
-  })
+  });
   setInterval(() => {
     if (userAction) {
       userAction = false;
@@ -157,12 +173,12 @@ const _userActionEvent = (message: TipMessage) => {
       sendMessage(message.default, 6000, 2);
     }, 20000);
   }, 1000);
-}
+};
 
 const _registerTipEventListener = (config: Live2dConfig, tips: TipConfig) => {
   // 首次进入页面时
   if (config.firstOpenSite) {
-    _welcomeEvent(tips.time)
+    _welcomeEvent(tips.time);
   }
   // 节日事件
   _holidayEvent(tips.seasons);
@@ -178,7 +194,7 @@ const _registerTipEventListener = (config: Live2dConfig, tips: TipConfig) => {
   _userCopyEvent(tips.message);
   // 用户离开页面事件
   _userLeaveEvent(tips.message);
-}
+};
 
 const _loadTips = async (config: Live2dConfig) => {
   if (!config) {
@@ -202,9 +218,11 @@ const _loadTips = async (config: Live2dConfig) => {
     themeTips,
     fullOrDefaultTips,
   });
-}
+};
 
-export const _getFullOrDefaultTips = async (config: Live2dConfig): Promise<TipConfig> => {
+export const _getFullOrDefaultTips = async (
+  config: Live2dConfig,
+): Promise<TipConfig> => {
   // 获取插件文件中的全量 tips 文件
   if (isNotEmptyString(config?.tipsPath)) {
     const tipsResult = await loadTipsResource(config.tipsPath);
@@ -213,5 +231,5 @@ export const _getFullOrDefaultTips = async (config: Live2dConfig): Promise<TipCo
     }
   }
   // 获取默认的 tips 文件
-  return (await import("../libs/live2d-tips.json")).default;
-}
+  return (await import('../libs/live2d-tips.json')).default;
+};

@@ -1,4 +1,4 @@
-import { SendMessageEvent } from "../events/send-message";
+import { SendMessageEvent } from '../events/send-message';
 
 /**
  * 向 Live2D 发送消息事件
@@ -9,7 +9,7 @@ import { SendMessageEvent } from "../events/send-message";
 export function sendMessage(
   text: string | string[] | undefined,
   timeout = 3000,
-  priority = 0
+  priority = 0,
 ) {
   if (!text) {
     return;

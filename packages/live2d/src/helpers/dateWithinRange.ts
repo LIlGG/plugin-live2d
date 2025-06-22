@@ -3,7 +3,7 @@ const DATE_SEPARATOR = '/';
 
 /**
  * 检查指定的日期是否在当前日期范围内。
- * 
+ *
  * @param date 指定的日期格式为 `MM/DD` 或 `MM/DD-MM/DD`。
  * @returns 如果日期在当前范围内则返回 true， 否则返回 false。
  */
@@ -23,4 +23,4 @@ export const dataWithinRange = (date: string): boolean => {
     startDay <= currentDate &&
     currentDate <= endDay
   );
-}
+};

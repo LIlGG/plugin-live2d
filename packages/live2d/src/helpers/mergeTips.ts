@@ -1,5 +1,5 @@
-import type { TipConfig } from "../context/config-context";
-import { distinctArray } from "../utils/distinctArray";
+import type { TipConfig } from '../context/config-context';
+import { distinctArray } from '../utils/distinctArray';
 
 /**
  * 合并各个渠道的 tips，根据获取位置不同，合并时优先级也不同。优先级按高到低的顺序为
@@ -16,16 +16,28 @@ import { distinctArray } from "../utils/distinctArray";
  * @param themeTips 主题提供的 tips
  * @param defaultTips 配置/默认的 tips
  */
-export const mergeTips = ({ pluginTips, themeTips, fullOrDefaultTips }: {
+export const mergeTips = ({
+  pluginTips,
+  themeTips,
+  fullOrDefaultTips,
+}: {
   pluginTips: TipConfig;
   themeTips: TipConfig;
   fullOrDefaultTips: TipConfig;
 }) => {
   const defaultTips = { ...fullOrDefaultTips };
-  const duplicateClick = [...pluginTips.click, ...themeTips.click, ...fullOrDefaultTips.click];
-  const duplicateMouseover = [...pluginTips.mouseover, ...themeTips.mouseover, ...fullOrDefaultTips.mouseover];
-  defaultTips.click = distinctArray(duplicateClick, "selector");
-  defaultTips.mouseover = distinctArray(duplicateMouseover, "selector");
+  const duplicateClick = [
+    ...pluginTips.click,
+    ...themeTips.click,
+    ...fullOrDefaultTips.click,
+  ];
+  const duplicateMouseover = [
+    ...pluginTips.mouseover,
+    ...themeTips.mouseover,
+    ...fullOrDefaultTips.mouseover,
+  ];
+  defaultTips.click = distinctArray(duplicateClick, 'selector');
+  defaultTips.mouseover = distinctArray(duplicateMouseover, 'selector');
   defaultTips.message = { ...defaultTips.message, ...pluginTips.message };
   return defaultTips;
 };

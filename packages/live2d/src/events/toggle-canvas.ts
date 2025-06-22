@@ -1,6 +1,6 @@
-import { Live2dEvent } from "./types";
+import { Live2dEvent } from './types';
 
-export const TOGGLE_CANVAS_EVENT_NAME = "live2d:toggle-canvas" as const;
+export const TOGGLE_CANVAS_EVENT_NAME = 'live2d:toggle-canvas' as const;
 
 declare global {
   interface GlobalEventHandlersEventMap {

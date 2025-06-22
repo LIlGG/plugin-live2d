@@ -1,15 +1,15 @@
-import { html, type TemplateResult } from "lit";
-import { UnoLitElement } from "../common/UnoLitElement";
-import { createComponent } from "@lit/react";
-import React from "react";
-import { property, state } from "lit/decorators.js";
-import { consume } from "@lit/context";
-import { configContext, type Live2dConfig } from "../context/config-context";
-import "./Live2dToggle";
-import "./Live2dTips";
-import "./Live2dCanvas";
-import "./Live2dTools";
-import { ToggleCanvasEvent } from "../events/toggle-canvas";
+import { consume } from '@lit/context';
+import { createComponent } from '@lit/react';
+import { type TemplateResult, html } from 'lit';
+import { property, state } from 'lit/decorators.js';
+import React from 'react';
+import { UnoLitElement } from '../common/UnoLitElement';
+import { type Live2dConfig, configContext } from '../context/config-context';
+import './Live2dToggle';
+import './Live2dTips';
+import './Live2dCanvas';
+import './Live2dTools';
+import type { ToggleCanvasEvent } from '../events/toggle-canvas';
 
 export class Live2dWidget extends UnoLitElement {
   @consume({ context: configContext })
@@ -53,10 +53,10 @@ export class Live2dWidget extends UnoLitElement {
   }
 }
 
-customElements.define("live2d-widget", Live2dWidget);
+customElements.define('live2d-widget', Live2dWidget);
 
 export const Live2dWidgetComponent = createComponent({
-  tagName: "live2d-widget",
+  tagName: 'live2d-widget',
   elementClass: Live2dWidget,
   react: React,
 });

@@ -1,2 +1,2 @@
-declare let style: string
-export default style
+declare let style: string;
+export default style;

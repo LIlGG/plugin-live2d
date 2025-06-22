@@ -1,14 +1,14 @@
-import { html, type TemplateResult } from "lit";
-import { UnoLitElement } from "../common/UnoLitElement";
-import { createComponent } from "@lit/react";
-import React from "react";
-import { consume } from "@lit/context";
-import { configContext, type Live2dConfig } from "../context/config-context";
-import { property, state } from "lit/decorators.js";
-import type { Tool } from "../live2d/tools/tools";
-import { CustomTool } from "../live2d/tools/custom-tool";
-import presetTools from "../live2d/tools";
-import "iconify-icon";
+import { consume } from '@lit/context';
+import { createComponent } from '@lit/react';
+import { type TemplateResult, html } from 'lit';
+import { property, state } from 'lit/decorators.js';
+import React from 'react';
+import { UnoLitElement } from '../common/UnoLitElement';
+import { type Live2dConfig, configContext } from '../context/config-context';
+import presetTools from '../live2d/tools';
+import { CustomTool } from '../live2d/tools/custom-tool';
+import type { Tool } from '../live2d/tools/tools';
+import 'iconify-icon';
 
 export class Live2dTools extends UnoLitElement {
   @consume({ context: configContext })
@@ -49,7 +49,7 @@ export class Live2dTools extends UnoLitElement {
     const customTools = this.getCustomTools();
     // 合并所有工具，并按照 priority 排序
     const tools = [...presetTools, ...customTools].sort(
-      (a, b) => b.priority - a.priority
+      (a, b) => b.priority - a.priority,
     );
     this._tools.push(...tools);
   }
@@ -95,10 +95,10 @@ export class Live2dTools extends UnoLitElement {
   }
 }
 
-customElements.define("live2d-tools", Live2dTools);
+customElements.define('live2d-tools', Live2dTools);
 
 export const Live2dToolsComponent = createComponent({
-  tagName: "live2d-tools",
+  tagName: 'live2d-tools',
   elementClass: Live2dTools,
   react: React,
 });

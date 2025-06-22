@@ -1,6 +1,6 @@
-import { Live2dEvent } from "./types";
+import { Live2dEvent } from './types';
 
-export const SEND_MESSAGE_EVENT_NAME = "live2d:send-message" as const;
+export const SEND_MESSAGE_EVENT_NAME = 'live2d:send-message' as const;
 
 declare global {
   interface GlobalEventHandlersEventMap {
@@ -16,7 +16,6 @@ export interface Live2dMessageEventDetail {
   // 消息优先级
   priority: number;
 }
-
 
 /**
  * 发送消息事件

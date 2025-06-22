@@ -2,9 +2,9 @@ import type { TipConfig } from '../context/config-context';
 
 /**
  * 远程加载提示资源
- * 
- * @param url 
- * @returns 
+ *
+ * @param url
+ * @returns
  */
 export function loadTipsResource(url?: string) {
   const defaultObj: TipConfig = {
@@ -14,23 +14,22 @@ export function loadTipsResource(url?: string) {
     message: {},
     time: [],
   };
-  return new Promise<TipConfig
-    | undefined>((resolve) => {
-      if (!url) {
-        resolve(defaultObj);
-        return;
-      }
-      try {
-        fetch(url)
-          .then((response) => response.json())
-          .then((result) => {
-            resolve(result);
-          })
-          .catch(() => {
-            resolve(defaultObj);
-          });
-      } catch (e) {
-        // ignore
-      }
-    });
-};
+  return new Promise<TipConfig | undefined>((resolve) => {
+    if (!url) {
+      resolve(defaultObj);
+      return;
+    }
+    try {
+      fetch(url)
+        .then((response) => response.json())
+        .then((result) => {
+          resolve(result);
+        })
+        .catch(() => {
+          resolve(defaultObj);
+        });
+    } catch (e) {
+      // ignore
+    }
+  });
+}

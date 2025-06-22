@@ -1,17 +1,17 @@
-import { html, type TemplateResult } from "lit";
-import { UnoLitElement } from "../common/UnoLitElement";
-import { createComponent } from "@lit/react";
-import React from "react";
-import "./Live2dWidget";
-import { provide } from "@lit/context";
-import { configContext, type Live2dConfig } from "../context/config-context";
-import "../events";
+import { createComponent } from '@lit/react';
+import { type TemplateResult, html } from 'lit';
+import React from 'react';
+import { UnoLitElement } from '../common/UnoLitElement';
+import './Live2dWidget';
+import { provide } from '@lit/context';
+import { type Live2dConfig, configContext } from '../context/config-context';
+import '../events';
 
 export class Live2dContext extends UnoLitElement {
   @provide({ context: configContext })
   config = {
-    apiPath: "https://live2d.fghrsh.net/api",
-    live2dLocation: "right",
+    apiPath: 'https://live2d.fghrsh.net/api',
+    live2dLocation: 'right',
     consoleShowStatus: false,
     isTools: true,
   } as Live2dConfig;
@@ -21,10 +21,10 @@ export class Live2dContext extends UnoLitElement {
   }
 }
 
-customElements.define("live2d-context", Live2dContext);
+customElements.define('live2d-context', Live2dContext);
 
 export const Live2dContextComponent = createComponent({
-  tagName: "live2d-context",
+  tagName: 'live2d-context',
   elementClass: Live2dContext,
   react: React,
 });
