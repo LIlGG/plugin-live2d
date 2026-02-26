@@ -1,5 +1,5 @@
-import { createContext } from '@lit/context';
-import type { CustomToolConfig } from 'live2d/tools/custom-tool';
+import { createContext } from "@lit/context";
+import type { CustomToolConfig } from "@/live2d/live2d/tools/custom-tool";
 
 export interface ObjectAny extends Record<string, unknown> {}
 
@@ -73,7 +73,7 @@ export interface Live2dConfig extends Live2dToolsConfig {
   // Live2d API 路径
   apiPath: string;
   // Live2d 定位
-  live2dLocation: 'left' | 'right';
+  live2dLocation: "left" | "right";
   // 是否在控制台显示状态
   consoleShowStatus?: boolean;
   // 是否强制使用默认配置
@@ -93,8 +93,8 @@ export interface Live2dConfig extends Live2dToolsConfig {
         message: string;
       }[];
       selector: string;
-      mouseAction: 'click' | 'mouseover' | string | undefined;
-    },
+      mouseAction: "click" | "mouseover" | string | undefined;
+    }
   ];
   // 页面可见性变化时的 tips
   backSiteTip: string[] | string;
@@ -107,4 +107,4 @@ export interface Live2dConfig extends Live2dToolsConfig {
   [key: string]: unknown;
 }
 
-export const configContext = createContext<Live2dConfig>('config');
+export const configContext = createContext<Live2dConfig>("config");

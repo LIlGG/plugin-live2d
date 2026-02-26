@@ -1,6 +1,6 @@
-import { Live2dEvent } from './types';
+import { Live2dEvent } from "@/live2d/events/types";
 
-export const SEND_MESSAGE_EVENT_NAME = 'live2d:send-message' as const;
+export const SEND_MESSAGE_EVENT_NAME = "live2d:send-message" as const;
 
 declare global {
   interface GlobalEventHandlersEventMap {

@@ -1,4 +1,4 @@
-import type { Live2dConfig } from '../../context/config-context';
+import type { Live2dConfig } from "@/live2d/context/config-context";
 
 export abstract class Tool {
   private _config: Live2dConfig;

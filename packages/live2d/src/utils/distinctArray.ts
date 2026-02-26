@@ -1,4 +1,4 @@
-import type { ObjectAny } from '../context/config-context';
+import type { ObjectAny } from "@/live2d/context/config-context";
 
 export const distinctArray = <T extends ObjectAny>(arr: T[], key: keyof T) => {
   const map = new Map<unknown, T>();

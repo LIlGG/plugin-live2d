@@ -1,7 +1,7 @@
-import { Live2dEvent } from './types';
+import { Live2dEvent } from "@/live2d/events/types";
 
 export const ADD_DEFAULT_MESSAGE_EVENT_NAME =
-  'live2d:add-default-message' as const;
+  "live2d:add-default-message" as const;
 
 declare global {
   interface GlobalEventHandlersEventMap {

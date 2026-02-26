@@ -1,7 +1,7 @@
-import queryString from 'query-string';
-import { sendMessage } from '../../helpers/sendMessage';
-import { isNotEmptyString } from '../../utils/isString';
-import { Tool } from './tools';
+import queryString from "query-string";
+import { sendMessage } from "@/live2d/helpers/sendMessage";
+import { isNotEmptyString } from "@/live2d/utils/isString";
+import { Tool } from "@/live2d/live2d/tools/tools";
 
 /**
  * 一言工具，使用一言接口获取一句话
@@ -12,11 +12,11 @@ import { Tool } from './tools';
 export class HitokotoTool extends Tool {
   priority = 90;
 
-  _default_api = 'https://v1.hitokoto.cn';
+  _default_api = "https://v1.hitokoto.cn";
 
   icon() {
     const icon = this.getConfig().aiChatUrl;
-    return isNotEmptyString(icon) ? icon : 'ph-chat-circle-fill';
+    return isNotEmptyString(icon) ? icon : "ph-chat-circle-fill";
   }
 
   async execute() {
@@ -34,12 +34,12 @@ export class HitokotoTool extends Tool {
   > {
     const unverifiedApi = this.getConfig().hitokotoApi || this._default_api;
     const parsedApi = queryString.parseUrl(unverifiedApi);
-    const newParams = { ...parsedApi.query, encode: 'json', charset: 'utf-8' };
+    const newParams = { ...parsedApi.query, encode: "json", charset: "utf-8" };
     const hitokotoApi = `${parsedApi.url}?${queryString.stringify(newParams)}`;
     const { hitokoto, from, creator } = await this._fetchHitokoto(hitokotoApi);
     if (isNotEmptyString(hitokoto)) {
       return {
-        hitokoto: 'hitokoto',
+        hitokoto: "hitokoto",
         description: `这句一言来自 <span>「${from}」</span>，是 <span>${creator}</span> 在 hitokoto.cn 投稿的。`,
       };
     }

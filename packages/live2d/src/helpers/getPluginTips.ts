@@ -1,5 +1,5 @@
-import type { Live2dConfig, TipConfig } from '../context/config-context';
-import { isNotEmpty } from '../utils/isNotEmpty';
+import type { Live2dConfig, TipConfig } from '@/live2d/context/config-context';
+import { isNotEmpty } from '@/live2d/utils/isNotEmpty';
 
 /**
  * 整合插件配置中的 tips 元素。

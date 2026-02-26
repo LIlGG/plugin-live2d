@@ -1,5 +1,5 @@
-import { isNotEmptyString } from '../../utils/isString';
-import { Tool } from './tools';
+import { isNotEmptyString } from "@/live2d/utils/isString";
+import { Tool } from "@/live2d/live2d/tools/tools";
 
 /**
  * 切换纹理工具
@@ -9,7 +9,7 @@ export class SwitchTextureTool extends Tool {
 
   icon() {
     const icon = this.getConfig().switchTextureIcon;
-    return isNotEmptyString(icon) ? icon : 'ph-arrows-counter-clockwise-fill';
+    return isNotEmptyString(icon) ? icon : "ph-arrows-counter-clockwise-fill";
   }
 
   execute() {

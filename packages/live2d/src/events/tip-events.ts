@@ -6,23 +6,23 @@ import type {
   TipMouseover,
   TipSeason,
   TipTime,
-} from '../context/config-context';
-import { dataWithinRange } from '../helpers/dateWithinRange';
-import { getPluginTips } from '../helpers/getPluginTips';
-import { loadTipsResource } from '../helpers/loadTipsResource';
-import { mergeTips } from '../helpers/mergeTips';
-import { sendMessage } from '../helpers/sendMessage';
-import { timeWithinRange } from '../helpers/timeWithinRange';
-import { isNotEmptyString, isString } from '../utils/isString';
-import { randomSelection } from '../utils/randomSelection';
+} from "@/live2d/context/config-context";
+import { dataWithinRange } from "@/live2d/helpers/dateWithinRange";
+import { getPluginTips } from "@/live2d/helpers/getPluginTips";
+import { loadTipsResource } from "@/live2d/helpers/loadTipsResource";
+import { mergeTips } from "@/live2d/helpers/mergeTips";
+import { sendMessage } from "@/live2d/helpers/sendMessage";
+import { timeWithinRange } from "@/live2d/helpers/timeWithinRange";
+import { isNotEmptyString, isString } from "@/live2d/utils/isString";
+import { randomSelection } from "@/live2d/utils/randomSelection";
 import {
   documentTitle,
   getReferrerDomain,
   hasWebsiteHome,
-} from '../utils/util';
-import { AddDefaultMessageEvent } from './add-default-message';
+} from "@/live2d/utils/util";
+import { AddDefaultMessageEvent } from "@/live2d/events/add-default-message";
 
-window.addEventListener('live2d:before-init', async (e) => {
+window.addEventListener("live2d:before-init", async (e) => {
   const config = e.detail.config;
   if (!config) {
     return;
@@ -68,7 +68,7 @@ const _holidayEvent = (seasons: TipSeason[]) => {
 
 const _userLeaveEvent = (message: TipMessage) => {
   const { visibilitychange } = message;
-  document.addEventListener('visibilitychange', () => {
+  document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
       sendMessage(visibilitychange, 6000, 2);
     }
@@ -77,7 +77,7 @@ const _userLeaveEvent = (message: TipMessage) => {
 
 const _userCopyEvent = (message: TipMessage) => {
   const { copy } = message;
-  window.addEventListener('copy', () => {
+  window.addEventListener("copy", () => {
     sendMessage(copy, 6000, 2);
   });
 };
@@ -91,7 +91,7 @@ const _userOpenConsoleEvent = (message: TipMessage) => {
 };
 
 const _userClickEvent = (clicks: TipClick[]) => {
-  window.addEventListener('click', (event) => {
+  window.addEventListener("click", (event) => {
     const path = event.composedPath();
     const target = path[0];
     if (!(target instanceof HTMLElement)) {
@@ -105,7 +105,7 @@ const _userClickEvent = (clicks: TipClick[]) => {
       if (!message) {
         continue;
       }
-      message = message.replace('{text}', target.innerText);
+      message = message.replace("{text}", target.innerText);
       sendMessage(message, 4000, 1);
       return;
     }
@@ -113,7 +113,7 @@ const _userClickEvent = (clicks: TipClick[]) => {
 };
 
 const _userMouseoverEvent = (mouseovers: TipMouseover[]) => {
-  window.addEventListener('mouseover', (event: MouseEvent) => {
+  window.addEventListener("mouseover", (event: MouseEvent) => {
     const path = event.composedPath();
     const target = path[0];
     if (!(target instanceof HTMLElement)) {
@@ -127,7 +127,7 @@ const _userMouseoverEvent = (mouseovers: TipMouseover[]) => {
       if (!message) {
         continue;
       }
-      message = message.replace('{text}', target.innerText);
+      message = message.replace("{text}", target.innerText);
       sendMessage(message, 4000, 1);
       return;
     }
@@ -145,13 +145,13 @@ const _userActionEvent = (message: TipMessage) => {
     ? [defaultMessage]
     : defaultMessage || [];
 
-  window.addEventListener('mousemove', () => {
+  window.addEventListener("mousemove", () => {
     userAction = true;
   });
-  window.addEventListener('keydown', () => {
+  window.addEventListener("keydown", () => {
     userAction = true;
   });
-  window.addEventListener('live2d:add-default-message', (ev) => {
+  window.addEventListener("live2d:add-default-message", (ev) => {
     const message = ev.detail.message;
     if (Array.isArray(message)) {
       idleMessage.push(...message);
@@ -221,7 +221,7 @@ const _loadTips = async (config: Live2dConfig) => {
 };
 
 export const _getFullOrDefaultTips = async (
-  config: Live2dConfig,
+  config: Live2dConfig
 ): Promise<TipConfig> => {
   // 获取插件文件中的全量 tips 文件
   if (isNotEmptyString(config?.tipsPath)) {
@@ -231,5 +231,5 @@ export const _getFullOrDefaultTips = async (
     }
   }
   // 获取默认的 tips 文件
-  return (await import('../libs/live2d-tips.json')).default;
+  return (await import("../libs/live2d-tips.json")).default;
 };
