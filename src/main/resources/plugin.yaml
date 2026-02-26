@@ -2,17 +2,22 @@ apiVersion: plugin.halo.run/v1alpha1
 kind: Plugin
 metadata:
   name: PluginLive2d
+  annotations:
+    "store.halo.run/app-id": "app-oPNFQ"
 spec:
   enabled: true
-  requires: ">=2.4.0"
+  requires: ">=2.10.0"
   author:
     name: LIlGG
     website: https://lixingyong.com
   logo: logo.gif
-  settingName: plugin-live2d-settings
-  configMapName: plugin-live2d-configs
-  homepage: https://github.com/LIlGG/plugin-live2d
+  repo: https://github.com/LIlGG/plugin-live2d
+  homepage: https://www.halo.run/store/apps/app-oPNFQ
+  issues: https://github.com/LIlGG/plugin-live2d/issues
   displayName: "live2d 看板娘"
   description: "为主题增加一个萌萌哒的看板娘吧！ʕ̯•͡ˑ͓•̯᷅ʔ"
+  settingName: plugin-live2d-settings
+  configMapName: plugin-live2d-configs
   license:
     - name: "MIT"
+      url: "https://github.com/LIlGG/plugin-live2d/blob/main/LICENSE"

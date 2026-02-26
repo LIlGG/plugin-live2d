@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci:
+    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-ci.yaml@v3
+    with:
+      skip-node-setup: true
