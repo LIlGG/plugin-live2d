@@ -17,6 +17,10 @@ export class AsteroidsTool extends Tool {
     return isNotEmptyString(icon) ? icon : "ph-paper-plane-tilt-fill";
   }
 
+  name(): string {
+    return "asteroids";
+  }
+
   execute() {
     // @ts-ignore
     import("@/live2d/libs/asteroids.min.js").then((module) => {

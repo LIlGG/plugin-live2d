@@ -17,7 +17,7 @@
 			]
 		},
 		{
-			"selector": "#live2d-tool-openai",
+			"selector": "#live2d-tool-chat",
 			"text": [
 				"想要和我聊天吗？",
 				"我可是知道不少东西的！",

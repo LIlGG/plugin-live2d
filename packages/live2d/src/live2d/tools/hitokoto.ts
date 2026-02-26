@@ -14,6 +14,10 @@ export class HitokotoTool extends Tool {
 
   _default_api = "https://v1.hitokoto.cn";
 
+  name(): string {
+    return "hitokoto";
+  }
+
   icon() {
     const icon = this.getConfig().aiChatUrl;
     return isNotEmptyString(icon) ? icon : "ph-chat-circle-fill";
@@ -39,7 +43,7 @@ export class HitokotoTool extends Tool {
     const { hitokoto, from, creator } = await this._fetchHitokoto(hitokotoApi);
     if (isNotEmptyString(hitokoto)) {
       return {
-        hitokoto: "hitokoto",
+        hitokoto,
         description: `这句一言来自 <span>「${from}」</span>，是 <span>${creator}</span> 在 hitokoto.cn 投稿的。`,
       };
     }

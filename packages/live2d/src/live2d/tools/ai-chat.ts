@@ -1,3 +1,4 @@
+import { ToggleChatWindowEvent } from "@/live2d/events/toggle-chat-window";
 import { isNotEmptyString } from "@/live2d/utils/isString";
 import { Tool } from "@/live2d/live2d/tools/tools";
 
@@ -7,12 +8,19 @@ import { Tool } from "@/live2d/live2d/tools/tools";
 export class AIChatTool extends Tool {
   priority = 100;
 
+  name(): string {
+    return "chat";
+  }
+
   icon() {
-    const icon = this.getConfig().aiChatUrl;
+    const icon = this.getConfig().openaiIcon;
     return isNotEmptyString(icon) ? icon : "ph-chats-circle-fill";
   }
 
+  /**
+   * 执行工具 - 切换聊天窗口显示状态
+   */
   execute() {
-    // TODO: 打开 AI 聊天
+    window.dispatchEvent(new ToggleChatWindowEvent());
   }
 }

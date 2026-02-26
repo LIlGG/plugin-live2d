@@ -14,6 +14,10 @@ export class ExitTool extends Tool {
     return isNotEmptyString(icon) ? icon : "ph-x-bold";
   }
 
+  name(): string {
+    return "quit";
+  }
+
   execute() {
     sendMessage("愿你有一天能与重要的人重逢。", 2000, 4);
     setTimeout(() => {

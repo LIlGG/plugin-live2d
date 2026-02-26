@@ -1,4 +1,5 @@
 import type { Live2dConfig } from "@/live2d/context/config-context";
+import type Model from "@/live2d/live2d/model";
 import { isNotEmptyString } from "@/live2d/utils/isString";
 import { Tool } from "@/live2d/live2d/tools/tools";
 
@@ -20,9 +21,10 @@ export class CustomTool extends Tool {
 
   constructor(
     config: Live2dConfig,
-    { name, icon, execute, priority }: CustomToolConfig
+    { name, icon, execute, priority }: CustomToolConfig,
+    model?: Model | null
   ) {
-    super(config);
+    super(config, model);
     this._name = name;
     this._icon = icon;
     this._execute = execute;

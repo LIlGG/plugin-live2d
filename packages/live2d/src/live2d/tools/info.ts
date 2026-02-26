@@ -7,6 +7,10 @@ import { Tool } from './tools';
 export class InfoTool extends Tool {
   priority = 40;
 
+  name(): string {
+    return "info";
+  }
+
   icon() {
     const icon = this.getConfig().infoIcon;
     return isNotEmptyString(icon) ? icon : 'ph-info-fill';

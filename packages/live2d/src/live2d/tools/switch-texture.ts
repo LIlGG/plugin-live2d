@@ -7,12 +7,22 @@ import { Tool } from "@/live2d/live2d/tools/tools";
 export class SwitchTextureTool extends Tool {
   priority = 60;
 
-  icon() {
-    const icon = this.getConfig().switchTextureIcon;
-    return isNotEmptyString(icon) ? icon : "ph-arrows-counter-clockwise-fill";
+  name(): string {
+    return "switch-texture";
   }
 
+  icon() {
+    const icon = this.getConfig().switchTextureIcon;
+    return isNotEmptyString(icon) ? icon : "ph-dress-fill";
+  }
+
+  /**
+   * 执行工具 - 直接调用 model 的切换纹理方法
+   */
   execute() {
-    // 发出切换模型的事件
+    const model = this.getModel();
+    if (model) {
+      model.loadRandTextures();
+    }
   }
 }

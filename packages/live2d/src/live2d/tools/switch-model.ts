@@ -7,12 +7,19 @@ import { Tool } from "./tools";
 export class SwitchModelTool extends Tool {
   priority = 70;
 
+  name(): string {
+    return "switch-model";
+  }
+
   icon() {
     const icon = this.getConfig().switchModelIcon;
-    return isNotEmptyString(icon) ? icon : "ph-dress-fill";
+    return isNotEmptyString(icon) ? icon : "ph-arrows-counter-clockwise-fill";
   }
 
   execute() {
-    console.log("Model switch event emitted.");
+    const model = this.getModel();
+    if (model) {
+      model.loadOtherModel();
+    }
   }
 }

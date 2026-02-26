@@ -58,7 +58,7 @@ class Model {
     this.loadModel(
       Number(modelId),
       Number(modelTexturesId),
-      "Live2D 模型加载中..."
+      "Live2D 模型加载中...",
     );
   }
 
@@ -72,25 +72,27 @@ class Model {
   async loadModel(modelId: number, modelTexturesId: number, text?: string) {
     localStorage.setItem("modelId", String(modelId));
     localStorage.setItem("modelTexturesId", String(modelTexturesId));
+
     // 发送消息事件
     if (text) {
       sendMessage(text, 4000, 3);
     }
     const model = await Live2DModel.from(
-      "https://live2d.fghrsh.net/api/get/?id=1-53",
+      `${this.#apiPath}get/?id=${modelId}-${modelTexturesId}`,
       {
         onLoad: () => {
           console.log(
-            `[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`
+            `[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`,
           );
         },
-      }
+      },
     );
 
     const scaleX = this.#app.view.height / model.width;
     const scaleY = this.#app.view.height / model.height;
 
     model.scale.set(scaleX, scaleY);
+    this.#app.stage.removeChildren();
     this.#app.stage.addChild(model);
   }
 
@@ -102,7 +104,7 @@ class Model {
     const modelTexturesId = Number(localStorage.getItem("modelTexturesId"));
     // 可选 "rand"(随机), "switch"(顺序)
     const result = (await fetch(
-      `${this.#apiPath}rand_textures/?id=${modelId}-${modelTexturesId}`
+      `${this.#apiPath}rand_textures/?id=${modelId}-${modelTexturesId}`,
     ).then((response) => response.json())) as ModelTexturesResult;
     const texturesId = result.textures.id;
     if (texturesId === 1 && (modelTexturesId === 1 || modelTexturesId === 0)) {
@@ -118,9 +120,27 @@ class Model {
   async loadOtherModel() {
     const modelId = Number(localStorage.getItem("modelId"));
     const result = (await fetch(`${this.#apiPath}switch/?id=${modelId}`).then(
-      (response) => response.json()
+      (response) => response.json(),
     )) as ModelResult;
     this.loadModel(result.model.id, 0, result.model.message);
+  }
+
+  /**
+   * 截图
+   * @param screenshotName 截图名称
+   */
+  async capture(screenshotName: string) {
+    this.#app.renderer.plugins.extract
+      .canvas(this.#app.stage)
+      .toBlob((blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${screenshotName}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
+      });
   }
 }
 

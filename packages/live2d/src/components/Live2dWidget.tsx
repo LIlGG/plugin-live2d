@@ -12,6 +12,7 @@ import "@/live2d/components/Live2dToggle";
 import "@/live2d/components/Live2dTips";
 import "@/live2d/components/Live2dCanvas";
 import "@/live2d/components/Live2dTools";
+import "@/live2d/components/Live2dChatWindow";
 import type { ToggleCanvasEvent } from "@/live2d/events/toggle-canvas";
 
 export class Live2dWidget extends UnoLitElement {
@@ -28,6 +29,7 @@ export class Live2dWidget extends UnoLitElement {
         @live2d:toggle-canvas=${this.handleToggleWidget}
       ></live2d-toggle>
       ${this.renderLive2dWidget()}
+      ${this.renderChatWindow()}
     `;
 	}
 
@@ -54,8 +56,47 @@ export class Live2dWidget extends UnoLitElement {
 		}
 	}
 
-	handleToggleWidget(e: ToggleCanvasEvent) {
+	handleToggleWidget = (e: ToggleCanvasEvent) => {
 		this._isShow = e.detail.isShow;
+		this.requestUpdate();
+	};
+
+	/**
+	 * 渲染聊天窗口组件（如果启用了 AI 聊天功能）
+	 */
+	renderChatWindow() {
+		// 检查是否启用了 AI 聊天
+		if (this.config?.isAiChat) {
+			return html`<live2d-chat-window></live2d-chat-window>`;
+		}
+	}
+
+	connectedCallback(): void {
+		super.connectedCallback();
+		// 页面加载时清除历史消息
+		// 对应原始代码中的 window.onload
+		window.addEventListener("load", this.clearChatHistory);
+		// 监听全局的 toggle-canvas 事件（来自工具或其他地方的触发）
+		window.addEventListener(
+			"live2d:toggle-canvas",
+			this.handleToggleWidget as EventListener,
+		);
+	}
+
+	disconnectedCallback(): void {
+		super.disconnectedCallback();
+		window.removeEventListener("load", this.clearChatHistory);
+		window.removeEventListener(
+			"live2d:toggle-canvas",
+			this.handleToggleWidget as EventListener,
+		);
+	}
+
+	/**
+	 * 清除聊天历史记录
+	 */
+	private clearChatHistory(): void {
+		localStorage.removeItem("historyMessages");
 	}
 }
 

@@ -45,8 +45,14 @@ export interface Live2dToolsConfig {
   tools?: string[];
   // 自定义工具
   customTools?: CustomToolConfig[];
+  // 是否启用 AI 聊天功能
+  isAiChat?: boolean;
   // openai 图标
   openaiIcon?: string;
+  // 聊天请求超时时间（秒）
+  chunkTimeout?: number;
+  // 聊天消息显示时间（秒）
+  showChatMessageTimeout?: number;
   // 一言图标
   hitokotoIcon?: string;
   // 一言API
@@ -94,7 +100,7 @@ export interface Live2dConfig extends Live2dToolsConfig {
       }[];
       selector: string;
       mouseAction: "click" | "mouseover" | string | undefined;
-    }
+    },
   ];
   // 页面可见性变化时的 tips
   backSiteTip: string[] | string;
