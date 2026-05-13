@@ -1,9 +1,10 @@
-import { isNotEmptyString } from "@/live2d/utils/isString";
 import { Tool } from "@/live2d/live2d/tools/tools";
+import { isNotEmptyString } from "@/live2d/utils/isString";
 
 declare global {
   interface Window {
     ASTEROIDSPLAYERS: unknown[];
+    Asteroids?: new () => unknown;
   }
 }
 
@@ -22,9 +23,14 @@ export class AsteroidsTool extends Tool {
   }
 
   execute() {
-    // @ts-ignore
-    import("@/live2d/libs/asteroids.min.js").then((module) => {
-      new module.default();
-    });
+    if (typeof window.Asteroids === "function") {
+      if (!Array.isArray(window.ASTEROIDSPLAYERS)) {
+        window.ASTEROIDSPLAYERS = [];
+      }
+      window.ASTEROIDSPLAYERS.push(new window.Asteroids());
+      return;
+    }
+
+    void import("@/live2d/libs/asteroids.min.js");
   }
 }
