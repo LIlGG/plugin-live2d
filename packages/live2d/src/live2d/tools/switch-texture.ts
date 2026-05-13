@@ -1,5 +1,5 @@
-import { isNotEmptyString } from "@/live2d/utils/isString";
 import { Tool } from "@/live2d/live2d/tools/tools";
+import { isNotEmptyString } from "@/live2d/utils/isString";
 
 /**
  * 切换纹理工具

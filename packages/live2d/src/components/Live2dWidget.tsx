@@ -1,13 +1,13 @@
-import { consume } from "@lit/context";
-import { createComponent } from "@lit/react";
-import { type TemplateResult, html } from "lit";
-import { property, state } from "lit/decorators.js";
-import React from "react";
 import { UnoLitElement } from "@/live2d/common/UnoLitElement";
 import {
 	type Live2dConfig,
 	configContext,
 } from "@/live2d/context/config-context";
+import { consume } from "@lit/context";
+import { createComponent } from "@lit/react";
+import { type TemplateResult, html } from "lit";
+import { property, state } from "lit/decorators.js";
+import React from "react";
 import "@/live2d/components/Live2dToggle";
 import "@/live2d/components/Live2dTips";
 import "@/live2d/components/Live2dCanvas";
@@ -42,17 +42,23 @@ export class Live2dWidget extends UnoLitElement {
 	}
 
 	renderLive2dWidget() {
+		const positionClass =
+			this.config?.live2dLocation === "right"
+				? "right-[50px] left-auto"
+				: "left-0";
 		if (this._isShow) {
 			return html`<div
-        id="live2d-plugin"
-        class="group inline-block translate-y-1 hover:translate-y-0 transition-transform-300"
-      >
-        <div class="flex flex-col items-center relative">
-          <live2d-tips class="-mb-10"></live2d-tips>
-          <live2d-canvas class="inline-block h-full"></live2d-canvas>
-          ${this.renderLive2dTools()}
-        </div>
-      </div>`;
+         id="live2d-plugin"
+        class="group fixed bottom-0 z-9998 inline-block translate-y-1 hover:translate-y-0 transition-transform-300 ${positionClass}"
+       >
+         <div class="flex flex-col items-center relative">
+           <live2d-tips class="-mb-10"></live2d-tips>
+           <live2d-canvas
+             class="inline-block h-[300px] w-[300px] z-1"
+           ></live2d-canvas>
+           ${this.renderLive2dTools()}
+         </div>
+       </div>`;
 		}
 	}
 

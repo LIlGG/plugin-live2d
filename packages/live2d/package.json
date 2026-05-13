@@ -3,9 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "main": "./dist/live2d.umd.cjs",
   "module": "./dist/live2d.js",
   "exports": {
@@ -24,11 +22,12 @@
     "@lit/react": "^1.0.7",
     "iconify-icon": "^2.3.0",
     "lit": "^3.2.1",
-    "pixi-live2d-display": "^0.4.0",
-    "pixi.js": "^6.5.2",
+    "@pixi/sound": "^6.0.1",
+    "pixi.js": "^8.13.1",
     "query-string": "^9.1.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "untitled-pixi-live2d-engine": "^1.1.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

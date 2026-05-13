@@ -1,6 +1,6 @@
 import {
-  StreamMessageStartEvent,
   StreamMessageEvent,
+  StreamMessageStartEvent,
   StreamMessageStopEvent,
 } from "@/live2d/events/stream-message";
 

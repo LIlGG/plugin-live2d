@@ -1,5 +1,5 @@
-import { createContext } from "@lit/context";
 import type { CustomToolConfig } from "@/live2d/live2d/tools/custom-tool";
+import { createContext } from "@lit/context";
 
 export interface ObjectAny extends Record<string, unknown> {}
 
@@ -65,6 +65,8 @@ export interface Live2dToolsConfig {
   switchTextureIcon?: string;
   // 截图生成的图片名称
   screenshotName?: string;
+  // 兼容旧版截图名称字段
+  photoName?: string;
   // 截图图标
   screenshotIcon?: string;
   // 信息图标
@@ -82,6 +84,8 @@ export interface Live2dConfig extends Live2dToolsConfig {
   live2dLocation: "left" | "right";
   // 是否在控制台显示状态
   consoleShowStatus?: boolean;
+  // 兼容旧版控制台状态字段
+  consoleShowStatu?: boolean;
   // 是否强制使用默认配置
   isForceUseDefaultConfig?: boolean;
   // 模型编号
@@ -90,26 +94,37 @@ export interface Live2dConfig extends Live2dToolsConfig {
   modelTexturesId?: number;
   // 主题下的 tips 文件路径
   themeTipsPath?: string;
+  // 兼容服务端注入的主题 tips 字段
+  tips?: string;
   // 用户自定义的 tips 文件路径
   tipsPath?: string;
   // 用户使用插件定义的 tips
-  selectorTips?: [
-    {
-      messageTexts?: {
-        message: string;
-      }[];
-      selector: string;
-      mouseAction: "click" | "mouseover" | string | undefined;
-    },
-  ];
+  selectorTips?: {
+    messageTexts?: {
+      message: string;
+    }[];
+    selector: string;
+    mouseAction: "click" | "mouseover" | string | undefined;
+  }[];
+  // 页面可见性变化事件是否开启
+  backSite?: boolean;
   // 页面可见性变化时的 tips
-  backSiteTip: string[] | string;
+  backSiteTip?: string[] | string;
+  // 复制内容事件是否开启
+  copyContent?: boolean;
   // 复制内容时的 tips
-  copyContentTip: string[] | string;
+  copyContentTip?: string[] | string;
+  // 控制台事件是否开启
+  openConsole?: boolean;
   // 控制台打印 tips
-  openConsoleTip: string[] | string;
+  openConsoleTip?: string[] | string;
   // 首次打开站点是否显示 tips
   firstOpenSite?: boolean;
+  // 兼容旧版嵌套聊天配置
+  aiChatBaseSetting?: {
+    chunkTimeout?: number | string;
+    showChatMessageTimeout?: number | string;
+  };
   [key: string]: unknown;
 }
 

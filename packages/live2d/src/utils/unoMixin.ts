@@ -1,6 +1,6 @@
-import { type LitElement, adoptStyles, unsafeCSS } from "lit";
 // @ts-ignore
 import style from "@/live2d/styles/unocss.global.css?inline";
+import { type LitElement, adoptStyles, unsafeCSS } from "lit";
 
 declare global {
   // biome-ignore lint/suspicious/noExplicitAny: any is needed to define a mixin

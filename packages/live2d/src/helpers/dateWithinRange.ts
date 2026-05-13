@@ -1,5 +1,5 @@
-const RANGE_SEPARATOR = '-';
-const DATE_SEPARATOR = '/';
+const RANGE_SEPARATOR = "-";
+const DATE_SEPARATOR = "/";
 
 /**
  * 检查指定的日期是否在当前日期范围内。

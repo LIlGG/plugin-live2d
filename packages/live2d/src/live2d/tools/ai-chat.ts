@@ -1,6 +1,6 @@
 import { ToggleChatWindowEvent } from "@/live2d/events/toggle-chat-window";
-import { isNotEmptyString } from "@/live2d/utils/isString";
 import { Tool } from "@/live2d/live2d/tools/tools";
+import { isNotEmptyString } from "@/live2d/utils/isString";
 
 /**
  * AI 聊天工具

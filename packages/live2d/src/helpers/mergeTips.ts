@@ -1,5 +1,5 @@
-import type { TipConfig } from '@/live2d/context/config-context';
-import { distinctArray } from '@/live2d/utils/distinctArray';
+import type { TipConfig } from "@/live2d/context/config-context";
+import { distinctArray } from "@/live2d/utils/distinctArray";
 
 /**
  * 合并各个渠道的 tips，根据获取位置不同，合并时优先级也不同。优先级按高到低的顺序为
@@ -36,8 +36,8 @@ export const mergeTips = ({
     ...themeTips.mouseover,
     ...fullOrDefaultTips.mouseover,
   ];
-  defaultTips.click = distinctArray(duplicateClick, 'selector');
-  defaultTips.mouseover = distinctArray(duplicateMouseover, 'selector');
+  defaultTips.click = distinctArray(duplicateClick, "selector");
+  defaultTips.mouseover = distinctArray(duplicateMouseover, "selector");
   defaultTips.message = { ...defaultTips.message, ...pluginTips.message };
   return defaultTips;
 };

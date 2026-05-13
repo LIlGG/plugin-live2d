@@ -4,9 +4,16 @@ import type {
   TipConfig,
   TipMessage,
   TipMouseover,
-  TipSeason,
   TipTime,
 } from "@/live2d/context/config-context";
+import {
+  ADD_DEFAULT_MESSAGE_EVENT_NAME,
+  type AddDefaultMessageEvent as AddDefaultMessageEventType,
+} from "@/live2d/events/add-default-message";
+import {
+  BEFORE_INIT_EVENT_NAME,
+  type BeforeInitEvent,
+} from "@/live2d/events/before-init";
 import { dataWithinRange } from "@/live2d/helpers/dateWithinRange";
 import { getPluginTips } from "@/live2d/helpers/getPluginTips";
 import { loadTipsResource } from "@/live2d/helpers/loadTipsResource";
@@ -20,19 +27,7 @@ import {
   getReferrerDomain,
   hasWebsiteHome,
 } from "@/live2d/utils/util";
-import { AddDefaultMessageEvent } from "@/live2d/events/add-default-message";
-
-window.addEventListener("live2d:before-init", async (e) => {
-  const config = e.detail.config;
-  if (!config) {
-    return;
-  }
-  const tips = await _loadTips(config);
-  if (!tips) {
-    return;
-  }
-  _registerTipEventListener(config, tips);
-});
+let activeTipEvents: TipEventController | undefined;
 
 const _getWelComeMessage = (times: TipTime[]) => {
   if (hasWebsiteHome) {
@@ -58,143 +53,219 @@ const _welcomeEvent = (times: TipTime[]) => {
   sendMessage(message, 7000, 4);
 };
 
-const _holidayEvent = (seasons: TipSeason[]) => {
-  for (const { date, text } of seasons) {
-    if (dataWithinRange(date)) {
-      window.dispatchEvent(new AddDefaultMessageEvent({ message: text }));
-    }
-  }
-};
-
-const _userLeaveEvent = (message: TipMessage) => {
+const _userLeaveEvent = (message: TipMessage, signal: AbortSignal) => {
   const { visibilitychange } = message;
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-      sendMessage(visibilitychange, 6000, 2);
-    }
-  });
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (!document.hidden) {
+        sendMessage(visibilitychange, 6000, 2);
+      }
+    },
+    { signal },
+  );
 };
 
-const _userCopyEvent = (message: TipMessage) => {
+const _userCopyEvent = (message: TipMessage, signal: AbortSignal) => {
   const { copy } = message;
-  window.addEventListener("copy", () => {
-    sendMessage(copy, 6000, 2);
-  });
+  window.addEventListener(
+    "copy",
+    () => {
+      sendMessage(copy, 6000, 2);
+    },
+    { signal },
+  );
 };
 
-const _userOpenConsoleEvent = (message: TipMessage) => {
+const _userOpenConsoleEvent = (message: TipMessage): number => {
   const { console } = message;
-  const devtools = () => {};
-  devtools.toString = () => {
-    sendMessage(console, 6000, 2);
-  };
+  let hasOpened = false;
+  return window.setInterval(() => {
+    const opened =
+      window.outerWidth - window.innerWidth > 160 ||
+      window.outerHeight - window.innerHeight > 160;
+    if (opened && !hasOpened) {
+      hasOpened = true;
+      sendMessage(console, 6000, 2);
+    } else if (!opened) {
+      hasOpened = false;
+    }
+  }, 1000);
 };
 
-const _userClickEvent = (clicks: TipClick[]) => {
-  window.addEventListener("click", (event) => {
-    const path = event.composedPath();
-    const target = path[0];
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-    for (const { selector, text } of clicks) {
-      if (!target.matches(selector)) {
-        continue;
+const _userClickEvent = (clicks: TipClick[], signal: AbortSignal) => {
+  window.addEventListener(
+    "click",
+    (event) => {
+      const path = event.composedPath();
+      const target = path[0];
+      if (!(target instanceof HTMLElement)) {
+        return;
       }
-      let message = randomSelection(text);
-      if (!message) {
-        continue;
+      for (const { selector, text } of clicks) {
+        if (!target.matches(selector)) {
+          continue;
+        }
+        let message = randomSelection(text);
+        if (!message) {
+          continue;
+        }
+        message = message.replace("{text}", target.innerText);
+        sendMessage(message, 4000, 1);
+        return;
       }
-      message = message.replace("{text}", target.innerText);
-      sendMessage(message, 4000, 1);
-      return;
-    }
-  });
+    },
+    { signal },
+  );
 };
 
-const _userMouseoverEvent = (mouseovers: TipMouseover[]) => {
-  window.addEventListener("mouseover", (event: MouseEvent) => {
-    const path = event.composedPath();
-    const target = path[0];
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-    for (const { selector, text } of mouseovers) {
-      if (!target.matches(selector)) {
-        continue;
+const _userMouseoverEvent = (
+  mouseovers: TipMouseover[],
+  signal: AbortSignal,
+) => {
+  window.addEventListener(
+    "mouseover",
+    (event: MouseEvent) => {
+      const path = event.composedPath();
+      const target = path[0];
+      if (!(target instanceof HTMLElement)) {
+        return;
       }
-      let message = randomSelection(text);
-      if (!message) {
-        continue;
+      for (const { selector, text } of mouseovers) {
+        if (!target.matches(selector)) {
+          continue;
+        }
+        let message = randomSelection(text);
+        if (!message) {
+          continue;
+        }
+        message = message.replace("{text}", target.innerText);
+        sendMessage(message, 4000, 1);
+        return;
       }
-      message = message.replace("{text}", target.innerText);
-      sendMessage(message, 4000, 1);
-      return;
-    }
-  });
+    },
+    { signal },
+  );
 };
 
 /**
  * 监听用户是否处于活动状态，如果用户长时间不活动，则向 Live2d 发送消息
  */
-const _userActionEvent = (message: TipMessage) => {
+const _userActionEvent = (
+  message: TipMessage,
+  signal: AbortSignal,
+): {
+  dispose: () => void;
+  idleMessage: string[];
+} => {
   let userAction = false;
-  let userActionTimer: number | undefined;
+  let idleTimer: number | undefined;
   const defaultMessage = message.default;
   const idleMessage: string[] = isString(defaultMessage)
     ? [defaultMessage]
-    : defaultMessage || [];
+    : [...(defaultMessage || [])];
 
-  window.addEventListener("mousemove", () => {
+  const markUserActive = () => {
     userAction = true;
-  });
-  window.addEventListener("keydown", () => {
-    userAction = true;
-  });
-  window.addEventListener("live2d:add-default-message", (ev) => {
-    const message = ev.detail.message;
-    if (Array.isArray(message)) {
-      idleMessage.push(...message);
-    } else {
-      idleMessage.push(message);
-    }
-  });
-  setInterval(() => {
+  };
+
+  window.addEventListener("mousemove", markUserActive, { signal });
+  window.addEventListener("keydown", markUserActive, { signal });
+  window.addEventListener(
+    ADD_DEFAULT_MESSAGE_EVENT_NAME,
+    (event) => {
+      const nextMessage = (event as AddDefaultMessageEventType).detail.message;
+      if (Array.isArray(nextMessage)) {
+        idleMessage.push(...nextMessage);
+        return;
+      }
+      idleMessage.push(nextMessage);
+    },
+    { signal },
+  );
+
+  const pollTimer = window.setInterval(() => {
     if (userAction) {
       userAction = false;
-      clearInterval(userActionTimer);
-      userActionTimer = undefined;
+      if (idleTimer) {
+        clearInterval(idleTimer);
+        idleTimer = undefined;
+      }
       return;
     }
-    if (userActionTimer) {
+    if (idleTimer) {
       return;
     }
-    userActionTimer = setInterval(() => {
-      sendMessage(message.default, 6000, 2);
+    idleTimer = window.setInterval(() => {
+      sendMessage(idleMessage, 6000, 2);
     }, 20000);
   }, 1000);
+
+  return {
+    idleMessage,
+    dispose: () => {
+      clearInterval(pollTimer);
+      if (idleTimer) {
+        clearInterval(idleTimer);
+      }
+    },
+  };
 };
 
-const _registerTipEventListener = (config: Live2dConfig, tips: TipConfig) => {
-  // 首次进入页面时
-  if (config.firstOpenSite) {
-    _welcomeEvent(tips.time);
+class TipEventController {
+  private readonly abortController = new AbortController();
+  private readonly disposers: Array<() => void> = [];
+
+  constructor(
+    private readonly config: Live2dConfig,
+    private readonly tips: TipConfig,
+  ) {}
+
+  start(): void {
+    const { signal } = this.abortController;
+    if (this.config.firstOpenSite) {
+      _welcomeEvent(this.tips.time);
+    }
+
+    const userActionState = _userActionEvent(this.tips.message, signal);
+    this.disposers.push(userActionState.dispose);
+
+    for (const { date, text } of this.tips.seasons) {
+      if (!dataWithinRange(date)) {
+        continue;
+      }
+      const seasonalText = randomSelection(text);
+      if (!seasonalText) {
+        continue;
+      }
+      userActionState.idleMessage.push(
+        seasonalText.replace("{year}", String(new Date().getFullYear())),
+      );
+    }
+
+    _userMouseoverEvent(this.tips.mouseover, signal);
+    _userClickEvent(this.tips.click, signal);
+
+    if (this.config.openConsole) {
+      const consoleTimer = _userOpenConsoleEvent(this.tips.message);
+      this.disposers.push(() => clearInterval(consoleTimer));
+    }
+    if (this.config.copyContent) {
+      _userCopyEvent(this.tips.message, signal);
+    }
+    if (this.config.backSite) {
+      _userLeaveEvent(this.tips.message, signal);
+    }
   }
-  // 节日事件
-  _holidayEvent(tips.seasons);
-  // 用户是否活动事件
-  _userActionEvent(tips.message);
-  // 注册用户鼠标悬停事件
-  _userMouseoverEvent(tips.mouseover);
-  // 注册用户点击事件
-  _userClickEvent(tips.click);
-  // 用户打开控制台事件
-  _userOpenConsoleEvent(tips.message);
-  // 用户复制内容事件
-  _userCopyEvent(tips.message);
-  // 用户离开页面事件
-  _userLeaveEvent(tips.message);
-};
+
+  dispose(): void {
+    this.abortController.abort();
+    for (const disposer of this.disposers) {
+      disposer();
+    }
+    this.disposers.length = 0;
+  }
+}
 
 const _loadTips = async (config: Live2dConfig) => {
   if (!config) {
@@ -221,7 +292,7 @@ const _loadTips = async (config: Live2dConfig) => {
 };
 
 export const _getFullOrDefaultTips = async (
-  config: Live2dConfig
+  config: Live2dConfig,
 ): Promise<TipConfig> => {
   // 获取插件文件中的全量 tips 文件
   if (isNotEmptyString(config?.tipsPath)) {
@@ -233,3 +304,19 @@ export const _getFullOrDefaultTips = async (
   // 获取默认的 tips 文件
   return (await import("../libs/live2d-tips.json")).default;
 };
+
+window.addEventListener(BEFORE_INIT_EVENT_NAME, async (event) => {
+  const config = (event as BeforeInitEvent).detail.config;
+  if (!config) {
+    return;
+  }
+
+  const tips = await _loadTips(config);
+  if (!tips) {
+    return;
+  }
+
+  activeTipEvents?.dispose();
+  activeTipEvents = new TipEventController(config, tips);
+  activeTipEvents.start();
+});

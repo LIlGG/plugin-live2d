@@ -8,12 +8,15 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
+  "files": {
+    "ignore": ["dist/**", "src/libs/**", "tsconfig.tsbuildinfo"]
+  },
   "formatter": {
     "indentStyle": "space"
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "single"
+      "quoteStyle": "double"
     }
   },
   "css": {

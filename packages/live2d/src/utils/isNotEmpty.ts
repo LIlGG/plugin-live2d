@@ -6,8 +6,8 @@ export const isNotEmpty = <T>(
     value !== undefined &&
     (Array.isArray(value)
       ? value.length > 0
-      : typeof value === 'string'
-        ? value.trim() !== ''
+      : typeof value === "string"
+        ? value.trim() !== ""
         : true)
   );
 };

@@ -1,7 +1,7 @@
-import queryString from "query-string";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
-import { isNotEmptyString } from "@/live2d/utils/isString";
 import { Tool } from "@/live2d/live2d/tools/tools";
+import { isNotEmptyString } from "@/live2d/utils/isString";
+import queryString from "query-string";
 
 /**
  * 一言工具，使用一言接口获取一句话

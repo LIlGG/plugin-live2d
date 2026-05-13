@@ -9,7 +9,7 @@ import { SendMessageEvent } from "@/live2d/events/send-message";
 export function sendMessage(
   text: string | string[] | undefined,
   timeout = 3000,
-  priority = 0
+  priority = 0,
 ) {
   if (!text) {
     return;

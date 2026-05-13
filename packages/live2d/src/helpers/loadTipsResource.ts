@@ -1,4 +1,4 @@
-import type { TipConfig } from '@/live2d/context/config-context';
+import type { TipConfig } from "@/live2d/context/config-context";
 
 /**
  * 远程加载提示资源

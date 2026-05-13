@@ -22,6 +22,7 @@
 
 ## 功能介绍
 - [x] 一只萌萌的看板娘，为网站增添一份活力
+- [x] 基于 `untitled-pixi-live2d-engine` 渲染，支持 Cubism 2 / 3 / 4 / 5 模型
 - [x] 基于 OpenAi 的对话交互功能【会思考的萌娘】
 - [x] 一键换装、换肤
 - [x] 支持一言功能
@@ -132,4 +133,3 @@ live2d 渲染页面时将自动读取当前启用主题下的文件。
 ## 希望你喜欢！
 
 ![Alt](https://repobeats.axiom.co/api/embed/1a0fed4cb4d4d2ea076c3481473cdbf9bc0471d6.svg "Repobeats analytics image")
-
