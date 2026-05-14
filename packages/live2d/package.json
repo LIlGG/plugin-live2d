@@ -14,8 +14,9 @@
   },
   "scripts": {
     "dev": "vite --open",
-    "build": "tsc -b && vite build",
-    "check": "biome check --write"
+    "sync:custom-tool-actions": "node ./scripts/generate-custom-tool-actions.mjs",
+    "build": "pnpm sync:custom-tool-actions && tsc -b && vite build && vite build --config vite.halo.config.ts",
+    "check": "pnpm sync:custom-tool-actions && biome check --write"
   },
   "dependencies": {
     "@lit/context": "^1.1.3",

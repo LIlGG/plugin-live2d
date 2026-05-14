@@ -12,12 +12,10 @@ import type {
 import { isNotEmpty } from "@/live2d/utils/isNotEmpty";
 import { randomSelection } from "@/live2d/utils/randomSelection";
 import { consume } from "@lit/context";
-import { createComponent } from "@lit/react";
 import { type TemplateResult, html } from "lit";
 import { property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
-import React from "react";
 
 export class Live2dTips extends UnoLitElement {
   @consume({ context: configContext })
@@ -195,9 +193,3 @@ export class Live2dTips extends UnoLitElement {
 }
 
 customElements.define("live2d-tips", Live2dTips);
-
-export const Live2dTipsComponent = createComponent({
-  tagName: "live2d-tips",
-  elementClass: Live2dTips,
-  react: React,
-});

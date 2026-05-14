@@ -8,6 +8,7 @@ import type {
 } from "@/live2d/context/config-context";
 
 type PartialTipConfig = Partial<TipConfig>;
+const MISSING_TIPS_CACHE_PREFIX = "plugin-live2d:missing-tips:";
 
 const createEmptyTipConfig = (): TipConfig => ({
   mouseover: [],
@@ -16,6 +17,34 @@ const createEmptyTipConfig = (): TipConfig => ({
   message: {},
   time: [],
 });
+
+const getMissingTipsCacheKey = (url: string): string =>
+  `${MISSING_TIPS_CACHE_PREFIX}${url}`;
+
+const hasWindowSessionStorage = (): boolean =>
+  typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+
+const wasMissingTipsUrlCached = (url: string): boolean => {
+  if (!hasWindowSessionStorage()) {
+    return false;
+  }
+
+  try {
+    return window.sessionStorage.getItem(getMissingTipsCacheKey(url)) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const rememberMissingTipsUrl = (url: string): void => {
+  if (!hasWindowSessionStorage()) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(getMissingTipsCacheKey(url), "1");
+  } catch {}
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -106,9 +135,16 @@ export async function loadTipsResource(
     return createEmptyTipConfig();
   }
 
+  if (wasMissingTipsUrlCached(url)) {
+    return;
+  }
+
   try {
     const response = await fetch(url);
     if (!response.ok) {
+      if (response.status === 404) {
+        rememberMissingTipsUrl(url);
+      }
       return;
     }
     const result: unknown = await response.json();

@@ -1,4 +1,4 @@
-import type { CustomToolConfig } from "@/live2d/live2d/tools/custom-tool";
+import type { CustomToolConfig } from "@/live2d/live2d/tools/custom-tool-config";
 import { createContext } from "@lit/context";
 
 export interface ObjectAny extends Record<string, unknown> {}

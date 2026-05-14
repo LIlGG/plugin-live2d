@@ -6,10 +6,8 @@ import {
 } from "@/live2d/context/config-context";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { consume } from "@lit/context";
-import { createComponent } from "@lit/react";
 import { type PropertyValues, type TemplateResult, html } from "lit";
 import { property, query, state } from "lit/decorators.js";
-import React from "react";
 import "iconify-icon";
 
 const CHAT_PANEL_WIDTH = "min(26rem, calc(100vw - 1rem))";
@@ -263,9 +261,3 @@ export class Live2dChatWindow extends UnoLitElement {
 }
 
 customElements.define("live2d-chat-window", Live2dChatWindow);
-
-export const Live2dChatWindowComponent = createComponent({
-  tagName: "live2d-chat-window",
-  elementClass: Live2dChatWindow,
-  react: React,
-});

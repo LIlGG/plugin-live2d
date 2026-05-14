@@ -27,9 +27,9 @@ public interface Live2dSetting {
     Mono<JsonNode> getValue(String groupName, String key);
 
     /**
-     * 获取适用于 Live2d 的配置
+     * 获取适用于 Live2d 前端公开运行时的配置
      *
      * @return 配置
      */
-    Mono<JsonNode> getConfig();
+    Mono<JsonNode> getPublicConfig(String themeTipsPath);
 }

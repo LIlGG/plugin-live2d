@@ -1,8 +1,6 @@
 import { UnoLitElement } from "@/live2d/common/UnoLitElement";
-import { createComponent } from "@lit/react";
 import { type TemplateResult, html } from "lit";
 import { property } from "lit/decorators.js";
-import React from "react";
 import "@/live2d/components/Live2dWidget";
 import { createDefaultLive2dConfig } from "@/live2d/config/default-config";
 import {
@@ -23,9 +21,3 @@ export class Live2dContext extends UnoLitElement {
 }
 
 customElements.define("live2d-context", Live2dContext);
-
-export const Live2dContextComponent = createComponent({
-  tagName: "live2d-context",
-  elementClass: Live2dContext,
-  react: React,
-});

@@ -1,6 +1,13 @@
+import { normalizeCustomTools } from "@/live2d/config/custom-tools/normalize-custom-tools";
 import { createDefaultLive2dConfig } from "@/live2d/config/default-config";
+import {
+  ensureTrailingSlash,
+  pickBoolean,
+  pickNumber,
+  pickString,
+} from "@/live2d/config/normalize-helpers";
 import type { Live2dConfig } from "@/live2d/context/config-context";
-import { isNotEmptyString, isString } from "@/live2d/utils/isString";
+import { isNotEmptyString } from "@/live2d/utils/isString";
 
 export interface LegacyLive2dConfigInput extends Partial<Live2dConfig> {
   aiChatBaseSetting?: {
@@ -11,39 +18,6 @@ export interface LegacyLive2dConfigInput extends Partial<Live2dConfig> {
   photoName?: string;
   tips?: string;
 }
-
-const ensureTrailingSlash = (value: string): string =>
-  value.endsWith("/") ? value : `${value}/`;
-
-const pickString = (...values: unknown[]): string | undefined => {
-  for (const value of values) {
-    if (isNotEmptyString(value)) {
-      return value;
-    }
-  }
-};
-
-const pickNumber = (...values: unknown[]): number | undefined => {
-  for (const value of values) {
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return value;
-    }
-    if (isString(value) && value.trim() !== "") {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-  }
-};
-
-const pickBoolean = (...values: unknown[]): boolean | undefined => {
-  for (const value of values) {
-    if (typeof value === "boolean") {
-      return value;
-    }
-  }
-};
 
 const normalizeTools = (tools: unknown): string[] | undefined => {
   if (!Array.isArray(tools)) {
@@ -83,6 +57,7 @@ export const normalizeLive2dConfig = (
       pickString(input.screenshotName, input.photoName) ??
       defaults.screenshotName,
     tools: normalizeTools(input.tools) ?? [...(defaults.tools ?? [])],
+    customTools: normalizeCustomTools(input.customTools) ?? [],
     chunkTimeout:
       pickNumber(
         input.chunkTimeout,

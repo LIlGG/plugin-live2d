@@ -9,10 +9,8 @@ import { defaultToolNames, toolRegistry } from "@/live2d/live2d/tools";
 import { CustomTool } from "@/live2d/live2d/tools/custom-tool";
 import type { Tool } from "@/live2d/live2d/tools/tools";
 import { consume } from "@lit/context";
-import { createComponent } from "@lit/react";
 import { type TemplateResult, html } from "lit";
 import { property, state } from "lit/decorators.js";
-import React from "react";
 import "iconify-icon";
 
 export class Live2dTools extends UnoLitElement {
@@ -138,9 +136,3 @@ export class Live2dTools extends UnoLitElement {
 }
 
 customElements.define("live2d-tools", Live2dTools);
-
-export const Live2dToolsComponent = createComponent({
-  tagName: "live2d-tools",
-  elementClass: Live2dTools,
-  react: React,
-});

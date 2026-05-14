@@ -7,10 +7,8 @@ import { BeforeInitEvent } from "@/live2d/events/before-init.js";
 import { ModelReadyEvent } from "@/live2d/events/model-ready";
 import Model from "@/live2d/live2d/model";
 import { consume } from "@lit/context";
-import { createComponent } from "@lit/react";
 import { type PropertyValues, type TemplateResult, html } from "lit";
 import { property, query, state } from "lit/decorators.js";
-import React from "react";
 
 export class Live2dCanvas extends UnoLitElement {
   @consume({ context: configContext })
@@ -73,9 +71,3 @@ export class Live2dCanvas extends UnoLitElement {
 }
 
 customElements.define("live2d-canvas", Live2dCanvas);
-
-export const Live2dCanvasComponent = createComponent({
-  tagName: "live2d-canvas",
-  elementClass: Live2dCanvas,
-  react: React,
-});

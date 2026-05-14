@@ -4,10 +4,8 @@ import {
   configContext,
 } from "@/live2d/context/config-context";
 import { consume } from "@lit/context";
-import { createComponent } from "@lit/react";
 import { type TemplateResult, html } from "lit";
 import { property, state } from "lit/decorators.js";
-import React from "react";
 import "@/live2d/components/Live2dToggle";
 import "@/live2d/components/Live2dTips";
 import "@/live2d/components/Live2dCanvas";
@@ -155,9 +153,3 @@ export class Live2dWidget extends UnoLitElement {
 }
 
 customElements.define("live2d-widget", Live2dWidget);
-
-export const Live2dWidgetComponent = createComponent({
-  tagName: "live2d-widget",
-  elementClass: Live2dWidget,
-  react: React,
-});

@@ -11,11 +11,9 @@ import {
   rememberWidgetDismissal,
 } from "@/live2d/helpers/widgetVisibility";
 import { consume } from "@lit/context";
-import { createComponent } from "@lit/react";
 import { type TemplateResult, html } from "lit";
 import { property } from "lit/decorators.js";
 import { state } from "lit/decorators.js";
-import React from "react";
 
 export class Live2dToggle extends UnoLitElement {
   @consume({ context: configContext })
@@ -102,9 +100,3 @@ export class Live2dToggle extends UnoLitElement {
 }
 
 customElements.define("live2d-toggle", Live2dToggle);
-
-export const Live2dToggleComponent = createComponent({
-  tagName: "live2d-toggle",
-  elementClass: Live2dToggle,
-  react: React,
-});

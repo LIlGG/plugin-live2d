@@ -1,17 +1,13 @@
 plugins {
-    id "io.freefair.lombok" version "8.0.1"
-    id "run.halo.plugin.devtools" version "0.5.0"
     id 'java'
+    id "io.freefair.lombok" version "9.2.0"
+    id "run.halo.plugin.devtools" version "0.6.2"
 }
 
 group 'run.halo.live2d'
-sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
     mavenCentral()
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/releases' }
-    maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
-    maven { url 'https://repo.spring.io/milestone' }
 }
 
 configurations.runtimeClasspath {
@@ -19,7 +15,7 @@ configurations.runtimeClasspath {
 }
 
 dependencies {
-    implementation platform('run.halo.tools.platform:plugin:2.11.0-SNAPSHOT')
+    implementation platform('run.halo.tools.platform:plugin:2.24.0')
     implementation 'com.theokanning.openai-gpt3-java:api:0.17.0'
 
     compileOnly 'run.halo.app:api'
@@ -32,16 +28,46 @@ test {
     useJUnitPlatform()
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
+    options.release = 21
+}
+
+def live2dFrontendDir = file("packages/live2d")
+def generatedFrontendResourcesDir = layout.buildDirectory.dir("generated/resources/main/static/live2d")
+
+tasks.register("buildFrontend", Exec) {
+    workingDir = projectDir
+    commandLine "pnpm", "--dir", live2dFrontendDir.absolutePath, "build"
+    inputs.dir(fileTree(dir: live2dFrontendDir, excludes: ["dist/**", "node_modules/**"]))
+    outputs.dir(file("${live2dFrontendDir}/dist"))
+}
+
+tasks.register("syncFrontendAssets", Sync) {
+    dependsOn tasks.named("buildFrontend")
+    from("${live2dFrontendDir}/dist")
+    into(generatedFrontendResourcesDir)
+}
+
+tasks.named("processResources") {
+    dependsOn tasks.named("syncFrontendAssets")
+    from(generatedFrontendResourcesDir) {
+        into "static/live2d"
+    }
 }
 
 halo {
-    version = '2.11.2'
-    port = 8092
+    version = '2.24.2'
+    port = 8090
     superAdminUsername = 'admin'
     superAdminPassword = 'admin'
-    externalUrl = 'http://localhost:8092'
+    externalUrl = 'http://localhost:8090'
     debug = true
 }
 

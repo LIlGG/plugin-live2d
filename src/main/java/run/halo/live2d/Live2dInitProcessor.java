@@ -2,8 +2,6 @@ package run.halo.live2d;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.util.Arrays;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -39,6 +37,10 @@ import run.halo.app.theme.dialect.TemplateHeadProcessor;
 public class Live2dInitProcessor implements TemplateHeadProcessor {
 
     private final static String LIVE2D_LOAD_TIME = "defer";
+    private final static String HALO_CONFIG_ELEMENT_ID = "plugin-live2d-config";
+    private final static String LIVE2D_BOOTSTRAP_ENTRY = "live2d/halo.js";
+    private final static String VITE_CLIENT_ENTRY = "/@vite/client";
+    private final static String VITE_HALO_ENTRY = "/src/halo.ts";
 
     /**
      * 插件静态资源地址
@@ -57,61 +59,105 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
     @Override
     public Mono<Void> process(ITemplateContext context, IModel model,
         IElementModelStructureHandler structureHandler) {
-        return this.live2dSetting.getConfig()
-            .flatMap(config -> themeFetcher.getActiveThemeName()
-                .map(themeName -> {
-                    ((ObjectNode) config).put("tips",
-                        String.format(THEME_TIPS_PATH_TEMPLATE, themeName));
-                    return config;
-                })
-                .map(this::preprocessConfig)
-            )
+        return themeFetcher.getActiveThemeLive2dTipsPath(THEME_TIPS_PATH_TEMPLATE)
+            .flatMap(live2dSetting::getPublicConfig)
+            .map(config -> {
+                ((ObjectNode) config).put("assetPath", LIVE2D_SOURCE_PATH);
+                return config;
+            })
             .flatMap(config -> {
                 final IModelFactory modelFactory = context.getModelFactory();
-                return live2dAutoloadScript(config).flatMap(script -> {
+                return live2dBootstrapScript(config).flatMap(script -> {
                     model.add(modelFactory.createText(script));
                     return Mono.empty();
                 });
-            }).then();
+            })
+            .then();
     }
 
-    private JsonNode preprocessConfig(JsonNode config) {
-        ((ObjectNode) config).remove(Arrays.asList("proxySetting", "openAiSetting"));
-        ((ObjectNode) config.get("aiChatBaseSetting")).remove(
-            Arrays.asList("isAnonymous", "systemMessage"));
-        return config;
-    }
-
-    private Mono<CharSequence> live2dAutoloadScript(JsonNode config) {
-        String template = """
-            live2d.init("%1$s", %2$s)
-            """.formatted(LIVE2D_SOURCE_PATH, config.toPrettyString());
-        return this.live2dSetting.getValue("advanced", "loadTime")
-            .map(node -> node.asText(LIVE2D_LOAD_TIME))
-            .map(loadTime -> """
-                <script src="%1$sjs/live2d-autoload.min.js" %2$s></script>
-                <script type="text/javascript">
+    private Mono<CharSequence> live2dBootstrapScript(JsonNode config) {
+        return Mono.zip(
+                this.live2dSetting.getValue("advanced", "loadTime")
+                    .map(node -> node.asText(LIVE2D_LOAD_TIME))
+                    .defaultIfEmpty(LIVE2D_LOAD_TIME),
+                resolveBootstrapLoaderScript()
+            )
+            .map(tuple -> """
+                <script id="%1$s" type="application/json">%2$s</script>
+                <script type="module">
                     %3$s
                 </script>
-                """.formatted(LIVE2D_SOURCE_PATH, loadTime, loadLive2d(loadTime, template))
-            );
+                """.formatted(
+                HALO_CONFIG_ELEMENT_ID,
+                escapeJsonForScript(config.toString()),
+                wrapBootstrapLoader(tuple.getT1(), tuple.getT2())
+            ));
     }
 
-    private CharSequence loadLive2d(String loadTime, String loadingScript) {
-        String template;
-        if (Objects.equals(loadTime, LIVE2D_LOAD_TIME)) {
-            template = """
-                document.addEventListener('DOMContentLoaded', () => {
-                    %s
-                })
-                """;
-        } else {
-            template = """
-                window.addEventListener('load', () => {
-                    %s
-                })
-                """;
+    private Mono<String> resolveBootstrapLoaderScript() {
+        return Mono.zip(
+                this.live2dSetting.getValue("advanced", "useFrontendDevServer")
+                    .map(node -> node.asBoolean(false))
+                    .defaultIfEmpty(false),
+                this.live2dSetting.getValue("advanced", "frontendDevServerUrl")
+                    .map(node -> normalizeDevServerUrl(node.asText()))
+                    .defaultIfEmpty("http://localhost:5173")
+            )
+            .map(tuple -> tuple.getT1()
+                ? devServerBootstrapScript(tuple.getT2())
+                : productionBootstrapScript());
+    }
+
+    private String wrapBootstrapLoader(String loadTime, String bootstrapScript) {
+        String template = """
+            const bootstrap = () => {
+                %s
+            };
+            if (%s) {
+                bootstrap();
+            } else {
+                %s
+            }
+            """;
+
+        if (LIVE2D_LOAD_TIME.equals(loadTime)) {
+            return template.formatted(
+                bootstrapScript,
+                "document.readyState !== 'loading'",
+                "document.addEventListener('DOMContentLoaded', bootstrap, { once: true });");
         }
-        return template.formatted(loadingScript);
+
+        return template.formatted(
+            bootstrapScript,
+            "document.readyState === 'complete'",
+            "window.addEventListener('load', bootstrap, { once: true });");
+    }
+
+    private String productionBootstrapScript() {
+        return """
+            import("%s")
+              .catch((error) => console.error("[PluginLive2d] Failed to load Live2D bootstrap module.", error));
+            """.formatted(LIVE2D_SOURCE_PATH + LIVE2D_BOOTSTRAP_ENTRY);
+    }
+
+    private String devServerBootstrapScript(String devServerUrl) {
+        return """
+            Promise.all([
+              import("%1$s"),
+              import("%2$s")
+            ])
+              .catch((error) => console.error("[PluginLive2d] Failed to load Live2D dev server bootstrap module.", error));
+            """.formatted(devServerUrl + VITE_CLIENT_ENTRY, devServerUrl + VITE_HALO_ENTRY);
+    }
+
+    private String normalizeDevServerUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return "http://localhost:5173";
+        }
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
+
+    private String escapeJsonForScript(String json) {
+        return json.replace("</", "<\\/");
     }
 }
