@@ -11,6 +11,7 @@ import queryString from "query-string";
  */
 export class HitokotoTool extends Tool {
   priority = 90;
+  private static readonly COOLDOWN_MS = 1500;
 
   _default_api = "https://v1.hitokoto.cn";
 
@@ -31,6 +32,10 @@ export class HitokotoTool extends Tool {
         sendMessage(description, 4000, 2);
       }, 6000);
     }
+  }
+
+  protected cooldownMs(): number {
+    return HitokotoTool.COOLDOWN_MS;
   }
 
   private async _getHitokotoMessage(): Promise<

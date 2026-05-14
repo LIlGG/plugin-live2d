@@ -16,6 +16,8 @@ import React from "react";
 import "iconify-icon";
 
 export class Live2dTools extends UnoLitElement {
+  private static readonly AI_CHAT_TOOL_NAMES = new Set(["chat", "openai"]);
+
   @consume({ context: configContext })
   @property({ attribute: false })
   public config?: Live2dConfig;
@@ -41,7 +43,7 @@ export class Live2dTools extends UnoLitElement {
   renderTool(tool: Tool): TemplateResult {
     return html`<span
       id="live2d-tool-${tool.name()}"
-      @click=${() => tool.execute()}
+      @click=${() => void tool.triggerExecute()}
     >
       <iconify-icon
         class="inline-block w-4 h-4 text-size-xl cursor-pointer color-#7b8c9d hover:color-#0684bd"
@@ -108,12 +110,20 @@ export class Live2dTools extends UnoLitElement {
       this.config.tools && this.config.tools.length > 0
         ? [...this.config.tools]
         : [...defaultToolNames];
+
+    const enabledNames = configuredNames.filter((toolName) => {
+      if (this.config?.isAiChat) {
+        return true;
+      }
+      return !Live2dTools.AI_CHAT_TOOL_NAMES.has(toolName);
+    });
+
     if (this.config.isAiChat) {
-      configuredNames.unshift("chat");
+      enabledNames.unshift("chat");
     }
     const mountTool: Tool[] = [];
     const seen = new Set<string>();
-    for (const toolName of configuredNames) {
+    for (const toolName of enabledNames) {
       const ToolClass = toolRegistry[toolName];
       if (ToolClass) {
         if (seen.has(toolName)) {

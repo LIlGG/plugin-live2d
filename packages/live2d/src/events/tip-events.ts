@@ -16,11 +16,12 @@ import {
 } from "@/live2d/events/before-init";
 import { dataWithinRange } from "@/live2d/helpers/dateWithinRange";
 import { getPluginTips } from "@/live2d/helpers/getPluginTips";
+import { loadFullTipsResource } from "@/live2d/helpers/loadFullTipsResource";
 import { loadTipsResource } from "@/live2d/helpers/loadTipsResource";
 import { mergeTips } from "@/live2d/helpers/mergeTips";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { timeWithinRange } from "@/live2d/helpers/timeWithinRange";
-import { isNotEmptyString, isString } from "@/live2d/utils/isString";
+import { isString } from "@/live2d/utils/isString";
 import { randomSelection } from "@/live2d/utils/randomSelection";
 import {
   documentTitle,
@@ -294,15 +295,9 @@ const _loadTips = async (config: Live2dConfig) => {
 export const _getFullOrDefaultTips = async (
   config: Live2dConfig,
 ): Promise<TipConfig> => {
-  // 获取插件文件中的全量 tips 文件
-  if (isNotEmptyString(config?.tipsPath)) {
-    const tipsResult = await loadTipsResource(config.tipsPath);
-    if (tipsResult) {
-      return tipsResult;
-    }
-  }
-  // 获取默认的 tips 文件
-  return (await import("../libs/live2d-tips.json")).default;
+  return loadFullTipsResource(config?.tipsPath, async () => {
+    return (await import("../libs/live2d-tips.json")).default;
+  });
 };
 
 window.addEventListener(BEFORE_INIT_EVENT_NAME, async (event) => {

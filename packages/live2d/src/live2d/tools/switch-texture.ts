@@ -6,6 +6,7 @@ import { isNotEmptyString } from "@/live2d/utils/isString";
  */
 export class SwitchTextureTool extends Tool {
   priority = 60;
+  private static readonly COOLDOWN_MS = 1500;
 
   name(): string {
     return "switch-texture";
@@ -22,7 +23,11 @@ export class SwitchTextureTool extends Tool {
   execute() {
     const model = this.getModel();
     if (model) {
-      model.loadRandTextures();
+      return model.loadRandTextures();
     }
+  }
+
+  protected cooldownMs(): number {
+    return SwitchTextureTool.COOLDOWN_MS;
   }
 }

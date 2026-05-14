@@ -53,16 +53,31 @@ export class Live2dTips extends UnoLitElement {
 
   render(): TemplateResult {
     const classes = {
+      "animate-shake": true,
+      "animate-delay-5s": true,
+      "min-h-18": true,
+      "w-63": true,
+      "bg-tips": true,
+      border: true,
+      "border-tips": true,
+      "border-solid": true,
+      "rounded-xl": true,
+      "shadow-tips": true,
+      "text-size-sm": true,
+      "overflow-hidden": true,
+      "px-2.5": true,
+      "py-1.5": true,
+      "text-ellipsis": true,
+      "transition-opacity-1000": true,
+      "break-all": true,
       "opacity-100": this._isShow,
       "opacity-0": !this._isShow,
+      "select-none": true,
     };
     return html`
       <div
         id="live2d-tips"
-        class="animate-shake animate-delay-5s min-h-18 w-63 bg-tips border border-tips border-solid rounded-xl shadow-tips
-    text-size-sm overflow-hidden px-2.5 py-1.5 text-ellipsis transition-opacity-1000 break-all ${classMap(
-      classes,
-    )}"
+        class=${classMap(classes)}
       >
         ${unsafeHTML(this._message)}
       </div>

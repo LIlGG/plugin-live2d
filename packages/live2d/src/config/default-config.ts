@@ -28,7 +28,7 @@ export const createDefaultLive2dConfig = (): Live2dConfig => ({
   firstOpenSite: true,
   isTools: true,
   tools: [...DEFAULT_TOOL_NAMES],
-  isAiChat: false,
+  isAiChat: true,
   chunkTimeout: 10,
   showChatMessageTimeout: 10,
   screenshotName: "live2d",

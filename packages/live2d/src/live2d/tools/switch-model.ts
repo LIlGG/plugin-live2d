@@ -6,6 +6,7 @@ import { Tool } from "./tools";
  */
 export class SwitchModelTool extends Tool {
   priority = 70;
+  private static readonly COOLDOWN_MS = 1500;
 
   name(): string {
     return "switch-model";
@@ -19,7 +20,11 @@ export class SwitchModelTool extends Tool {
   execute() {
     const model = this.getModel();
     if (model) {
-      model.loadOtherModel();
+      return model.loadOtherModel();
     }
+  }
+
+  protected cooldownMs(): number {
+    return SwitchModelTool.COOLDOWN_MS;
   }
 }

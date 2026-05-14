@@ -4,6 +4,12 @@ import {
   configContext,
 } from "@/live2d/context/config-context";
 import { ToggleCanvasEvent } from "@/live2d/events/toggle-canvas";
+import { WIDGET_DRAWER_DURATION_MS } from "@/live2d/helpers/widgetDrawer";
+import {
+  clearWidgetDismissal,
+  readWidgetSuppression,
+  rememberWidgetDismissal,
+} from "@/live2d/helpers/widgetVisibility";
 import { consume } from "@lit/context";
 import { createComponent } from "@lit/react";
 import { type TemplateResult, html } from "lit";
@@ -20,28 +26,28 @@ export class Live2dToggle extends UnoLitElement {
   // 当前工具栏是否显示
   private _isShow = false;
 
+  private revealTimer?: number;
+
   connectedCallback(): void {
     super.connectedCallback();
     this.addEventListener("click", this.handleClick);
     window.addEventListener("live2d:toggle-canvas", this.handleGlobalToggle);
 
     Promise.resolve().then(() => {
-      const live2dDisplay = localStorage.getItem("live2d-display");
-      if (live2dDisplay) {
-        if (
-          Date.now() - Number.parseInt(live2dDisplay) <=
-          24 * 60 * 60 * 1000
-        ) {
-          this.triggerToggleLive2d(false);
-          return;
-        }
+      if (readWidgetSuppression(localStorage)) {
+        this._isShow = true;
+        this.requestUpdate();
+        return;
       }
-      this.triggerToggleLive2d(true);
+
+      clearWidgetDismissal(localStorage);
+      this.dispatchEvent(new ToggleCanvasEvent({ isShow: true }));
     });
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.clearRevealTimer();
     this.removeEventListener("click", this.handleClick);
     window.removeEventListener("live2d:toggle-canvas", this.handleGlobalToggle);
   }
@@ -64,32 +70,35 @@ export class Live2dToggle extends UnoLitElement {
   }
 
   handleClick() {
-    this.triggerToggleLive2d(!!this._isShow);
-  }
-
-  triggerToggleLive2d(isShow: boolean) {
-    this._isShow = !isShow;
-    if (isShow) {
-      localStorage.removeItem("live2d-display");
-    } else {
-      localStorage.setItem("live2d-display", Date.now().toString());
-    }
-    this.dispatchEvent(
-      new ToggleCanvasEvent({
-        isShow,
-      }),
-    );
+    this.dispatchEvent(new ToggleCanvasEvent({ isShow: this._isShow }));
   }
 
   handleGlobalToggle = (e: Event) => {
     const event = e as ToggleCanvasEvent;
-    this._isShow = !event.detail.isShow;
     if (event.detail.isShow) {
-      localStorage.removeItem("live2d-display");
-    } else {
-      localStorage.setItem("live2d-display", Date.now().toString());
+      this.clearRevealTimer();
+      this._isShow = false;
+      clearWidgetDismissal(localStorage);
+      return;
     }
+
+    rememberWidgetDismissal(localStorage);
+    this.clearRevealTimer();
+    this.revealTimer = window.setTimeout(() => {
+      this.revealTimer = undefined;
+      this._isShow = true;
+      this.requestUpdate();
+    }, WIDGET_DRAWER_DURATION_MS);
   };
+
+  private clearRevealTimer(): void {
+    if (this.revealTimer === undefined) {
+      return;
+    }
+
+    clearTimeout(this.revealTimer);
+    this.revealTimer = undefined;
+  }
 }
 
 customElements.define("live2d-toggle", Live2dToggle);

@@ -9,13 +9,26 @@ import { consume } from "@lit/context";
 import { createComponent } from "@lit/react";
 import { type PropertyValues, type TemplateResult, html } from "lit";
 import { property, query, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
 import React from "react";
 import "iconify-icon";
 
-/**
- * Live2d 聊天窗口组件
- */
+const CHAT_PANEL_WIDTH = "min(26rem, calc(100vw - 1rem))";
+const CHAT_PANEL_BOTTOM = "2rem";
+const CHAT_PANEL_TRANSITION_MS = 220;
+
+type PopoverCapableElement = HTMLDivElement & {
+  hidePopover: () => void;
+  showPopover: () => void;
+};
+
+const isPopoverCapable = (
+  element: HTMLDivElement | undefined,
+): element is PopoverCapableElement =>
+  !!element &&
+  typeof (element as Partial<PopoverCapableElement>).showPopover ===
+    "function" &&
+  typeof (element as Partial<PopoverCapableElement>).hidePopover === "function";
+
 export class Live2dChatWindow extends UnoLitElement {
   @consume({ context: configContext })
   @property({ attribute: false })
@@ -33,139 +46,122 @@ export class Live2dChatWindow extends UnoLitElement {
   @query("#live2d-chat-input")
   private _input?: HTMLInputElement;
 
+  @query("#live2d-chat-model")
+  private _panel?: HTMLDivElement;
+
   private chatApi: ChatApi | null = null;
   private historyMessages: ChatMessage[] = [];
+  private _hidePopoverTimer?: number;
 
   connectedCallback(): void {
     super.connectedCallback();
-    // 监听聊天窗口切换事件
     window.addEventListener("live2d:toggle-chat-window", this.handleToggle);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     window.removeEventListener("live2d:toggle-chat-window", this.handleToggle);
+    this.clearHidePopoverTimer();
   }
 
   render(): TemplateResult {
-    const containerClasses = {
-      "opacity-100": this._isShow,
-      "opacity-0": !this._isShow,
-      "pointer-events-none": !this._isShow,
-    };
-
-    const sendButtonClasses = {
-      active: this._canSend && !this._isLoading,
-    };
+    const positionStyle = `inset: auto auto ${CHAT_PANEL_BOTTOM} 50%; margin: 0; width: ${CHAT_PANEL_WIDTH}; transform: translateX(-50%); transition: opacity ${CHAT_PANEL_TRANSITION_MS}ms ease;`;
+    const panelClasses = [
+      "fixed z-[10000] overflow-hidden rounded-full border border-[#eadfce] bg-[#fffaf4]/96 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm will-change-[opacity]",
+      this._isShow
+        ? "pointer-events-auto opacity-100"
+        : "pointer-events-none opacity-0",
+    ].join(" ");
+    const sendButtonClass =
+      this._canSend && !this._isLoading
+        ? "bg-[#ffab5c] text-white shadow-[0_6px_16px_rgba(255,171,92,0.25)] hover:bg-[#ff9840]"
+        : "bg-[#eee7de] text-slate-400 cursor-not-allowed";
 
     return html`
       <div
         id="live2d-chat-model"
-        class="fixed inset-0 flex items-center justify-center z-9999 transition-opacity-300 ${classMap(
-          containerClasses,
-        )}"
+        popover="manual"
+        class=${panelClasses}
+        style=${positionStyle}
       >
-        <div
-          class="live2d-chat-model-body bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md"
-        >
-          <div class="live2d-chat-content mb-4">
-            <input
-              id="live2d-chat-input"
-              type="text"
-              placeholder="请输入消息..."
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              @input=${this.handleInput}
-              @keydown=${this.handleKeydown}
-              ?disabled=${this._isLoading}
-            />
-          </div>
-          <div class="flex justify-end">
-            <span
-              id="live2d-chat-send"
-              class="inline-flex items-center justify-center w-10 h-10 rounded-full cursor-pointer transition-all ${classMap(
-                sendButtonClasses,
-              )} ${
-                this._canSend && !this._isLoading
-                  ? "bg-blue-500 hover:bg-blue-600"
-                  : "bg-gray-300 dark:bg-gray-600 cursor-not-allowed"
-              }"
-              @click=${this.handleSend}
-            >
-              ${
-                this._isLoading
-                  ? html`<iconify-icon
+        <div class="flex items-center gap-1.5 px-1 py-1">
+          <input
+            id="live2d-chat-input"
+            type="text"
+            placeholder="和看板娘说点什么..."
+            class="h-8.5 w-full appearance-none rounded-full border border-solid border-[#eadbc5] bg-white/98 px-3.5 py-0.5 text-3.25 text-slate-700 shadow-none outline-none transition-colors placeholder:text-slate-400 focus:border-[#ffbb72] focus:ring-1 focus:ring-[#ffd8ac] focus:shadow-none"
+            @input=${this.handleInput}
+            @keydown=${this.handleKeydown}
+            ?disabled=${this._isLoading}
+          />
+          <button
+            id="live2d-chat-send"
+            type="button"
+            class="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full border-none transition-colors ${sendButtonClass}"
+            @click=${this.handleSend}
+            aria-label=${this._isLoading ? "发送中" : "发送消息"}
+          >
+            ${
+              this._isLoading
+                ? html`<iconify-icon
                     id="loadingIcon"
                     icon="line-md:loading-twotone-loop"
-                    width="20"
-                    height="20"
-                    class="text-white"
+                    width="18"
+                    height="18"
+                    class="text-current"
                   ></iconify-icon>`
-                  : html`<iconify-icon
+                : html`<iconify-icon
                     id="send"
                     icon="mingcute:send-plane-fill"
-                    width="20"
-                    height="20"
-                    class="text-white"
+                    width="18"
+                    height="18"
+                    class="text-current"
                   ></iconify-icon>`
-              }
-            </span>
-          </div>
+            }
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border-none bg-transparent p-0 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-600"
+            @click=${this.handleToggle}
+            aria-label="关闭对话框"
+          >
+            <iconify-icon icon="ph:x-bold" width="12" height="12"></iconify-icon>
+          </button>
         </div>
       </div>
     `;
   }
 
-  /**
-   * 切换聊天窗口显示状态
-   */
   handleToggle = (): void => {
-    this._isShow = !this._isShow;
     if (this._isShow) {
-      this.updateComplete.then(() => {
-        this._input?.focus();
-      });
+      this.hideChat();
       return;
     }
 
-    // 隐藏时清空输入
-    if (this._input) {
-      this._input.value = "";
-      this._canSend = false;
+    void this.showChat();
+  };
+
+  handleInput = (e: Event): void => {
+    const input = e.target as HTMLInputElement;
+    this._canSend = input.value.length > 0 && !this._isLoading;
+  };
+
+  handleKeydown = (e: KeyboardEvent): void => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void this.sendMessage();
+    }
+    if (e.key === "Escape") {
+      this.handleToggle();
     }
   };
 
-  /**
-   * 处理输入变化
-   */
-  handleInput(e: Event): void {
-    const input = e.target as HTMLInputElement;
-    this._canSend = input.value.length > 0 && !this._isLoading;
-  }
-
-  /**
-   * 处理键盘事件
-   */
-  handleKeydown(e: KeyboardEvent): void {
-    if (e.key === "Enter") {
-      this.sendMessage();
-    }
-    if (e.key === "Escape") {
-      this._isShow = false;
-    }
-  }
-
-  /**
-   * 处理发送按钮点击
-   */
-  handleSend(): void {
+  handleSend = (): void => {
     if (this._canSend && !this._isLoading) {
-      this.sendMessage();
+      void this.sendMessage();
     }
-  }
+  };
 
-  /**
-   * 发送消息
-   */
   private async sendMessage(): Promise<void> {
     if (!this._input || !this._input.value || this._isLoading) {
       return;
@@ -176,12 +172,10 @@ export class Live2dChatWindow extends UnoLitElement {
       return;
     }
 
-    // 清空输入框
     this._input.value = "";
     this._canSend = false;
     this._isLoading = true;
 
-    // 初始化 ChatApi（如果还没有）
     if (!this.chatApi) {
       this.chatApi = new ChatApi({
         chunkTimeout: Number(this.config?.chunkTimeout || 60),
@@ -191,7 +185,6 @@ export class Live2dChatWindow extends UnoLitElement {
       });
     }
 
-    // 加载历史消息
     const historyJson = localStorage.getItem("historyMessages");
     this.historyMessages = historyJson ? JSON.parse(historyJson) : [];
 
@@ -201,22 +194,71 @@ export class Live2dChatWindow extends UnoLitElement {
       console.error("[Live2dChatWindow] Send message error:", error);
     } finally {
       this._isLoading = false;
-      // 重新检查输入框状态
       if (this._input) {
         this._canSend = this._input.value.length > 0;
       }
     }
   }
 
-  /**
-   * 显示首次使用提示
-   */
   protected firstUpdated(_changedProperties: PropertyValues): void {
     super.firstUpdated(_changedProperties);
-    // 监听输入框获得焦点事件
     this._input?.addEventListener("focus", () => {
       sendMessage("按下回车键可以快速发送消息哦", 2000, 1);
     });
+  }
+
+  private async showChat(): Promise<void> {
+    this.clearHidePopoverTimer();
+    await this.updateComplete;
+    if (
+      isPopoverCapable(this._panel) &&
+      !this._panel.matches(":popover-open")
+    ) {
+      this._panel.showPopover();
+    }
+
+    requestAnimationFrame(() => {
+      this._isShow = true;
+      void this.updateComplete.then(() => {
+        this._input?.focus();
+      });
+    });
+  }
+
+  private hideChat(): void {
+    this.clearHidePopoverTimer();
+    this._isShow = false;
+
+    if (this._input) {
+      this._input.value = "";
+      this._input.blur();
+      this._canSend = false;
+    }
+
+    if (
+      !isPopoverCapable(this._panel) ||
+      !this._panel.matches(":popover-open")
+    ) {
+      return;
+    }
+
+    this._hidePopoverTimer = window.setTimeout(() => {
+      this._hidePopoverTimer = undefined;
+      if (
+        !this._isShow &&
+        isPopoverCapable(this._panel) &&
+        this._panel.matches(":popover-open")
+      ) {
+        this._panel.hidePopover();
+      }
+    }, CHAT_PANEL_TRANSITION_MS);
+  }
+
+  private clearHidePopoverTimer(): void {
+    if (this._hidePopoverTimer !== undefined) {
+      window.clearTimeout(this._hidePopoverTimer);
+      this._hidePopoverTimer = undefined;
+    }
   }
 }
 
