@@ -3,6 +3,7 @@ import {
   type Live2dConfig,
   configContext,
 } from "@/live2d/context/config-context";
+import type { ModelLayoutEvent } from "@/live2d/events/model-layout";
 import type { SendMessageEvent } from "@/live2d/events/send-message";
 import type {
   StreamMessageEvent,
@@ -18,6 +19,9 @@ import { classMap } from "lit/directives/class-map.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 
 export class Live2dTips extends UnoLitElement {
+  private static readonly DEFAULT_BOTTOM_OFFSET = 250;
+  private static readonly MODEL_OVERLAP_OFFSET = 20;
+
   @consume({ context: configContext })
   @property({ attribute: false })
   public config?: Live2dConfig;
@@ -26,6 +30,8 @@ export class Live2dTips extends UnoLitElement {
   private _isShow = false;
   @state()
   private _message = "";
+  @state()
+  private _bottomOffset = Live2dTips.DEFAULT_BOTTOM_OFFSET;
   private priority = -1;
   private messageTimer: number | null = null;
   // 流式消息模式标志
@@ -41,6 +47,9 @@ export class Live2dTips extends UnoLitElement {
   };
   private readonly onStreamStop = (event: Event) => {
     this.handleStreamStop(event as StreamMessageStopEvent);
+  };
+  private readonly onModelLayout = (event: Event) => {
+    this.handleModelLayout(event as ModelLayoutEvent);
   };
 
   constructor() {
@@ -73,10 +82,7 @@ export class Live2dTips extends UnoLitElement {
       "select-none": true,
     };
     return html`
-      <div
-        id="live2d-tips"
-        class=${classMap(classes)}
-      >
+      <div id="live2d-tips" class=${classMap(classes)}>
         ${unsafeHTML(this._message)}
       </div>
     `;
@@ -84,10 +90,12 @@ export class Live2dTips extends UnoLitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.applyHostPosition();
     window.addEventListener("live2d:send-message", this.onMessage);
     window.addEventListener("live2d:stream-message-start", this.onStreamStart);
     window.addEventListener("live2d:stream-message", this.onStreamMessage);
     window.addEventListener("live2d:stream-message-stop", this.onStreamStop);
+    window.addEventListener("live2d:model-layout", this.onModelLayout);
   }
 
   disconnectedCallback(): void {
@@ -99,6 +107,7 @@ export class Live2dTips extends UnoLitElement {
     );
     window.removeEventListener("live2d:stream-message", this.onStreamMessage);
     window.removeEventListener("live2d:stream-message-stop", this.onStreamStop);
+    window.removeEventListener("live2d:model-layout", this.onModelLayout);
   }
 
   handleMessage(e: SendMessageEvent): void {
@@ -189,6 +198,18 @@ export class Live2dTips extends UnoLitElement {
       this.priority = -1;
       this.isStreamMode = false;
     }, showTimeout);
+  }
+
+  handleModelLayout(e: ModelLayoutEvent): void {
+    const { topY, canvasHeight } = e.detail;
+    this._bottomOffset = Math.round(
+      canvasHeight - topY - Live2dTips.MODEL_OVERLAP_OFFSET,
+    );
+    this.applyHostPosition();
+  }
+
+  private applyHostPosition(): void {
+    this.style.bottom = `${this._bottomOffset}px`;
   }
 }
 

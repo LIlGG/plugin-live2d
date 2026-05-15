@@ -72,7 +72,9 @@ export class Live2dWidget extends UnoLitElement {
           <div
             class="group flex flex-col items-center relative translate-y-1 transition-transform duration-300 hover:translate-y-0"
           >
-            <live2d-tips class="-mb-10"></live2d-tips>
+            <live2d-tips
+              class="pointer-events-none absolute left-1/2 -translate-x-1/2"
+            ></live2d-tips>
             <live2d-canvas
               class="inline-block h-[300px] w-[300px] z-1"
             ></live2d-canvas>

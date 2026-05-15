@@ -1,4 +1,5 @@
 import type { Live2dConfig } from "@/live2d/context/config-context";
+import { ModelLayoutEvent } from "@/live2d/events/model-layout";
 import { loadMergedTips } from "@/live2d/helpers/loadMergedTips";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { logConsoleStatus } from "@/live2d/live2d/console-status";
@@ -36,6 +37,9 @@ const MESSAGE_TIMEOUT_MS = 4000;
 const LOADING_MESSAGE_DELAY_MS = 1200;
 const DEFAULT_LOADING_MESSAGE =
   "稍等一下下哦，人家正在梳理小裙摆，马上就来陪你啦～";
+const HEAD_HIT_AREA_PATTERN = /(head|flickhead)/i;
+const SPEECH_ANCHOR_MIN_RATIO = 0.04;
+const SPEECH_ANCHOR_MAX_RATIO = 0.14;
 
 interface LoadModelOptions {
   loadSequence?: number;
@@ -174,6 +178,13 @@ class Model {
       app.screen.width / 2,
       app.screen.height * LIVE2D_BOTTOM_OFFSET,
     );
+    const modelTopY = this.getSpeechAnchorTopY(nextModel, bounds);
+    window.dispatchEvent(
+      new ModelLayoutEvent({
+        topY: modelTopY,
+        canvasHeight: app.screen.height,
+      }),
+    );
 
     if (this.#currentModel) {
       app.stage.removeChild(this.#currentModel);
@@ -183,6 +194,37 @@ class Model {
     app.stage.removeChildren();
     app.stage.addChild(nextModel);
     this.#currentModel = nextModel;
+  }
+
+  private getSpeechAnchorTopY(
+    model: Live2DModel,
+    bounds: { y: number; height: number },
+  ): number {
+    const anchorTop = this.getHeadTopY(model);
+    const minAnchorTop = bounds.y + bounds.height * SPEECH_ANCHOR_MIN_RATIO;
+    const maxAnchorTop = bounds.y + bounds.height * SPEECH_ANCHOR_MAX_RATIO;
+    const preferredAnchorTop = anchorTop ?? bounds.y;
+    const localTopY = Math.min(
+      Math.max(preferredAnchorTop, minAnchorTop),
+      maxAnchorTop,
+    );
+    return model.position.y + (localTopY - model.pivot.y) * model.scale.y;
+  }
+
+  private getHeadTopY(model: Live2DModel): number | undefined {
+    const headHitArea = Object.values(model.internalModel.hitAreas).find(
+      ({ name }) => HEAD_HIT_AREA_PATTERN.test(name),
+    );
+    if (!headHitArea) {
+      return;
+    }
+
+    const headBounds = model.internalModel.getDrawableBounds(headHitArea.index);
+    if (!Number.isFinite(headBounds.y) || headBounds.height <= 0) {
+      return;
+    }
+
+    return headBounds.y;
   }
 
   /**
