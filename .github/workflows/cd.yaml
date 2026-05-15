@@ -7,7 +7,7 @@ on:
 
 jobs:
   cd:
-    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-cd.yaml@v3
+    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-cd.yaml@v4
     secrets:
       halo-pat: ${{ secrets.HALO_PAT }}
     permissions:
@@ -15,3 +15,7 @@ jobs:
     with:
       skip-node-setup: true
       app-id: app-oPNFQ
+      ui-path: "packages/live2d"
+      pnpm-version: "10"
+      node-version: "24"
+      java-version: "21"

@@ -1,10 +1,11 @@
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   base: "./",
-  plugins: [tsconfigPaths()],
+  resolve: {
+    tsconfigPaths: true,
+  },
   build: {
     emptyOutDir: false,
     outDir: "dist",
