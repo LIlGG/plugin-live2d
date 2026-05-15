@@ -16,8 +16,8 @@ export const LEGACY_CONSOLE_STATUS_METADATA: ConsoleStatusMetadata = {
   author: "LIlGG",
   pluginName: "Live2D 看板娘",
   repo: "https://github.com/LIlGG/plugin-live2d",
-  updateTime: "2022.12.09",
-  version: "1.0.1",
+  updateTime: "2026.05.15",
+  version: "2.0.0",
 };
 
 export const getConsoleStatusLines = (

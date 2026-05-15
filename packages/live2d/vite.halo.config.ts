@@ -11,7 +11,7 @@ export default defineConfig({
     rollupOptions: {
       input: resolve(__dirname, "src/halo.ts"),
       output: {
-        entryFileNames: "halo.js",
+        entryFileNames: "live2d.js",
         chunkFileNames: "chunks/[name]-[hash].js",
       },
     },

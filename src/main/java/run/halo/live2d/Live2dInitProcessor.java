@@ -38,7 +38,7 @@ public class Live2dInitProcessor implements TemplateHeadProcessor {
 
     private final static String LIVE2D_LOAD_TIME = "defer";
     private final static String HALO_CONFIG_ELEMENT_ID = "plugin-live2d-config";
-    private final static String LIVE2D_BOOTSTRAP_ENTRY = "live2d/halo.js";
+    private final static String LIVE2D_BOOTSTRAP_ENTRY = "live2d/live2d.js";
     private final static String VITE_CLIENT_ENTRY = "/@vite/client";
     private final static String VITE_HALO_ENTRY = "/src/halo.ts";
 

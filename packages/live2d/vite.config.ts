@@ -16,6 +16,7 @@ export default defineConfig({
   ],
 
   build: {
+    outDir: "dist/lib",
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
       name: "Live2d",

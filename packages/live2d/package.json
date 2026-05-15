@@ -4,12 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "files": ["dist"],
-  "main": "./dist/live2d.umd.cjs",
-  "module": "./dist/live2d.js",
+  "main": "./dist/lib/live2d.umd.cjs",
+  "module": "./dist/lib/live2d.js",
   "exports": {
     ".": {
-      "import": "./dist/live2d.js",
-      "require": "./dist/live2d.umd.cjs"
+      "import": "./dist/lib/live2d.js",
+      "require": "./dist/lib/live2d.umd.cjs"
     }
   },
   "scripts": {
