@@ -72,3 +72,5 @@ application-local.properties
 
 /admin-frontend/node_modules/
 /workplace/
+
+/node_modules/

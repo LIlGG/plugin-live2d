@@ -1,8 +1,8 @@
 <h1 align="center">Live2d Plugin for Halo</h1>
 <p align="center">
-  <a href="https://github.com/halo-dev/halo"><img alt="Halo version" src="https://img.shields.io/badge/halo-2.4.0%2B-brightgreen?style=for-the-badge" /></a>
+  <a href="https://github.com/halo-dev/halo"><img alt="Halo version" src="https://img.shields.io/badge/halo-2.22.0%2B-brightgreen?style=for-the-badge" /></a>
   <a href="https://github.com/LIlGG/halo-theme-sakura"><img alt="Build Status" src="https://img.shields.io/badge/build-positive-brightgreen?style=for-the-badge"></a>
-  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-1.1.2-blue?style=for-the-badge"></a>
+  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-2.0.0-blue?style=for-the-badge"></a>
   <a href="./LICENSE"><img alt="LICENSE MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge"></a>
 </p>
 
@@ -20,14 +20,28 @@
 2. 通过 Halo-2.x [安装插件](https://docs.halo.run/user-guide/plugins#%E5%AE%89%E8%A3%85%E6%8F%92%E4%BB%B6) 功能安装本插件
 3. 打开网站，即可在左下角看到萌萌哒的看板娘哦~
 
+## 开发说明
+
+本仓库的现代化前端位于 `packages/live2d`，插件构建时会自动打包前端产物并同步到 Halo 插件静态资源目录。
+
+前端单独开发时，可以直接在仓库根目录执行：
+
+```bash
+pnpm --dir packages/live2d dev
+```
+
+本地联调时，可以在 Halo 后台开启 `插件设置 -> 高级设置 -> 前端调试模式`，并让其指向本地 Vite 服务地址（默认 `http://localhost:5173`）。这样 Halo 页面会直接加载开发中的前端模块，方便调试现代化后的 Live2d 运行时。
+
 ## 功能介绍
 - [x] 一只萌萌的看板娘，为网站增添一份活力
+- [x] 支持 Cubism 2 / 3 / 4 / 5 模型
 - [x] 基于 OpenAi 的对话交互功能【会思考的萌娘】
 - [x] 一键换装、换肤
 - [x] 支持一言功能
 - [x] 小飞机游戏（把坏人全都打跑！）
 - [x] 自定义看板娘接口
 - [x] 支持外部自定义 TIPS 文件，更适合你的网站
+- [x] 支持自定义工具栏
 
 ## 自定义配置
 > 此部分内容建议初步尝试过 Live2d 的用户观看。
@@ -38,7 +52,7 @@
 之后修改 `插件配置 -> 基本设置 -> Live2d 模型地址` 即可。
 
 ### 自定义 TIPS 文件
-[TIPS文件](/src/main/resources/static/live2d-tips.json) 文件是一个 JSON 文件，其内容为 Live2d 消息框对用户各种事件的反馈。
+默认 [TIPS 文件](/packages/live2d/src/libs/live2d-tips.json) 是一个 JSON 文件，其内容为 Live2d 消息框对用户各种事件的反馈。
 例如当用户鼠标点击网页中的某个链接时，Live2d 的消息框就会呈现出各种各样的文本。而这个绑定事件就是通过 TIPS 文件来处理的。
 
 因此可以说，**TIPS 文件与所用主题强绑定甚至需要用户高度自定义。**
@@ -65,13 +79,14 @@ TIPS 文件格式
     "hour": "6-7",               // 时间，小时为单位，需要为区间，例如 6-7 代表 6 点到 7 点之间
     "text": []                   // Live2d 消息框显示内容。为数组则随机选择一条显示
   ],
-  "message": {                   // 固定消息，通常代表特定事件
-    "default": [],               // 页面空闲时显示的消息
-    "console": [],               // 打开控制台时显示的消息
-    "copy": [],                  // 复制内容时显示的消息
-    "visibilitychange": []       // 多标签页，从其他标签页返回当前标签页时显示的消息
-  }
-}
+   "message": {                   // 固定消息，通常代表特定事件
+     "default": [],               // 页面空闲时显示的消息
+     "console": [],               // 打开控制台时显示的消息
+     "copy": [],                  // 复制内容时显示的消息
+     "loading": [],               // 模型加载时显示的消息
+     "visibilitychange": []       // 多标签页，从其他标签页返回当前标签页时显示的消息
+   }
+ }
 ```
 
 #### 1. 使用主题提供的 TIPS 文件（推荐）
@@ -80,7 +95,7 @@ TIPS 文件格式
 由于 Live2d 的 TIPS 通常需要使用 css 选择器来进行鼠标定位，因此将 TIPS 文件交由主题来适配是最好的方式。
 
 1. 主题开发者可以参考  [主题 TIPS 文件](/assert/live2d/tips.json) 文件来编写适配自己主题的 TIPS 文件。
-2. 将 json 文件命名为 `tips.json` 并放置在主题静态目录 `/assert/live2d/` 目录下
+2. 将 json 文件命名为 `tips.json` 并放置在主题静态目录 `assets/live2d/` 目录下
 
 live2d 渲染页面时将自动读取当前启用主题下的文件。
 
@@ -97,29 +112,36 @@ live2d 渲染页面时将自动读取当前启用主题下的文件。
 #### 3. 全量自定义 TIPS 文件
 当用户想完全自定义 TIPS 文件或者上述两种方式不满足用户的需求，例如想更改 `seasons, time, message` 属性时，可以采用此种方式。
 
-1. 用户可以参照 [默认 TIPS 文件](/src/main/resources/static/live2d-tips.json) 或者按照 [自定义TIPS文件](#自定义-tips-文件) 中的 TIPS 文件格式来编写 TIPS 文件。
+1. 用户可以参照 [默认 TIPS 文件](/packages/live2d/src/libs/live2d-tips.json) 或者按照 [自定义TIPS文件](#自定义-tips-文件) 中的 TIPS 文件格式来编写 TIPS 文件。
 2. 使用 Halo 后台 `插件设置 -> 事件及提示语绑定 -> 自定义提示语文件`，更改对应的文件即可。
 
 > 小提示: 可以将文件上传到 Halo 附件内，再进行选择！
 
 ![img.png](assert/img.png)
 
-**需要特别注意的是，一旦用户指定了此 TIPS 文件，那么默认的 TIPS 文件将不再生效（除非当前文件加载失败，此时会回退使用默认的 TIPS 文件），因此建议自定义时将属性设置完整**
+**需要特别注意的是，一旦用户指定了此 TIPS 文件，运行时会优先将其作为完整 TIPS 文件加载；只有在文件缺失、格式不合法或加载失败时，才会回退到内置默认 TIPS，因此建议自定义时将属性设置完整**
+
+### 自定义工具
+如果内置工具不满足需求，可以通过 Halo 后台 `插件设置 -> 自定义工具` 声明额外工具按钮。
+
+当前自定义工具使用声明式动作。首批支持的动作包括：
+
+- 发送提示语
+- 显示、隐藏或切换看板娘
+- 切换聊天窗口
+- 切换模型或材质
+- 截图
+- 打开链接
+- 触发命名空间自定义事件
+- 加载指定模型
 
 ## 鸣谢
-- 本插件代码借鉴了 [live2d-widget](https://github.com/stevenjoezhang/live2d-widget) 的理念及代码并完全重写 JS
+- 本插件代码借鉴了 [live2d-widget](https://github.com/stevenjoezhang/live2d-widget) 的理念并完全重写
 - 使用了 [hitokoto](https://hitokoto.cn/) 的一言接口
 - 默认使用了 [ZSQIM](https://zsq.im/) 的 live2d 接口
+- 使用了 [untitled-pixi-live2d-engine](https://github.com/untitled-ai/untitled-pixi-live2d-engine) 的 Live2d 渲染引擎，用于支持 Cubism 2 / 3 / 4 / 5 模型
 - 纸飞机小游戏源自于 [WebsiteAsteroids](http://www.websiteasteroids.com/)
 - Live2d 官方地址 [https://live2d.github.io](https://live2d.github.io)
-
-## 赞助
-> 如果您喜欢我的插件，可以考虑资助一下~ 您的支持将是我继续进行开源的动力。
-
-| <img src="https://cdn.lixingyong.com/img/other/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20210114094011.jpg" width="160px;"/><br /><b>微信</b><br /> | <img src="https://v-lxy-cdn.oss-cn-beijing.aliyuncs.com/img/other/%E6%94%AF%E4%BB%98%E5%AE%9D.png" width="160px;"/><br /><b>支付宝</b><br />  | 
-| :---: | :---: |
-
-欢迎其他各种形式的捐助！
 
 ## 许可证
 **plugin-live2d** © [LIlGG](https://github.com/LIlGG)，基于 [MIT](./LICENSE) 许可证发行。<br>
@@ -132,4 +154,3 @@ live2d 渲染页面时将自动读取当前启用主题下的文件。
 ## 希望你喜欢！
 
 ![Alt](https://repobeats.axiom.co/api/embed/1a0fed4cb4d4d2ea076c3481473cdbf9bc0471d6.svg "Repobeats analytics image")
-

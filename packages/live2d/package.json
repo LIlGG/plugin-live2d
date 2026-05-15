@@ -1,0 +1,42 @@
+{
+  "name": "live2d",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/lib/live2d.umd.cjs",
+  "module": "./dist/lib/live2d.js",
+  "exports": {
+    ".": {
+      "import": "./dist/lib/live2d.js",
+      "require": "./dist/lib/live2d.umd.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite --open",
+    "sync:custom-tool-actions": "node ./scripts/generate-custom-tool-actions.mjs",
+    "build": "pnpm sync:custom-tool-actions && tsc -b && vite build && vite build --config vite.halo.config.ts",
+    "check": "pnpm sync:custom-tool-actions && biome check --write"
+  },
+  "dependencies": {
+    "@lit/context": "^1.1.6",
+    "@lit/react": "^1.0.8",
+    "@pixi/sound": "^6.0.1",
+    "iconify-icon": "^3.0.2",
+    "lit": "^3.3.3",
+    "pixi.js": "^8.13.1",
+    "query-string": "^9.3.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "untitled-pixi-live2d-engine": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@unocss/postcss": "^66.6.8",
+    "@vitejs/plugin-react": "^6.0.2",
+    "ts-lit-plugin": "^2.0.2",
+    "unocss": "^66.6.8",
+    "vite": "^8.0.13"
+  }
+}

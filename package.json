@@ -1,0 +1,21 @@
+{
+    "name": "plugin-live2d",
+    "private": true,
+    "author": {
+        "name": "LIlGG",
+        "url": "https://github.com/LIlGG"
+    },
+    "contributors": [
+        {
+            "name": "LIlGG",
+            "email": "mail@e.lixingyong.com",
+            "url": "https://github.com/LIlGG"
+        }
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "@biomejs/biome": "^1.9.3",
+        "typescript": "^5.7.2"
+    },
+    "packageManager": "pnpm@10.33.4"
+}

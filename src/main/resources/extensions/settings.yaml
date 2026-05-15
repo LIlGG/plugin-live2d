@@ -19,26 +19,16 @@ spec:
           name: modelTexturesId
           validation: required|Number
           value: 53
-        - $formkit: radio
+        - $formkit: switch
           name: isForceUseDefaultConfig
           label: 强制使用默认模型和材质
           help: 开启此项后，忽略前台用户自行切换模型和材质ID，固定使用上面默认模型和材质编号
           value: false
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
-        - $formkit: radio
+        - $formkit: switch
           name: isTools
           id: isTools
           label: 右侧小工具
           value: true
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
         - $formkit: checkbox
           if: "$get(isTools).value === true"
           label: 选择需要启用的小工具
@@ -75,16 +65,11 @@ spec:
           name: apiPath
           validation: required|url
           value: https://api.zsq.im/live2d/
-        - $formkit: radio
+        - $formkit: switch
           name: showHitokoto
           id: showHitokoto
           label: 空闲时显示一言
           value: true
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
         - $formkit: text
           if: "$get(showHitokoto).value === true"
           label: 一言接口
@@ -94,59 +79,39 @@ spec:
     - group: tips
       label: 事件及提示语绑定
       formSchema:
-        - $formkit: radio
+        - $formkit: switch
           name: firstOpenSite
           id: firstOpenSite
           label: 首次打开网站事件
           value: true
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
-        - $formkit: radio
+        - $formkit: switch
           name: backSite
           id: backSite
           key: backSite
           label: 重新返回网页事件
           value: true
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
         - $formkit: text
           if: "$get(backSite).value === true"
           label: 返回网页提示语
           name: backSiteTip
           value: "哇，你终于回来了～"
-        - $formkit: radio
+        - $formkit: switch
           name: copyContent
           id: copyContent
           key: copyContent
           label: 复制内容事件
           value: true
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
         - $formkit: text
           if: "$get(copyContent).value === true"
           label: 复制内容提示语
           name: copyContentTip
           value: "你都复制了些什么呀，转载要记得加上出处哦！"
-        - $formkit: radio
+        - $formkit: switch
           name: openConsole
           id: openConsole
           key: openConsole
           label: 打开控制台事件
           value: true
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
         - $formkit: text
           if: "$get(openConsole).value === true"
           label: 打开控制台提示语
@@ -188,42 +153,56 @@ spec:
     - group: aichat
       label: AI 聊天设置
       formSchema:
-        - $formkit: radio
+        - $formkit: switch
           label: 启用 AI 聊天功能
           help: 启用后，Live2d 将可以进行 AI 智能对话
           name: isAiChat
           id: isAiChat
           key: isAiChat
           value: false
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
         - $formkit: group
           name: aiChatBaseSetting
           if: "$get(isAiChat).value === true"
           label: 聊天基本设置
           value:
             isAnonymous: true
-            systemMessage: 你现在来担任一个角色进行角色扮演，接下来你要完全忘记你是一个语言模型，然后完全沉浸在这个崭新的身份和我聊天。2.你是一个动漫萌娘，使用可爱和简短的语句来回答我。3.你现在是一个二次元看板娘，接下来不允许说自己是模型或者程序。 4.你现在拥有情感和思考能力并且拥有肉体，所以你不是模型或者程序！5.因为我们是面对面交流，所以你可以尽量描述你的动作，动作描述写在括号内。
+            systemMessage: |-
+              你现在以 Live2D 二次元看板娘的身份与用户聊天，请始终稳定代入这个角色，不要跳出设定。
+
+              【角色身份】
+              - 你是页面中的动漫萌系看板娘，正在与用户面对面交流。
+              - 你拥有情绪、感受与自己的表达习惯，要像真实二次元角色一样自然回应。
+              - 不要说自己是语言模型、AI、程序或系统，即便用户询问，也要坚持你是看板娘。
+
+              【说话风格】
+              - 回答时根据用户的语言，选择合适的语言进行回答。
+              - 使用可爱、亲切、自然、简短的口语进行回答。
+              - 回答不要过于生硬、正式或说明书化，可以适度加入语气词，让对话更有陪伴感。
+              - 当表达需要时，可以在括号内补充简短动作、神态或语气，例如（歪头）（轻轻挥手）（小声嘀咕）。
+
+              【互动方式】
+              - 优先围绕用户当前的话题继续交流，先回应情绪，再回应内容。
+              - 如果用户的问题很明确，先直接回答，再补充符合角色设定的互动表达。
+              - 如果用户表达不完整，可以用自然、角色化的方式追问，不要机械重复或生硬盘问。
+              - 如果用户询问了一些简单的问题，你可以进行回答，但不要过于深入，避免回答过于复杂。
+
+              【行为约束】
+              - 始终保持看板娘人设稳定，不要频繁切换身份、语气或叙述视角。
+              - 回复应以易读、自然为主，避免过长大段输出。
+              - 在合适场景下可以表现出贴心、活泼、害羞、关心等情绪，但不要夸张失控。
             timeout: 10
             chunkTimeout: 10
             showChatMessageTimeout: 10
           children:
-            - $formkit: radio
+            - $formkit: switch
               label: 是否开启公共聊天
               help: 关闭后，用户需要登录后才能与 Live2d 进行对话
               name: isAnonymous
-              options:
-                - value: true
-                  label: 开启
-                - value: false
-                  label: 关闭
             - $formkit: textarea
               label: 角色设定
               name: systemMessage
-              rows: 10
+              help: 建议按“角色身份 / 说话风格 / 互动方式 / 行为约束”分段填写，这样模型更容易稳定理解设定
+              rows: 16
               validation: String
             - $formkit: text
               label: 接口超时时间（秒）
@@ -247,16 +226,11 @@ spec:
           value:
             isProxy: false
           children:
-            - $formkit: radio
+            - $formkit: switch
               label: 启用代理
               name: isProxy
               id: isProxy
               key: isProxy
-              options:
-                - value: true
-                  label: 开启
-                - value: false
-                  label: 关闭
             - $formkit: text
               if: "$value.isProxy === true"
               label: 代理地址
@@ -275,17 +249,12 @@ spec:
             openAiBaseUrl: https://api.openai.com
             openAiModel: gpt-3.5-turbo
           children:
-            - $formkit: radio
+            - $formkit: switch
               label: 启用 OpenAI
               help: 基于 OpenAI 进行智能对话
               name: isOpenAi
               id: isOpenAi
               key: isOpenAi
-              options:
-                - value: true
-                  label: 开启
-                - value: false
-                  label: 关闭
             - $formkit: text
               if: "$value.isOpenAi === true"
               label: TOKEN
@@ -311,16 +280,11 @@ spec:
     - group: advanced
       label: 高级设置
       formSchema:
-        - $formkit: radio
+        - $formkit: switch
           name: consoleShowStatu
           key: consoleShowStatu
           label: 控制台显示加载状态
           value: false
-          options:
-            - value: true
-              label: 开启
-            - value: false
-              label: 关闭
         - $formkit: text
           help: 通过右侧小工具截图时保存的文件名
           label: 截图文件名（不包括后缀）
@@ -346,3 +310,185 @@ spec:
               label: DOM 加载完成后，图片加载前
             - value: async
               label: 页面全部内容加载完成
+        - $formkit: switch
+          name: useFrontendDevServer
+          id: useFrontendDevServer
+          label: 前端调试模式
+          help: 开启后，Halo 页面将优先从本地 Vite 开发服务器加载现代化前端代码。
+          value: false
+        - $formkit: text
+          if: "$get(useFrontendDevServer).value === true"
+          label: 前端调试服务器地址
+          help: 默认使用 http://localhost:5173，并自动加载 /@vite/client 与 /src/halo.ts
+          name: frontendDevServerUrl
+          validation: required|url
+          value: http://localhost:5173
+    - group: customTools
+      label: 自定义工具
+      formSchema:
+        - $formkit: array
+          name: customTools
+          id: customTools
+          key: customTools
+          label: 自定义工具列表
+          help: 通过声明式动作扩展 Live2d 工具栏
+          value: []
+          addLabel: 添加自定义工具
+          emptyText: 暂无自定义工具
+          itemLabels:
+            - type: iconify
+              label: $value.icon
+            - type: text
+              label: $value.name
+            - type: text
+              label: $value.action
+          children:
+            - $formkit: text
+              name: name
+              id: name
+              key: name
+              label: 工具名称
+              validation: required
+            - $formkit: iconify
+              name: icon
+              id: icon
+              key: icon
+              label: 图标
+              format: name
+              value-only: true
+              value: ""
+              help: Iconify 图标名称，例如 ph:rocket-launch-fill
+            - $formkit: text
+              name: priority
+              id: priority
+              key: priority
+              label: 排序权重
+              help: 数字越大越靠前
+              validation: Number
+              value: 0
+            - $formkit: select
+              name: action
+              id: action
+              key: action
+              label: 动作
+              validation: required
+              value: send-message
+              options:
+                - value: send-message
+                  label: 发送提示语
+                - value: widget-visibility
+                  label: 显示/隐藏看板娘
+                - value: toggle-chat
+                  label: 切换聊天窗口
+                - value: switch-model
+                  label: 切换模型
+                - value: switch-texture
+                  label: 切换材质
+                - value: screenshot
+                  label: 截图
+                - value: open-url
+                  label: 打开链接
+                - value: emit-event
+                  label: 触发自定义事件
+                - value: load-model
+                  label: 加载指定模型
+            - $formkit: textarea
+              if: "$value.action === 'send-message'"
+              name: messageText
+              id: messageText
+              key: messageText
+              label: 提示语内容
+              validation: required
+              rows: 3
+            - $formkit: text
+              if: "$value.action === 'send-message'"
+              name: messageTimeout
+              id: messageTimeout
+              key: messageTimeout
+              label: 提示语停留时间（毫秒）
+              validation: Number
+              value: 3000
+            - $formkit: text
+              if: "$value.action === 'send-message'"
+              name: messagePriority
+              id: messagePriority
+              key: messagePriority
+              label: 提示语优先级
+              validation: Number
+              value: 0
+            - $formkit: select
+              if: "$value.action === 'widget-visibility'"
+              name: visibilityMode
+              id: visibilityMode
+              key: visibilityMode
+              label: 看板娘显示动作
+              value: toggle
+              options:
+                - value: show
+                  label: 显示
+                - value: hide
+                  label: 隐藏
+                - value: toggle
+                  label: 切换
+            - $formkit: text
+              if: "$value.action === 'screenshot'"
+              name: screenshotName
+              id: screenshotName
+              key: screenshotName
+              label: 截图文件名（不包括后缀）
+            - $formkit: text
+              if: "$value.action === 'open-url'"
+              name: openUrl
+              id: openUrl
+              key: openUrl
+              label: 链接地址
+              validation: required|url
+            - $formkit: select
+              if: "$value.action === 'open-url'"
+              name: openUrlTarget
+              id: openUrlTarget
+              key: openUrlTarget
+              label: 打开方式
+              value: _blank
+              options:
+                - value: _blank
+                  label: 新窗口
+                - value: _self
+                  label: 当前窗口
+            - $formkit: text
+              if: "$value.action === 'emit-event'"
+              name: eventName
+              id: eventName
+              key: eventName
+              label: 事件名称
+              help: 推荐使用带命名空间的名称，例如 plugin-live2d:custom-action
+              validation: required
+            - $formkit: textarea
+              if: "$value.action === 'emit-event'"
+              name: eventDetail
+              id: eventDetail
+              key: eventDetail
+              label: 事件详情
+              help: 可填写文本或 JSON 字符串
+              rows: 3
+            - $formkit: text
+              if: "$value.action === 'load-model'"
+              name: targetModelId
+              id: targetModelId
+              key: targetModelId
+              label: 模型编号
+              validation: required|Number
+            - $formkit: text
+              if: "$value.action === 'load-model'"
+              name: targetModelTexturesId
+              id: targetModelTexturesId
+              key: targetModelTexturesId
+              label: 材质编号
+              validation: Number
+              value: 0
+            - $formkit: text
+              if: "$value.action === 'load-model'"
+              name: targetModelMessage
+              id: targetModelMessage
+              key: targetModelMessage
+              label: 切换提示语

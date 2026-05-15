@@ -10,6 +10,9 @@ on:
 
 jobs:
   ci:
-    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-ci.yaml@v3
+    uses: halo-sigs/reusable-workflows/.github/workflows/plugin-ci.yaml@v4
     with:
-      skip-node-setup: true
+      ui-path: "."
+      pnpm-version: "10.33.4"
+      node-version: "24"
+      java-version: "21"
