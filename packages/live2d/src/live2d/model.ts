@@ -1,4 +1,5 @@
 import type { Live2dConfig } from "@/live2d/context/config-context";
+import { loadMergedTips } from "@/live2d/helpers/loadMergedTips";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { logConsoleStatus } from "@/live2d/live2d/console-status";
 import { isNotEmptyString } from "@/live2d/utils/isString";
@@ -30,7 +31,18 @@ interface ModelResult {
 
 const LIVE2D_CANVAS_SIZE = 300;
 const LIVE2D_MODEL_PADDING = 1;
-const LIVE2D_BOTTOM_OFFSET = 0.95;
+const LIVE2D_BOTTOM_OFFSET = 1;
+const MESSAGE_TIMEOUT_MS = 4000;
+const LOADING_MESSAGE_DELAY_MS = 1200;
+const DEFAULT_LOADING_MESSAGE =
+  "稍等一下下哦，人家正在梳理小裙摆，马上就来陪你啦～";
+
+interface LoadModelOptions {
+  loadSequence?: number;
+  showLoadingMessage?: boolean;
+  loadingMessageDelayMs?: number;
+  successMessage?: string | string[];
+}
 
 class Model {
   #apiPath: string;
@@ -98,11 +110,41 @@ class Model {
       modelId = String(this.#config.modelId || 1); // 模型 ID
       modelTexturesId = String(this.#config.modelTexturesId || 53); // 材质 ID
     }
-    await this.loadModel(
-      Number(modelId),
-      Number(modelTexturesId),
-      "Live2D 模型加载中...",
-    );
+    await this.loadModel(Number(modelId), Number(modelTexturesId), undefined, {
+      showLoadingMessage: true,
+      loadingMessageDelayMs: LOADING_MESSAGE_DELAY_MS,
+    });
+  }
+
+  private async getLoadingMessage(): Promise<string | string[]> {
+    const tips = await loadMergedTips(this.#config);
+    return tips.message.loading ?? DEFAULT_LOADING_MESSAGE;
+  }
+
+  private createLoadSequence(): number {
+    return ++this.#loadSequence;
+  }
+
+  private scheduleLoadingMessage(
+    loadSequence: number,
+    delayMs: number,
+  ): number {
+    return window.setTimeout(() => {
+      void this.showLoadingMessage(loadSequence);
+    }, delayMs);
+  }
+
+  private async showLoadingMessage(loadSequence: number): Promise<void> {
+    if (loadSequence !== this.#loadSequence) {
+      return;
+    }
+
+    const loadingMessage = await this.getLoadingMessage();
+    if (loadSequence !== this.#loadSequence) {
+      return;
+    }
+
+    sendMessage(loadingMessage, MESSAGE_TIMEOUT_MS, 3);
   }
 
   private logConsoleStatusOnce(): void {
@@ -116,15 +158,18 @@ class Model {
 
   private async replaceModel(nextModel: Live2DModel): Promise<void> {
     const app = await this.getApp();
-    const modelWidth = nextModel.internalModel.width || nextModel.width;
-    const modelHeight = nextModel.internalModel.height || nextModel.height;
+    const bounds = nextModel.getLocalBounds();
+    const modelWidth =
+      bounds.width || nextModel.internalModel.width || nextModel.width;
+    const modelHeight =
+      bounds.height || nextModel.internalModel.height || nextModel.height;
     const scale = Math.min(
       app.screen.width / modelWidth,
       app.screen.height / modelHeight,
     );
 
-    nextModel.anchor.set(0.5, 1);
     nextModel.scale.set(scale * LIVE2D_MODEL_PADDING);
+    nextModel.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height);
     nextModel.position.set(
       app.screen.width / 2,
       app.screen.height * LIVE2D_BOTTOM_OFFSET,
@@ -147,40 +192,67 @@ class Model {
    * @param modelTexturesId 纹理编号
    * @param text 加载时的消息
    */
-  async loadModel(modelId: number, modelTexturesId: number, text?: string) {
+  async loadModel(
+    modelId: number,
+    modelTexturesId: number,
+    text?: string | string[],
+    options: LoadModelOptions = {},
+  ) {
     const app = await this.getApp();
-    const loadSequence = ++this.#loadSequence;
+    const loadSequence = options.loadSequence ?? this.createLoadSequence();
+    if (options.loadSequence !== undefined) {
+      if (loadSequence < this.#loadSequence) {
+        return;
+      }
+      this.#loadSequence = loadSequence;
+    }
+    const loadingMessageTimer = options.showLoadingMessage
+      ? this.scheduleLoadingMessage(
+          loadSequence,
+          options.loadingMessageDelayMs ?? LOADING_MESSAGE_DELAY_MS,
+        )
+      : undefined;
 
     localStorage.setItem("modelId", String(modelId));
     localStorage.setItem("modelTexturesId", String(modelTexturesId));
 
     // 发送消息事件
     if (text) {
-      sendMessage(text, 4000, 3);
+      sendMessage(text, MESSAGE_TIMEOUT_MS, 3);
     }
-    const model = await Live2DModel.from(
-      `${this.#apiPath}get/?id=${modelId}-${modelTexturesId}`,
-      {
-        ticker: app.ticker,
-        autoFocus: false,
-        autoHitTest: false,
-        autoInteract: false,
-        onLoad: () => {
-          if (this.#config.consoleShowStatus) {
-            console.log(
-              `[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`,
-            );
-          }
+    try {
+      const model = await Live2DModel.from(
+        `${this.#apiPath}get/?id=${modelId}-${modelTexturesId}`,
+        {
+          ticker: app.ticker,
+          autoFocus: false,
+          autoHitTest: false,
+          autoInteract: false,
+          onLoad: () => {
+            if (this.#config.consoleShowStatus) {
+              console.log(
+                `[Status] Live2D 模型 ${modelId}-${modelTexturesId} 加载完成`,
+              );
+            }
+          },
         },
-      },
-    );
+      );
 
-    if (loadSequence !== this.#loadSequence) {
-      model.destroy();
-      return;
+      if (loadSequence !== this.#loadSequence) {
+        model.destroy();
+        return;
+      }
+
+      await this.replaceModel(model);
+
+      if (options.successMessage) {
+        sendMessage(options.successMessage, MESSAGE_TIMEOUT_MS, 3);
+      }
+    } finally {
+      if (loadingMessageTimer !== undefined) {
+        clearTimeout(loadingMessageTimer);
+      }
     }
-
-    await this.replaceModel(model);
   }
 
   /**
@@ -206,10 +278,22 @@ class Model {
    */
   async loadOtherModel() {
     const modelId = Number(localStorage.getItem("modelId"));
+    const loadSequence = this.createLoadSequence();
+    const loadingMessageTimer = this.scheduleLoadingMessage(
+      loadSequence,
+      LOADING_MESSAGE_DELAY_MS,
+    );
     const result = (await fetch(`${this.#apiPath}switch/?id=${modelId}`).then(
       (response) => response.json(),
     )) as ModelResult;
-    await this.loadModel(result.model.id, 0, result.model.message);
+    try {
+      await this.loadModel(result.model.id, 0, undefined, {
+        loadSequence,
+        successMessage: result.model.message,
+      });
+    } finally {
+      clearTimeout(loadingMessageTimer);
+    }
   }
 
   /**

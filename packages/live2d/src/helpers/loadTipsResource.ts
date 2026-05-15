@@ -80,7 +80,13 @@ const isTipMessage = (value: unknown): value is TipMessage => {
   if (!isRecord(value)) {
     return false;
   }
-  const optionalFields = ["default", "console", "copy", "visibilitychange"];
+  const optionalFields = [
+    "default",
+    "console",
+    "copy",
+    "loading",
+    "visibilitychange",
+  ];
   return optionalFields.every((field) => {
     const nextValue = value[field];
     return nextValue === undefined || isTipText(nextValue);

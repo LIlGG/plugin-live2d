@@ -14,11 +14,9 @@ import {
   BEFORE_INIT_EVENT_NAME,
   type BeforeInitEvent,
 } from "@/live2d/events/before-init";
+import { MODEL_READY_EVENT_NAME } from "@/live2d/events/model-ready";
 import { dataWithinRange } from "@/live2d/helpers/dateWithinRange";
-import { getPluginTips } from "@/live2d/helpers/getPluginTips";
-import { loadFullTipsResource } from "@/live2d/helpers/loadFullTipsResource";
-import { loadTipsResource } from "@/live2d/helpers/loadTipsResource";
-import { mergeTips } from "@/live2d/helpers/mergeTips";
+import { loadMergedTips } from "@/live2d/helpers/loadMergedTips";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { timeWithinRange } from "@/live2d/helpers/timeWithinRange";
 import { isString } from "@/live2d/utils/isString";
@@ -29,6 +27,7 @@ import {
   hasWebsiteHome,
 } from "@/live2d/utils/util";
 let activeTipEvents: TipEventController | undefined;
+let isInitialModelReady = false;
 
 const _getWelComeMessage = (times: TipTime[]) => {
   if (hasWebsiteHome) {
@@ -216,16 +215,24 @@ const _userActionEvent = (
 class TipEventController {
   private readonly abortController = new AbortController();
   private readonly disposers: Array<() => void> = [];
+  private hasShownWelcome = false;
 
   constructor(
     private readonly config: Live2dConfig,
     private readonly tips: TipConfig,
   ) {}
 
-  start(): void {
+  start(modelReady: boolean): void {
     const { signal } = this.abortController;
     if (this.config.firstOpenSite) {
-      _welcomeEvent(this.tips.time);
+      if (modelReady) {
+        this.showWelcomeMessage();
+      } else {
+        window.addEventListener(MODEL_READY_EVENT_NAME, this.handleModelReady, {
+          signal,
+          once: true,
+        });
+      }
     }
 
     const userActionState = _userActionEvent(this.tips.message, signal);
@@ -266,52 +273,38 @@ class TipEventController {
     }
     this.disposers.length = 0;
   }
+
+  private readonly handleModelReady = () => {
+    this.showWelcomeMessage();
+  };
+
+  private showWelcomeMessage(): void {
+    if (this.hasShownWelcome) {
+      return;
+    }
+
+    this.hasShownWelcome = true;
+    _welcomeEvent(this.tips.time);
+  }
 }
 
-const _loadTips = async (config: Live2dConfig) => {
-  if (!config) {
-    return;
-  }
-  // 后台配置 tips，其中包含 mouseover 及 click 两种配置，以及单独配置的 message
-  const pluginTips = getPluginTips(config);
-  // 主题设置 tips，只会包含 mouseover 及 click 两种配置（会过滤掉其他配置）
-  const themeTipsResult = await loadTipsResource(config.themeTipsPath);
-  const themeTips: TipConfig = {
-    click: themeTipsResult?.click || [],
-    mouseover: themeTipsResult?.mouseover || [],
-    seasons: [],
-    time: [],
-    message: {},
-  };
-  const fullOrDefaultTips = await _getFullOrDefaultTips(config);
-  // 合并三种 tips
-  return mergeTips({
-    pluginTips,
-    themeTips,
-    fullOrDefaultTips,
-  });
-};
-
-export const _getFullOrDefaultTips = async (
-  config: Live2dConfig,
-): Promise<TipConfig> => {
-  return loadFullTipsResource(config?.tipsPath, async () => {
-    return (await import("../libs/live2d-tips.json")).default;
-  });
-};
-
 window.addEventListener(BEFORE_INIT_EVENT_NAME, async (event) => {
+  isInitialModelReady = false;
   const config = (event as BeforeInitEvent).detail.config;
   if (!config) {
     return;
   }
 
-  const tips = await _loadTips(config);
+  const tips = await loadMergedTips(config);
   if (!tips) {
     return;
   }
 
   activeTipEvents?.dispose();
   activeTipEvents = new TipEventController(config, tips);
-  activeTipEvents.start();
+  activeTipEvents.start(isInitialModelReady);
+});
+
+window.addEventListener(MODEL_READY_EVENT_NAME, () => {
+  isInitialModelReady = true;
 });

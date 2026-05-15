@@ -27,6 +27,7 @@ export interface TipMessage extends ObjectAny {
   default?: string[] | string;
   console?: string[] | string;
   copy?: string[] | string;
+  loading?: string[] | string;
   visibilitychange?: string[] | string;
 }
 
