@@ -12,7 +12,7 @@ jobs:
   ci:
     uses: halo-sigs/reusable-workflows/.github/workflows/plugin-ci.yaml@v4
     with:
-      ui-path: "packages/live2d"
-      pnpm-version: "10"
+      ui-path: "."
+      pnpm-version: "10.33.4"
       node-version: "24"
       java-version: "21"
