@@ -42,7 +42,23 @@ tasks.withType(JavaCompile).configureEach {
 def live2dFrontendDir = file("packages/live2d")
 def generatedFrontendResourcesDir = layout.buildDirectory.dir("generated/resources/main/static/live2d")
 
+tasks.register("installFrontendDependencies", Exec) {
+    workingDir = projectDir
+    commandLine "pnpm", "install", "--frozen-lockfile"
+    inputs.files(
+        file("package.json"),
+        file("pnpm-lock.yaml"),
+        file("pnpm-workspace.yaml"),
+        file("${live2dFrontendDir}/package.json")
+    )
+    outputs.dirs(
+        file("node_modules"),
+        file("${live2dFrontendDir}/node_modules")
+    )
+}
+
 tasks.register("buildFrontend", Exec) {
+    dependsOn tasks.named("installFrontendDependencies")
     workingDir = projectDir
     commandLine "pnpm", "--dir", live2dFrontendDir.absolutePath, "build"
     inputs.dir(fileTree(dir: live2dFrontendDir, excludes: ["dist/**", "node_modules/**"]))

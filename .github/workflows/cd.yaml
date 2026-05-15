@@ -13,7 +13,6 @@ jobs:
     permissions:
       contents: write
     with:
-      skip-node-setup: true
       app-id: app-oPNFQ
       ui-path: "."
       pnpm-version: "10.33.4"
