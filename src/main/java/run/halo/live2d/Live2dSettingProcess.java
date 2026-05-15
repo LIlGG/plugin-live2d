@@ -29,6 +29,8 @@ public class Live2dSettingProcess implements Live2dSetting {
         "openConsole", "openConsoleTip", "selectorTips", "tipsPath");
     private static final List<String> ADVANCED_FIELDS = List.of(
         "consoleShowStatu", "photoName", "live2dLocation");
+    private static final List<String> AI_CHAT_PUBLIC_FIELDS = List.of(
+        "chunkTimeout", "showChatMessageTimeout", "requestAcceptedMessage", "chatContextRounds");
 
     private final ReactiveSettingFetcher settingFetcher;
 
@@ -86,8 +88,7 @@ public class Live2dSettingProcess implements Live2dSetting {
             return;
         }
 
-        copyField(target, aiChatBaseSetting, "chunkTimeout");
-        copyField(target, aiChatBaseSetting, "showChatMessageTimeout");
+        copyFields(target, aiChatBaseSetting, AI_CHAT_PUBLIC_FIELDS);
     }
 
     private void copyCustomTools(ObjectNode target, JsonNode source) {

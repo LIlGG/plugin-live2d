@@ -166,6 +166,9 @@ spec:
           label: 聊天基本设置
           value:
             isAnonymous: true
+            modelName: deepseek/deepseek-chat
+            chatContextRounds: 20
+            requestAcceptedMessage: "收到啦，马上就来陪你啦～"
             systemMessage: |-
               你现在以 Live2D 二次元看板娘的身份与用户聊天，请始终稳定代入这个角色，不要跳出设定。
 
@@ -190,7 +193,6 @@ spec:
               - 始终保持看板娘人设稳定，不要频繁切换身份、语气或叙述视角。
               - 回复应以易读、自然为主，避免过长大段输出。
               - 在合适场景下可以表现出贴心、活泼、害羞、关心等情绪，但不要夸张失控。
-            timeout: 10
             chunkTimeout: 10
             showChatMessageTimeout: 10
           children:
@@ -198,6 +200,11 @@ spec:
               label: 是否开启公共聊天
               help: 关闭后，用户需要登录后才能与 Live2d 进行对话
               name: isAnonymous
+            - $formkit: text
+              label: Halo AI 模型标识
+              name: modelName
+              help: 填写 Halo AI 基础设施中的模型名称，例如 openai/gpt-4o 或 deepseek/deepseek-chat
+              validation: required|String
             - $formkit: textarea
               label: 角色设定
               name: systemMessage
@@ -205,9 +212,15 @@ spec:
               rows: 16
               validation: String
             - $formkit: text
-              label: 接口超时时间（秒）
-              name: timeout
-              validation: Number
+              label: 请求已收到提示语
+              name: requestAcceptedMessage
+              help: 用户发送消息后，Live2D 会立刻展示这条提示语，减少等待时的空白感
+              validation: String
+            - $formkit: text
+              label: 保留上下文轮数
+              name: chatContextRounds
+              help: 1 轮等于 1 次用户消息 + 1 次看板娘回复。超过后仅保留最近几轮上下文，默认 20
+              validation: Number|between:1,100
             - $formkit: text
               label: 看板娘消息框最大等待时间（秒）
               help: 请求接口数据时，看板娘消息框最大等待时间
@@ -218,65 +231,6 @@ spec:
               help: 获取到完整消息后，看板娘展示的时间
               name: showChatMessageTimeout
               validation: Number
-        - $formkit: group
-          name: proxySetting
-          if: "$get(isAiChat).value === true"
-          label: 全局代理设置
-          help: 建议自建代理，而不是使用别人的公开代理
-          value:
-            isProxy: false
-          children:
-            - $formkit: switch
-              label: 启用代理
-              name: isProxy
-              id: isProxy
-              key: isProxy
-            - $formkit: text
-              if: "$value.isProxy === true"
-              label: 代理地址
-              name: proxyHost
-            - $formkit: text
-              if: "$value.isProxy === true"
-              label: 代理端口
-              name: proxyPort
-              validation: Number|between:0,65535
-        - $formkit: group
-          name: openAiSetting
-          if: "$get(isAiChat).value === true"
-          label: OpenAI 设置
-          value:
-            isOpenAi: false
-            openAiBaseUrl: https://api.openai.com
-            openAiModel: gpt-3.5-turbo
-          children:
-            - $formkit: switch
-              label: 启用 OpenAI
-              help: 基于 OpenAI 进行智能对话
-              name: isOpenAi
-              id: isOpenAi
-              key: isOpenAi
-            - $formkit: text
-              if: "$value.isOpenAi === true"
-              label: TOKEN
-              help: sk-xxx，可在 https://beta.openai.com/account/api-keys 获取
-              name: openAiToken
-              validation: required|String
-            - $formkit: text
-              if: "$value.isOpenAi === true"
-              label: API_BASE_URL
-              help: 接口地址，国内如果访问不了，可考虑使用 openai-api-proxy
-              name: openAiBaseUrl
-              validation: required|url
-            - $formkit: select
-              if: "$value.isOpenAi === true"
-              name: openAiModel
-              label: 模型
-              help: 使用的 OpenAi 模型，可在 https://platform.openai.com/docs/models 查看
-              options:
-                - value: gpt-4
-                  label: gpt-4
-                - value: gpt-3.5-turbo
-                  label: gpt-3.5-turbo
     - group: advanced
       label: 高级设置
       formSchema:

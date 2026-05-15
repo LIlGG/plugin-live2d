@@ -4,8 +4,6 @@ import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder
 import static org.springdoc.core.fn.builders.content.Builder.contentBuilder;
 import static org.springdoc.core.fn.builders.requestbody.Builder.requestBodyBuilder;
 
-import com.theokanning.openai.completion.chat.ChatMessage;
-import com.theokanning.openai.completion.chat.ChatMessageRole;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -29,6 +27,7 @@ import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.plugin.ReactiveSettingFetcher;
+import run.halo.aifoundation.Message;
 
 @Slf4j
 @Component
@@ -64,13 +63,13 @@ public class AiChatEndpoint implements CustomEndpoint {
 
     private Mono<ServerResponse> chatProcess(ServerRequest request) {
         return request.bodyToMono(ChatRequest.class)
-            .map(this::chatCompletion)
+            .flatMap(this::chatCompletion)
             .onErrorResume(throwable -> {
                 if (throwable instanceof IllegalArgumentException) {
                     return Mono.just(
                         Flux.just(
                             ServerSentEvent.builder(
-                                ChatResult.ok(throwable.getMessage())).build()
+                                ChatResult.error(throwable.getMessage())).build()
                         )
                     );
                 }
@@ -83,20 +82,30 @@ public class AiChatEndpoint implements CustomEndpoint {
     }
 
 
-    private Flux<ServerSentEvent<ChatResult>> chatCompletion(ChatRequest body) {
+    private Mono<Flux<ServerSentEvent<ChatResult>>> chatCompletion(ChatRequest body) {
         return reactiveSettingFetcher.fetch("aichat", AiChatConfig.class)
-            .map(aiChatConfig -> ReactiveSecurityContextHolder.getContext()
-                .map(SecurityContext::getAuthentication)
-                .flatMapMany(authentication -> {
-                    if (!aiChatConfig.aiChatBaseSetting.isAnonymous && !isAuthenticated(
-                        authentication)) {
-                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录");
-                    }
-                    String systemMessage = aiChatConfig.aiChatBaseSetting.systemMessage;
-                    List<ChatMessage> messages = this.buildChatMessage(systemMessage, body);
-                    return aiChatService.streamChatCompletion(messages);
-                }))
-            .flatMapMany(Flux::from);
+            .flatMap(aiChatConfig -> {
+                if (!aiChatConfig.isAiChat()) {
+                    return Mono.just(Flux.just(ServerSentEvent.builder(
+                        ChatResult.error("AI 聊天功能未启用")).build()));
+                }
+
+                List<Message> messages = this.buildChatMessage(
+                    aiChatConfig.aiChatBaseSetting().systemMessage(), body);
+
+                if (aiChatConfig.aiChatBaseSetting().isAnonymous()) {
+                    return Mono.just(aiChatService.streamChatCompletion(
+                        aiChatConfig.aiChatBaseSetting().modelName(), messages));
+                }
+
+                return ReactiveSecurityContextHolder.getContext()
+                    .map(SecurityContext::getAuthentication)
+                    .filter(this::isAuthenticated)
+                    .switchIfEmpty(Mono.error(
+                        new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录")))
+                    .map(authentication -> aiChatService.streamChatCompletion(
+                        aiChatConfig.aiChatBaseSetting().modelName(), messages));
+            });
     }
 
     private boolean isAuthenticated(Authentication authentication) {
@@ -108,22 +117,33 @@ public class AiChatEndpoint implements CustomEndpoint {
         return "anonymousUser".equals(name);
     }
 
-    private List<ChatMessage> buildChatMessage(String systemMessage, ChatRequest body) {
-        ChatMessage chatMessage =
-            new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage);
-        final List<ChatMessage> messages = new ArrayList<>();
-        messages.add(chatMessage);
-        messages.addAll(body.getMessage());
+    private List<Message> buildChatMessage(String systemMessage, ChatRequest body) {
+        if (body.getMessage() == null || body.getMessage().isEmpty()) {
+            throw new IllegalArgumentException("chat messages must not be empty");
+        }
+        List<Message> messages = new ArrayList<>();
+        messages.add(Message.system(systemMessage));
+        body.getMessage().stream()
+            .map(ChatRequest.ChatMessagePayload::toFoundationMessage)
+            .forEach(messages::add);
         return messages;
     }
 
-    record AiChatConfig(String isAiChat, AiChatBaseSetting aiChatBaseSetting) {
+    record AiChatConfig(boolean isAiChat, AiChatBaseSetting aiChatBaseSetting) {
+        AiChatConfig {
+            if (isAiChat && aiChatBaseSetting == null) {
+                throw new IllegalArgumentException("ai chat base setting must not be null");
+            }
+        }
     }
 
-    record AiChatBaseSetting(boolean isAnonymous, String systemMessage) {
+    record AiChatBaseSetting(boolean isAnonymous, String systemMessage, String modelName) {
         AiChatBaseSetting {
             if (StringUtils.isBlank(systemMessage)) {
                 throw new IllegalArgumentException("system message must not be null");
+            }
+            if (StringUtils.isBlank(modelName)) {
+                throw new IllegalArgumentException("model name must not be null");
             }
         }
     }

@@ -1,7 +1,7 @@
 import {
   HALO_LIVE2D_CONFIG_ELEMENT_ID,
   readHaloLive2dConfig,
-} from "@/live2d/halo-config";
+} from "./halo-config";
 
 let bootstrapPromise: Promise<void> | undefined;
 
@@ -12,7 +12,7 @@ export const bootstrapFromHalo = async (): Promise<void> => {
 
   bootstrapPromise = (async () => {
     const config = readHaloLive2dConfig();
-    const { createLive2d } = await import("@/live2d/live2d/runtime");
+    const { createLive2d } = await import("./live2d/runtime");
     const live2d = window.live2d ?? createLive2d();
     if (!window.live2d) {
       window.live2d = live2d;

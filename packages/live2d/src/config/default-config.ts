@@ -31,5 +31,7 @@ export const createDefaultLive2dConfig = (): Live2dConfig => ({
   isAiChat: true,
   chunkTimeout: 10,
   showChatMessageTimeout: 10,
+  requestAcceptedMessage: "收到啦，马上就来陪你啦～",
+  chatContextRounds: 20,
   screenshotName: "live2d",
 });

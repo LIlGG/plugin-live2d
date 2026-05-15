@@ -24,6 +24,10 @@ export interface ChatApiConfig {
   chunkTimeout?: number;
   // 消息显示时间（秒）
   showChatMessageTimeout?: number;
+  // 请求已收到时的即时提示语
+  requestAcceptedMessage?: string;
+  // 保留上下文轮数
+  chatContextRounds?: number;
 }
 
 /**
@@ -50,6 +54,9 @@ export class ChatApi {
         "/apis/api.live2d.halo.run/v1alpha1/live2d/ai/chat-process",
       chunkTimeout: config.chunkTimeout || 60,
       showChatMessageTimeout: config.showChatMessageTimeout || 10,
+      requestAcceptedMessage:
+        config.requestAcceptedMessage || "收到啦，马上就来陪你啦～",
+      chatContextRounds: this.normalizeContextRounds(config.chatContextRounds),
     };
   }
 
@@ -63,12 +70,14 @@ export class ChatApi {
     message: string,
     historyMessages: ChatMessage[],
   ): Promise<void> {
+    const trimmedHistory = this.trimHistory(historyMessages);
+
     // 添加用户消息到历史
     const userMessage: ChatMessage = {
       role: "user",
       content: message,
     };
-    historyMessages.push(userMessage);
+    trimmedHistory.push(userMessage);
 
     // 创建 AbortController 用于取消请求
     this.controller = new AbortController();
@@ -78,6 +87,8 @@ export class ChatApi {
     this.requestTimeoutId = setTimeout(() => {
       this.abort();
     }, timeoutMs) as unknown as number;
+
+    sendMessage(this.config.requestAcceptedMessage, 2000, 2);
 
     // 显示等待消息
     if (this.messageTimer) {
@@ -103,7 +114,7 @@ export class ChatApi {
           Accept: "text/event-stream",
         },
         body: JSON.stringify({
-          message: historyMessages,
+          message: trimmedHistory,
         }),
         signal: this.controller.signal,
       });
@@ -114,7 +125,7 @@ export class ChatApi {
       }
 
       // 处理流式响应
-      await this.handleStreamResponse(response, historyMessages);
+      await this.handleStreamResponse(response, trimmedHistory);
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
         console.error("[Chat API] Request failed:", error);
@@ -256,5 +267,22 @@ export class ChatApi {
    */
   isLoading(): boolean {
     return this.controller !== null;
+  }
+
+  private normalizeContextRounds(rounds: number | undefined): number {
+    if (!Number.isFinite(rounds) || !rounds || rounds < 1) {
+      return 20;
+    }
+    return Math.floor(rounds);
+  }
+
+  private trimHistory(historyMessages: ChatMessage[]): ChatMessage[] {
+    const maxMessages = this.config.chatContextRounds
+      ? this.config.chatContextRounds * 2
+      : 40;
+    if (historyMessages.length <= maxMessages) {
+      return [...historyMessages];
+    }
+    return historyMessages.slice(-maxMessages);
   }
 }

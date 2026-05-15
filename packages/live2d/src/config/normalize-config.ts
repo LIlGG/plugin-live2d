@@ -13,6 +13,8 @@ export interface LegacyLive2dConfigInput extends Partial<Live2dConfig> {
   aiChatBaseSetting?: {
     chunkTimeout?: number | string;
     showChatMessageTimeout?: number | string;
+    requestAcceptedMessage?: string;
+    chatContextRounds?: number | string;
   };
   consoleShowStatu?: boolean;
   photoName?: string;
@@ -70,6 +72,18 @@ export const normalizeLive2dConfig = (
         input.aiChatBaseSetting?.showChatMessageTimeout,
         defaults.showChatMessageTimeout,
       ) ?? defaults.showChatMessageTimeout,
+    requestAcceptedMessage:
+      pickString(
+        input.requestAcceptedMessage,
+        input.aiChatBaseSetting?.requestAcceptedMessage,
+        defaults.requestAcceptedMessage,
+      ) ?? defaults.requestAcceptedMessage,
+    chatContextRounds:
+      pickNumber(
+        input.chatContextRounds,
+        input.aiChatBaseSetting?.chatContextRounds,
+        defaults.chatContextRounds,
+      ) ?? defaults.chatContextRounds,
     backSite: pickBoolean(input.backSite, defaults.backSite),
     copyContent: pickBoolean(input.copyContent, defaults.copyContent),
     openConsole: pickBoolean(input.openConsole, defaults.openConsole),

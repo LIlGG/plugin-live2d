@@ -90,7 +90,6 @@ export class Live2dChatWindow extends UnoLitElement {
             class="h-8.5 w-full appearance-none rounded-full border border-solid border-[#eadbc5] bg-white/98 px-3.5 py-0.5 text-3.25 text-slate-700 shadow-none outline-none transition-colors placeholder:text-slate-400 focus:border-[#ffbb72] focus:ring-1 focus:ring-[#ffd8ac] focus:shadow-none"
             @input=${this.handleInput}
             @keydown=${this.handleKeydown}
-            ?disabled=${this._isLoading}
           />
           <button
             id="live2d-chat-send"
@@ -173,6 +172,7 @@ export class Live2dChatWindow extends UnoLitElement {
     this._input.value = "";
     this._canSend = false;
     this._isLoading = true;
+    this.focusInput();
 
     if (!this.chatApi) {
       this.chatApi = new ChatApi({
@@ -180,6 +180,8 @@ export class Live2dChatWindow extends UnoLitElement {
         showChatMessageTimeout: Number(
           this.config?.showChatMessageTimeout || 10,
         ),
+        requestAcceptedMessage: this.config?.requestAcceptedMessage,
+        chatContextRounds: Number(this.config?.chatContextRounds || 20),
       });
     }
 
@@ -195,6 +197,7 @@ export class Live2dChatWindow extends UnoLitElement {
       if (this._input) {
         this._canSend = this._input.value.length > 0;
       }
+      this.focusInput();
     }
   }
 
@@ -257,6 +260,12 @@ export class Live2dChatWindow extends UnoLitElement {
       window.clearTimeout(this._hidePopoverTimer);
       this._hidePopoverTimer = undefined;
     }
+  }
+
+  private focusInput(): void {
+    requestAnimationFrame(() => {
+      this._input?.focus();
+    });
   }
 }
 

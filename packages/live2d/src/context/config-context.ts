@@ -54,6 +54,10 @@ export interface Live2dToolsConfig {
   chunkTimeout?: number;
   // 聊天消息显示时间（秒）
   showChatMessageTimeout?: number;
+  // 用户请求已收到时的即时提示语
+  requestAcceptedMessage?: string;
+  // 保留上下文轮数
+  chatContextRounds?: number;
   // 一言图标
   hitokotoIcon?: string;
   // 一言API
@@ -125,6 +129,8 @@ export interface Live2dConfig extends Live2dToolsConfig {
   aiChatBaseSetting?: {
     chunkTimeout?: number | string;
     showChatMessageTimeout?: number | string;
+    requestAcceptedMessage?: string;
+    chatContextRounds?: number | string;
   };
   [key: string]: unknown;
 }

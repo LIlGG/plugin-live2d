@@ -1,54 +1,103 @@
 package run.halo.live2d.chat;
 
-import com.theokanning.openai.completion.chat.ChatMessage;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContext;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import run.halo.live2d.chat.client.ChatClient;
-import run.halo.live2d.chat.client.DefaultChatClient;
+import run.halo.aifoundation.AiModelService;
+import run.halo.aifoundation.AiServices;
+import run.halo.aifoundation.ChatChunk;
+import run.halo.aifoundation.Message;
+import run.halo.aifoundation.ModelDisabledException;
+import run.halo.aifoundation.ModelNotFoundException;
+import run.halo.aifoundation.ProviderApiException;
+import run.halo.aifoundation.ProviderDisabledException;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class AIChatServiceImpl implements AiChatService {
-    private final ApplicationContext applicationContext;
+    @Override
+    public Flux<ServerSentEvent<ChatResult>> streamChatCompletion(String modelName, List<Message> messages) {
+        if (StringUtils.isBlank(modelName)) {
+            return Flux.just(buildEvent(ChatResult.error("请先在插件设置中配置 Halo AI 模型")));
+        }
+        final AiModelService modelService;
+        try {
+            modelService = AiServices.getModelService();
+        } catch (IllegalStateException e) {
+            log.error("Halo AI foundation service is unavailable.", e);
+            return Flux.just(buildEvent(ChatResult.error(resolveErrorMessage(e))));
+        }
 
-    public Flux<ServerSentEvent<ChatResult>> streamChatCompletion(List<ChatMessage> messages) {
-        log.debug("Stream chat completion with messages: {}", messages);
-        return Flux.fromIterable(this.applicationContext.getBeansOfType(ChatClient.class).values())
-            .filterWhen(ChatClient::supports)
-            .switchIfEmpty(Mono.just(new DefaultChatClient()))
-            .concatMap(aiClient -> aiClient.generate(messages)
-                .onErrorResume(throwable -> {
-                    log.error("Error occurred while generating ai result", throwable);
-                    if (throwable instanceof WebClientResponseException) {
-                        return Mono.just(
-                            ServerSentEvent.builder(
-                                ChatResult.builder()
-                                    .status(((WebClientResponseException) throwable).getStatusCode()
-                                        .value())
-                                    .text(((WebClientResponseException) throwable).getStatusText())
-                                    .build()
-                            ).build()
-                        );
-                    }
-                    if (throwable instanceof WebClientRequestException) {
-                        return Mono.just(
-                            ServerSentEvent.builder(
-                                ChatResult.error(throwable.getMessage())
-                            ).build()
-                        );
-                    }
-                    return Mono.error(throwable);
-                })
-                .switchIfEmpty(Flux.empty())
-            );
+        if (modelService == null) {
+            log.error("Halo AI foundation service locator returned null model service.");
+            return Flux.just(buildEvent(ChatResult.error("AI 基础设施未启用，请联系站长")));
+        }
+
+        var request = run.halo.aifoundation.ChatRequest.builder()
+            .messages(messages)
+            .build();
+
+        log.debug("Stream Halo AI chat completion with model: {}, messages: {}", modelName, messages);
+        return modelService.languageModel(modelName)
+            .flatMapMany(model -> model.streamChat(request))
+            .concatMap(this::adaptChunk)
+            .onErrorResume(throwable -> {
+                log.error("Error occurred while generating Halo AI chat result, model: {}", modelName,
+                    throwable);
+                return Flux.just(buildEvent(ChatResult.error(resolveErrorMessage(throwable))));
+            });
+    }
+
+    private Flux<ServerSentEvent<ChatResult>> adaptChunk(ChatChunk chunk) {
+        if (chunk == null || chunk.getType() == null) {
+            return Flux.empty();
+        }
+
+        return switch (chunk.getType()) {
+            case TEXT -> adaptTextChunk(chunk);
+            case ERROR -> Flux.just(buildEvent(ChatResult.error(
+                StringUtils.defaultIfBlank(chunk.getContent(), "对话接口异常了哦～快去联系我的主人吧！"))));
+            case FINISH -> Flux.just(buildEvent(ChatResult.finish()));
+            case REASONING, TOOL_CALL -> Flux.empty();
+        };
+    }
+
+    private Flux<ServerSentEvent<ChatResult>> adaptTextChunk(ChatChunk chunk) {
+        if (StringUtils.isBlank(chunk.getContent())) {
+            return chunk.isLast()
+                ? Flux.just(buildEvent(ChatResult.finish()))
+                : Flux.empty();
+        }
+
+        Mono<ServerSentEvent<ChatResult>> textChunk =
+            Mono.just(buildEvent(ChatResult.ok(chunk.getContent())));
+        if (chunk.isLast()) {
+            return Flux.concat(textChunk, Mono.just(buildEvent(ChatResult.finish())));
+        }
+        return Flux.from(textChunk);
+    }
+
+    private ServerSentEvent<ChatResult> buildEvent(ChatResult result) {
+        return ServerSentEvent.builder(result).build();
+    }
+
+    private String resolveErrorMessage(Throwable throwable) {
+        if (throwable instanceof ModelNotFoundException || throwable instanceof ModelDisabledException) {
+            return "当前配置的 Halo AI 模型不可用，请联系站长检查配置";
+        }
+        if (throwable instanceof ProviderDisabledException) {
+            return "Halo AI 提供商未启用，请联系站长检查配置";
+        }
+        if (throwable instanceof ProviderApiException) {
+            return "Halo AI 提供商调用失败，请稍后再试";
+        }
+        if (throwable instanceof IllegalStateException) {
+            return "AI 基础设施未启用，请联系站长";
+        }
+        return StringUtils.defaultIfBlank(throwable.getMessage(), "对话接口异常了哦～快去联系我的主人吧！");
     }
 }
