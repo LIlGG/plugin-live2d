@@ -10,12 +10,17 @@ import {
   readWidgetSuppression,
   rememberWidgetDismissal,
 } from "@/live2d/helpers/widgetVisibility";
+import { DraggableMixin } from "@/live2d/mixins/draggable";
 import { consume } from "@lit/context";
 import { type TemplateResult, html } from "lit";
 import { property } from "lit/decorators.js";
 import { state } from "lit/decorators.js";
 
-export class Live2dToggle extends UnoLitElement {
+const DraggableUnoLitElement = DraggableMixin(UnoLitElement, {
+  storageKey: "toggle",
+});
+
+export class Live2dToggle extends DraggableUnoLitElement {
   @consume({ context: configContext })
   @property({ attribute: false })
   public config?: Live2dConfig;
@@ -28,6 +33,8 @@ export class Live2dToggle extends UnoLitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    // 应用保存的位置
+    this.applySavedPosition();
     this.addEventListener("click", this.handleClick);
     window.addEventListener("live2d:toggle-canvas", this.handleGlobalToggle);
 

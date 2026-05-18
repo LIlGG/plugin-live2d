@@ -17,8 +17,13 @@ import {
   WIDGET_DRAWER_HIDDEN_BOTTOM,
   WIDGET_DRAWER_VISIBLE_BOTTOM,
 } from "@/live2d/helpers/widgetDrawer";
+import { DraggableMixin } from "@/live2d/mixins/draggable";
 
-export class Live2dWidget extends UnoLitElement {
+const DraggableUnoLitElement = DraggableMixin(UnoLitElement, {
+  storageKey: "widget",
+});
+
+export class Live2dWidget extends DraggableUnoLitElement {
   @consume({ context: configContext })
   @property({ attribute: false })
   public config?: Live2dConfig;
@@ -108,6 +113,8 @@ export class Live2dWidget extends UnoLitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    // 应用保存的位置
+    this.applySavedPosition();
     // 页面加载时清除历史消息
     // 对应原始代码中的 window.onload
     window.addEventListener("load", this.clearChatHistory);
