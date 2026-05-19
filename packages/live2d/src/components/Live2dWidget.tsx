@@ -14,11 +14,16 @@ import "@/live2d/components/Live2dChatWindow";
 import type { ToggleCanvasEvent } from "@/live2d/events/toggle-canvas";
 import {
   WIDGET_DRAWER_DURATION_MS,
-  WIDGET_DRAWER_HIDDEN_BOTTOM,
   WIDGET_DRAWER_VISIBLE_BOTTOM,
 } from "@/live2d/helpers/widgetDrawer";
+import { DraggableMixin } from "@/live2d/mixins/draggable";
 
-export class Live2dWidget extends UnoLitElement {
+const DraggableUnoLitElement = DraggableMixin(UnoLitElement, {
+  storageKey: "widget",
+  targetSelector: "#live2d-plugin",
+});
+
+export class Live2dWidget extends DraggableUnoLitElement {
   @consume({ context: configContext })
   @property({ attribute: false })
   public config?: Live2dConfig;
@@ -29,7 +34,11 @@ export class Live2dWidget extends UnoLitElement {
   @state()
   private _hasMountedWidget = false;
 
+  @state()
+  private _isDrawerAnimating = false;
+
   private showAnimationFrameId?: number;
+  private drawerAnimationTimer?: number;
 
   render(): TemplateResult {
     return html`
@@ -49,6 +58,16 @@ export class Live2dWidget extends UnoLitElement {
     }
   }
 
+  renderLive2dTips() {
+    if (!this._isShow && !this._isDrawerAnimating) {
+      return;
+    }
+
+    return html`<live2d-tips
+      class="pointer-events-none absolute left-1/2 -translate-x-1/2"
+    ></live2d-tips>`;
+  }
+
   renderLive2dWidget() {
     if (!this._hasMountedWidget) {
       return;
@@ -61,24 +80,29 @@ export class Live2dWidget extends UnoLitElement {
     const visibilityClass = this._isShow
       ? "pointer-events-auto"
       : "pointer-events-none";
-    const bottom = this._isShow
-      ? WIDGET_DRAWER_VISIBLE_BOTTOM
-      : WIDGET_DRAWER_HIDDEN_BOTTOM;
+    const shouldClipDrawer = !this._isShow || this._isDrawerAnimating;
+    const drawerBoundaryStyle = shouldClipDrawer
+      ? `bottom: ${WIDGET_DRAWER_VISIBLE_BOTTOM}; clip-path: inset(-100vh -100vw 0 -100vw);`
+      : `bottom: ${WIDGET_DRAWER_VISIBLE_BOTTOM};`;
+    const drawerClass = this._isShow ? "translate-y-0" : "translate-y-full";
     return html`<div
         id="live2d-plugin"
-        class="fixed z-9998 inline-block linear transition-[bottom] ${positionClass} ${visibilityClass}"
-        style="bottom: ${bottom}; transition-duration: ${WIDGET_DRAWER_DURATION_MS}ms;"
+        class="fixed z-9998 inline-block ${positionClass} ${visibilityClass}"
+        style=${drawerBoundaryStyle}
       >
           <div
-            class="group flex flex-col items-center relative translate-y-1 transition-transform duration-300 hover:translate-y-0"
+            class="linear transition-transform ${drawerClass}"
+            style="transition-duration: ${WIDGET_DRAWER_DURATION_MS}ms;"
           >
-            <live2d-tips
-              class="pointer-events-none absolute left-1/2 -translate-x-1/2"
-            ></live2d-tips>
-            <live2d-canvas
-              class="inline-block h-[300px] w-[300px] z-1"
-            ></live2d-canvas>
-            ${this.renderLive2dTools()}
+            <div
+              class="group flex flex-col items-center relative translate-y-1 transition-transform duration-300 hover:translate-y-0"
+            >
+              ${this.renderLive2dTips()}
+              <live2d-canvas
+                class="inline-block h-[300px] w-[300px] z-1"
+              ></live2d-canvas>
+              ${this.renderLive2dTools()}
+            </div>
           </div>
         </div>`;
   }
@@ -92,6 +116,7 @@ export class Live2dWidget extends UnoLitElement {
     }
 
     this.cancelScheduledShow();
+    this.startDrawerAnimation();
     this._isShow = e.detail.isShow;
     this.requestUpdate();
   };
@@ -108,6 +133,8 @@ export class Live2dWidget extends UnoLitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    // 应用保存的位置
+    this.applySavedPosition();
     // 页面加载时清除历史消息
     // 对应原始代码中的 window.onload
     window.addEventListener("load", this.clearChatHistory);
@@ -121,6 +148,7 @@ export class Live2dWidget extends UnoLitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.cancelScheduledShow();
+    this.cancelDrawerAnimation();
     window.removeEventListener("load", this.clearChatHistory);
     window.removeEventListener(
       "live2d:toggle-canvas",
@@ -139,6 +167,7 @@ export class Live2dWidget extends UnoLitElement {
     this.cancelScheduledShow();
     this.showAnimationFrameId = window.requestAnimationFrame(() => {
       this.showAnimationFrameId = undefined;
+      this.startDrawerAnimation();
       this._isShow = true;
       this.requestUpdate();
     });
@@ -151,6 +180,24 @@ export class Live2dWidget extends UnoLitElement {
 
     window.cancelAnimationFrame(this.showAnimationFrameId);
     this.showAnimationFrameId = undefined;
+  }
+
+  private startDrawerAnimation(): void {
+    this.cancelDrawerAnimation();
+    this._isDrawerAnimating = true;
+    this.drawerAnimationTimer = window.setTimeout(() => {
+      this.drawerAnimationTimer = undefined;
+      this._isDrawerAnimating = false;
+    }, WIDGET_DRAWER_DURATION_MS);
+  }
+
+  private cancelDrawerAnimation(): void {
+    if (this.drawerAnimationTimer === undefined) {
+      return;
+    }
+
+    window.clearTimeout(this.drawerAnimationTimer);
+    this.drawerAnimationTimer = undefined;
   }
 }
 

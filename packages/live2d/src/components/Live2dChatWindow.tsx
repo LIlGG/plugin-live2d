@@ -5,6 +5,7 @@ import {
   configContext,
 } from "@/live2d/context/config-context";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
+import { DraggableMixin } from "@/live2d/mixins/draggable";
 import { consume } from "@lit/context";
 import { type PropertyValues, type TemplateResult, html } from "lit";
 import { property, query, state } from "lit/decorators.js";
@@ -13,6 +14,12 @@ import "iconify-icon";
 const CHAT_PANEL_WIDTH = "min(26rem, calc(100vw - 1rem))";
 const CHAT_PANEL_BOTTOM = "2rem";
 const CHAT_PANEL_TRANSITION_MS = 220;
+
+const DraggableUnoLitElement = DraggableMixin(UnoLitElement, {
+  storageKey: "chat-window",
+  targetSelector: "#live2d-chat-model",
+  clearTransformOnPosition: true,
+});
 
 type PopoverCapableElement = HTMLDivElement & {
   hidePopover: () => void;
@@ -27,7 +34,7 @@ const isPopoverCapable = (
     "function" &&
   typeof (element as Partial<PopoverCapableElement>).hidePopover === "function";
 
-export class Live2dChatWindow extends UnoLitElement {
+export class Live2dChatWindow extends DraggableUnoLitElement {
   @consume({ context: configContext })
   @property({ attribute: false })
   public config?: Live2dConfig;
@@ -53,6 +60,8 @@ export class Live2dChatWindow extends UnoLitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    // 应用保存的位置
+    this.applySavedPosition();
     window.addEventListener("live2d:toggle-chat-window", this.handleToggle);
   }
 
@@ -63,7 +72,6 @@ export class Live2dChatWindow extends UnoLitElement {
   }
 
   render(): TemplateResult {
-    const positionStyle = `inset: auto auto ${CHAT_PANEL_BOTTOM} 50%; margin: 0; width: ${CHAT_PANEL_WIDTH}; transform: translateX(-50%); transition: opacity ${CHAT_PANEL_TRANSITION_MS}ms ease;`;
     const panelClasses = [
       "fixed z-[10000] overflow-hidden rounded-full border border-[#eadfce] bg-[#fffaf4]/96 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm will-change-[opacity]",
       this._isShow
@@ -80,7 +88,7 @@ export class Live2dChatWindow extends UnoLitElement {
         id="live2d-chat-model"
         popover="manual"
         class=${panelClasses}
-        style=${positionStyle}
+        style="inset: auto auto ${CHAT_PANEL_BOTTOM} 50%; margin: 0; width: ${CHAT_PANEL_WIDTH}; transform: translateX(-50%); transition: opacity ${CHAT_PANEL_TRANSITION_MS}ms ease;"
       >
         <div class="flex items-center gap-1.5 px-1 py-1">
           <input
