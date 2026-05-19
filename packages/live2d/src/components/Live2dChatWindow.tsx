@@ -17,6 +17,8 @@ const CHAT_PANEL_TRANSITION_MS = 220;
 
 const DraggableUnoLitElement = DraggableMixin(UnoLitElement, {
   storageKey: "chat-window",
+  targetSelector: "#live2d-chat-model",
+  clearTransformOnPosition: true,
 });
 
 type PopoverCapableElement = HTMLDivElement & {
@@ -70,9 +72,6 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
   }
 
   render(): TemplateResult {
-    const positionStyle = this.getSavedPosition()
-      ? undefined
-      : `inset: auto auto ${CHAT_PANEL_BOTTOM} 50%; margin: 0; width: ${CHAT_PANEL_WIDTH}; transform: translateX(-50%); transition: opacity ${CHAT_PANEL_TRANSITION_MS}ms ease;`;
     const panelClasses = [
       "fixed z-[10000] overflow-hidden rounded-full border border-[#eadfce] bg-[#fffaf4]/96 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm will-change-[opacity]",
       this._isShow
@@ -89,7 +88,7 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
         id="live2d-chat-model"
         popover="manual"
         class=${panelClasses}
-        style=${positionStyle}
+        style="inset: auto auto ${CHAT_PANEL_BOTTOM} 50%; margin: 0; width: ${CHAT_PANEL_WIDTH}; transform: translateX(-50%); transition: opacity ${CHAT_PANEL_TRANSITION_MS}ms ease;"
       >
         <div class="flex items-center gap-1.5 px-1 py-1">
           <input

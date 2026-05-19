@@ -15,9 +15,11 @@ import { consume } from "@lit/context";
 import { type TemplateResult, html } from "lit";
 import { property } from "lit/decorators.js";
 import { state } from "lit/decorators.js";
+import "iconify-icon";
 
 const DraggableUnoLitElement = DraggableMixin(UnoLitElement, {
   storageKey: "toggle",
+  targetSelector: "#live2d-toggle",
 });
 
 export class Live2dToggle extends DraggableUnoLitElement {
@@ -59,24 +61,38 @@ export class Live2dToggle extends DraggableUnoLitElement {
 
   render(): TemplateResult {
     const positionClass =
-      this.config?.live2dLocation === "right" ? "right-0" : "left-0";
+      this.config?.live2dLocation === "right" ? "right-4" : "left-4";
+    const visibilityClass = this._isShow
+      ? "pointer-events-auto opacity-100 scale-100"
+      : "pointer-events-none opacity-0 scale-90";
     return html`<div
-      class="fixed bottom-16 ${positionClass} rounded-md bg-[#fa0] color-white cursor-pointer text-3 py-1.5 px-0.5 writing-vertical-rl ${
-        this.config?.live2dLocation === "right" ? "-mr-1" : "-ml-1"
-      } w-9 hover:transform-translate-x-0 
-      ${
-        this._isShow
-          ? "-transform-translate-x-4"
-          : "-transform-translate-x-full"
-      } transition-transform duration-1000"
+      id="live2d-toggle"
+      class="fixed bottom-16 ${positionClass} z-9999 inline-flex cursor-grab select-none items-center gap-1.5 rounded-full border border-[#f3d7b8] bg-[#fffaf4]/96 px-2.5 py-1.5 text-3.25 color-[#8b5e34] shadow-[0_8px_22px_rgba(139,94,52,0.18)] backdrop-blur-sm transition-[opacity,transform,box-shadow] duration-300 hover:scale-105 hover:shadow-[0_10px_26px_rgba(139,94,52,0.24)] active:cursor-grabbing ${visibilityClass}"
+      role="button"
+      tabindex="0"
+      aria-label="打开看板娘"
+      @keydown=${this.handleKeydown}
     >
-      看板娘
+      <span
+        class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#ffb86c] color-white shadow-[inset_0_-2px_0_rgba(139,94,52,0.14)]"
+      >
+        <iconify-icon icon="ph:cat" width="18" height="18"></iconify-icon>
+      </span>
+      <span class="whitespace-nowrap font-500 leading-none">看板娘</span>
     </div>`;
   }
 
   handleClick() {
     this.dispatchEvent(new ToggleCanvasEvent({ isShow: this._isShow }));
   }
+
+  handleKeydown = (e: KeyboardEvent) => {
+    if (e.key !== "Enter" && e.key !== " ") {
+      return;
+    }
+    e.preventDefault();
+    this.handleClick();
+  };
 
   handleGlobalToggle = (e: Event) => {
     const event = e as ToggleCanvasEvent;

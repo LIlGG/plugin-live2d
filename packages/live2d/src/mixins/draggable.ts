@@ -3,9 +3,12 @@ import {
   getSavedPosition,
   savePosition,
 } from "@/live2d/utils/drag-position";
+import type { PropertyValues } from "lit";
 
 export interface DraggableOptions {
   storageKey: string;
+  targetSelector?: string;
+  clearTransformOnPosition?: boolean;
 }
 
 export interface Position {
@@ -23,15 +26,24 @@ export interface DraggableInterface {
 
 const DRAGGING_CLASS = "live2d-dragging";
 const DRAG_OVERLAY_ID = "live2d-drag-overlay";
+const POSITION_UNIT_PATTERN = /^-?\d+(\.\d+)?px$/;
 
-// biome-ignore lint/suspicious/noExplicitAny: mixin pattern requires any for constructor signature
-export type Constructor<T = {}> = new (...args: any[]) => T;
+// TypeScript requires `any[]` for generic class mixin constructors.
+// biome-ignore lint/suspicious/noExplicitAny: required by TS mixin constructor rules
+type Constructor<T = object> = new (...args: any[]) => T;
 
-// biome-ignore lint/suspicious/noExplicitAny: mixin pattern requires any for constructor signature
-type HTMLElementConstructor = new (...args: any[]) => HTMLElement;
+type HTMLElementConstructor = Constructor<HTMLElement>;
+
+type HTMLElementLifecycle = HTMLElement & {
+  connectedCallback?(): void;
+  disconnectedCallback?(): void;
+  firstUpdated?(changedProperties: PropertyValues): void;
+  updated?(changedProperties: PropertyValues): void;
+};
 
 // Return type that includes the mixin interface
-type DraggableMixinReturn<T extends HTMLElementConstructor> = T & Constructor<DraggableInterface>;
+type DraggableMixinReturn<T extends HTMLElementConstructor> = T &
+  Constructor<DraggableInterface>;
 
 /**
  * 为 HTMLElement 添加拖拽调整位置的功能
@@ -52,13 +64,11 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
     private _initialLeft = 0;
     private _initialTop = 0;
     private _isDragging = false;
-    private _dragThreshold = 3;
+    private readonly _dragThreshold = 3;
+    private _dragElement?: HTMLElement;
+    private _activeDragElement?: HTMLElement;
     private _overlay?: HTMLDivElement;
-
-    // biome-ignore lint/suspicious/noExplicitAny: mixin pattern requires any for constructor rest args
-    constructor(...args: any[]) {
-      super(...args);
-    }
+    private _suppressNextClick = false;
 
     /**
      * 获取保存的位置
@@ -72,23 +82,33 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
      */
     applySavedPosition(): void {
       const saved = this.getSavedPosition();
-      if (!saved) {
+      const dragElement = this._getDragElement();
+      if (!saved || !dragElement) {
         return;
       }
-      const style = this.style;
-      if (saved.left !== undefined) {
-        style.left = saved.left;
+      const nextPosition = this._getClampedSavedPosition(saved, dragElement);
+      if (!nextPosition) {
+        clearPosition(options.storageKey);
+        return;
+      }
+      const style = dragElement.style;
+      if (nextPosition.left !== undefined) {
+        style.left = nextPosition.left;
         style.right = "auto";
       }
-      if (saved.right !== undefined) {
-        style.right = saved.right;
+      if (nextPosition.right !== undefined) {
+        style.right = nextPosition.right;
         style.left = "auto";
       }
-      if (saved.bottom !== undefined) {
-        style.bottom = saved.bottom;
+      if (nextPosition.bottom !== undefined) {
+        style.bottom = nextPosition.bottom;
       }
-      if (saved.top !== undefined) {
-        style.top = saved.top;
+      if (nextPosition.top !== undefined) {
+        style.top = nextPosition.top;
+        style.bottom = "auto";
+      }
+      if (options.clearTransformOnPosition) {
+        style.transform = "none";
       }
     }
 
@@ -97,15 +117,22 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
      */
     resetPosition(): void {
       clearPosition(options.storageKey);
-      const style = this.style;
+      const dragElement = this._getDragElement();
+      if (!dragElement) {
+        return;
+      }
+      const style = dragElement.style;
       style.left = "";
       style.right = "";
       style.bottom = "";
       style.top = "";
+      if (options.clearTransformOnPosition) {
+        style.transform = "";
+      }
     }
 
     connectedCallback(): void {
-      const proto = Object.getPrototypeOf(DraggableClass.prototype);
+      const proto = this._getSuperPrototype();
       if (typeof proto.connectedCallback === "function") {
         proto.connectedCallback.call(this);
       }
@@ -115,29 +142,121 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
     disconnectedCallback(): void {
       this._removeDragListeners();
       this._removeOverlay();
-      const proto = Object.getPrototypeOf(DraggableClass.prototype);
+      const proto = this._getSuperPrototype();
       if (typeof proto.disconnectedCallback === "function") {
         proto.disconnectedCallback.call(this);
       }
     }
 
+    protected firstUpdated(changedProperties: PropertyValues): void {
+      const proto = this._getSuperPrototype();
+      if (typeof proto.firstUpdated === "function") {
+        proto.firstUpdated.call(this, changedProperties);
+      }
+      this._setupDragListeners();
+      this.applySavedPosition();
+    }
+
+    protected updated(changedProperties: PropertyValues): void {
+      const proto = this._getSuperPrototype();
+      if (typeof proto.updated === "function") {
+        proto.updated.call(this, changedProperties);
+      }
+      this._setupDragListeners();
+      if (!this._isDragging) {
+        this.applySavedPosition();
+      }
+    }
+
+    private _getSuperPrototype(): HTMLElementLifecycle {
+      return Object.getPrototypeOf(
+        DraggableClass.prototype,
+      ) as HTMLElementLifecycle;
+    }
+
+    private _getDragElement(): HTMLElement | null {
+      if (!options.targetSelector) {
+        return this;
+      }
+      return (
+        this.shadowRoot?.querySelector<HTMLElement>(options.targetSelector) ??
+        null
+      );
+    }
+
+    private _getClampedSavedPosition(
+      saved: Position,
+      dragElement: HTMLElement,
+    ): Position | null {
+      if (
+        !this._isPixelPosition(saved.left) ||
+        !this._isPixelPosition(saved.top)
+      ) {
+        return null;
+      }
+
+      const rect = dragElement.getBoundingClientRect();
+      const left = this._clampToViewport(
+        Number.parseFloat(saved.left),
+        rect.width,
+        window.innerWidth,
+      );
+      const top = this._clampToViewport(
+        Number.parseFloat(saved.top),
+        rect.height,
+        window.innerHeight,
+      );
+
+      return {
+        left: `${left}px`,
+        top: `${top}px`,
+      };
+    }
+
+    private _isPixelPosition(value: string | undefined): value is string {
+      return value !== undefined && POSITION_UNIT_PATTERN.test(value);
+    }
+
+    private _clampToViewport(
+      position: number,
+      elementSize: number,
+      viewportSize: number,
+    ): number {
+      return Math.max(
+        0,
+        Math.min(position, Math.max(0, viewportSize - elementSize)),
+      );
+    }
+
     private _setupDragListeners(): void {
-      this.addEventListener("mousedown", this._onMouseDown);
-      this.addEventListener("touchstart", this._onTouchStart, { passive: false });
+      const dragElement = this._getDragElement();
+      if (!dragElement || dragElement === this._dragElement) {
+        return;
+      }
+      this._removeDragListeners();
+      this._dragElement = dragElement;
+      dragElement.addEventListener("mousedown", this._onMouseDown);
+      dragElement.addEventListener("touchstart", this._onTouchStart, {
+        passive: false,
+      });
+      dragElement.addEventListener("click", this._onClickCapture, true);
     }
 
     private _removeDragListeners(): void {
-      this.removeEventListener("mousedown", this._onMouseDown);
-      this.removeEventListener("touchstart", this._onTouchStart);
+      this._dragElement?.removeEventListener("mousedown", this._onMouseDown);
+      this._dragElement?.removeEventListener("touchstart", this._onTouchStart);
+      this._dragElement?.removeEventListener(
+        "click",
+        this._onClickCapture,
+        true,
+      );
+      this._dragElement = undefined;
       this._endDrag();
     }
 
     private _onMouseDown = (e: MouseEvent): void => {
       // 只响应左键，不响应输入框、按钮等交互元素上的拖拽
-      if (
-        e.button !== 0 ||
-        this._isInteractiveElement(e.target as HTMLElement)
-      ) {
+      if (e.button !== 0 || this._isInteractiveEvent(e)) {
         return;
       }
       this._startDrag(e.clientX, e.clientY);
@@ -145,27 +264,31 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
     };
 
     private _onTouchStart = (e: TouchEvent): void => {
-      if (
-        e.touches.length !== 1 ||
-        this._isInteractiveElement(e.target as HTMLElement)
-      ) {
+      if (e.touches.length !== 1 || this._isInteractiveEvent(e)) {
         return;
       }
       const touch = e.touches[0];
       this._startDrag(touch.clientX, touch.clientY);
     };
 
-    private _isInteractiveElement(el: HTMLElement | null): boolean {
-      if (!el) return false;
+    private _isInteractiveEvent(e: Event): boolean {
+      for (const target of e.composedPath()) {
+        if (target === this._dragElement || target === this) {
+          break;
+        }
+        if (
+          target instanceof HTMLElement &&
+          this._isInteractiveElement(target)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private _isInteractiveElement(el: HTMLElement): boolean {
       const tagName = el.tagName.toLowerCase();
-      const interactiveTags = [
-        "input",
-        "textarea",
-        "button",
-        "select",
-        "a",
-        "canvas",
-      ];
+      const interactiveTags = ["input", "textarea", "button", "select", "a"];
       if (interactiveTags.includes(tagName)) {
         return true;
       }
@@ -181,13 +304,18 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
     }
 
     private _startDrag(clientX: number, clientY: number): void {
-      const rect = this.getBoundingClientRect();
+      const dragElement = this._getDragElement();
+      if (!dragElement) {
+        return;
+      }
+      const rect = dragElement.getBoundingClientRect();
 
       this._dragStartX = clientX;
       this._dragStartY = clientY;
       this._initialLeft = rect.left;
       this._initialTop = rect.top;
       this._isDragging = false;
+      this._activeDragElement = dragElement;
 
       document.addEventListener("mousemove", this._onMouseMove);
       document.addEventListener("mouseup", this._onMouseUp);
@@ -208,6 +336,10 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
     };
 
     private _handleMove(clientX: number, clientY: number): void {
+      const dragElement = this._activeDragElement ?? this._getDragElement();
+      if (!dragElement) {
+        return;
+      }
       const dx = clientX - this._dragStartX;
       const dy = clientY - this._dragStartY;
 
@@ -218,8 +350,8 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
         ) {
           this._isDragging = true;
           this._addOverlay();
-          this.classList.add(DRAGGING_CLASS);
-          this.style.cursor = "grabbing";
+          dragElement.classList.add(DRAGGING_CLASS);
+          dragElement.style.cursor = "grabbing";
         } else {
           return;
         }
@@ -231,7 +363,7 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
       // 确保不拖出视口
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
-      const rect = this.getBoundingClientRect();
+      const rect = dragElement.getBoundingClientRect();
       const clampedLeft = Math.max(
         0,
         Math.min(newLeft, viewportWidth - rect.width),
@@ -241,10 +373,13 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
         Math.min(newTop, viewportHeight - rect.height),
       );
 
-      this.style.left = `${clampedLeft}px`;
-      this.style.top = `${clampedTop}px`;
-      this.style.right = "auto";
-      this.style.bottom = "auto";
+      dragElement.style.left = `${clampedLeft}px`;
+      dragElement.style.top = `${clampedTop}px`;
+      dragElement.style.right = "auto";
+      dragElement.style.bottom = "auto";
+      if (options.clearTransformOnPosition) {
+        dragElement.style.transform = "none";
+      }
     }
 
     private _onMouseUp = (): void => {
@@ -256,17 +391,23 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
     };
 
     private _endDrag(): void {
+      const dragElement = this._activeDragElement ?? this._getDragElement();
       if (this._isDragging) {
-        const rect = this.getBoundingClientRect();
+        const rect = dragElement?.getBoundingClientRect();
+        if (rect && dragElement) {
+          // 保存位置
+          savePosition(options.storageKey, {
+            left: `${rect.left}px`,
+            top: `${rect.top}px`,
+          });
 
-        // 保存位置
-        savePosition(options.storageKey, {
-          left: `${rect.left}px`,
-          top: `${rect.top}px`,
-        });
-
-        this.classList.remove(DRAGGING_CLASS);
-        this.style.cursor = "";
+          dragElement.classList.remove(DRAGGING_CLASS);
+          dragElement.style.cursor = "";
+          this._suppressNextClick = true;
+          window.setTimeout(() => {
+            this._suppressNextClick = false;
+          }, 0);
+        }
       }
 
       document.removeEventListener("mousemove", this._onMouseMove);
@@ -275,8 +416,18 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
       document.removeEventListener("touchend", this._onTouchEnd);
 
       this._isDragging = false;
+      this._activeDragElement = undefined;
       this._removeOverlay();
     }
+
+    private _onClickCapture = (e: MouseEvent): void => {
+      if (!this._suppressNextClick) {
+        return;
+      }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      this._suppressNextClick = false;
+    };
 
     /**
      * 添加一个全屏 overlay 来捕获鼠标事件，避免拖拽过程中触发其他元素
@@ -299,7 +450,7 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
     }
 
     private _removeOverlay(): void {
-      if (this._overlay && this._overlay.parentNode) {
+      if (this._overlay?.parentNode) {
         this._overlay.parentNode.removeChild(this._overlay);
         this._overlay = undefined;
       }
