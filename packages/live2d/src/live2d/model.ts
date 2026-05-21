@@ -8,6 +8,10 @@ import * as PIXI from "pixi.js";
 import "@/live2d/libs/live2d.min.js";
 import "@/live2d/libs/live2dcubismcore.min.js";
 import { Live2DModel } from "untitled-pixi-live2d-engine";
+import { Live2dRuntimeController } from "@/live2d/runtime/controller";
+import { SemanticParameterLayer } from "@/live2d/runtime/semantic";
+import type { BehaviorFSM } from "@/live2d/runtime/behavior";
+import type { EmotionTimeline } from "@/live2d/runtime/emotion";
 
 declare global {
   interface Window {
@@ -30,6 +34,10 @@ interface ModelResult {
   };
 }
 
+interface EyeTrackingCleanup {
+  _cleanupEyeTracking?: () => void;
+}
+
 const LIVE2D_CANVAS_SIZE = 300;
 const LIVE2D_MODEL_PADDING = 1;
 const LIVE2D_BOTTOM_OFFSET = 1;
@@ -38,6 +46,7 @@ const LOADING_MESSAGE_DELAY_MS = 1200;
 const DEFAULT_LOADING_MESSAGE =
   "稍等一下下哦，人家正在梳理小裙摆，马上就来陪你啦～";
 const HEAD_HIT_AREA_PATTERN = /(head|flickhead)/i;
+
 const SPEECH_ANCHOR_MIN_RATIO = 0.04;
 const SPEECH_ANCHOR_MAX_RATIO = 0.14;
 
@@ -57,6 +66,7 @@ class Model {
   #currentModel: Live2DModel | null = null;
   #hasLoggedConsoleStatus = false;
   #loadSequence = 0;
+  #controller: Live2dRuntimeController;
 
   private constructor(root: HTMLCanvasElement, config: Live2dConfig) {
     const apiPath = config.apiPath;
@@ -67,6 +77,13 @@ class Model {
     this.#apiPath = apiPath.endsWith("/") ? apiPath : `${apiPath}/`;
     this.#config = config;
     this.#live2dRootElement = root;
+    this.#controller = new Live2dRuntimeController({
+      behaviorFSM: config.behaviorFSM,
+      emotionTimeline: config.emotionTimeline,
+      motionLayers: config.motionLayers,
+      proceduralAnimation: config.proceduralAnimation,
+      filterQuality: config.filterQuality,
+    });
     this.#appPromise = this.initializeApplication();
   }
 
@@ -187,6 +204,7 @@ class Model {
     );
 
     if (this.#currentModel) {
+      this.#controller.destroy(app.ticker);
       app.stage.removeChild(this.#currentModel);
       this.#currentModel.destroy();
     }
@@ -194,6 +212,31 @@ class Model {
     app.stage.removeChildren();
     app.stage.addChild(nextModel);
     this.#currentModel = nextModel;
+
+    // Stop any playing motions from the engine so our runtime takes over
+    this.stopEngineMotions(nextModel);
+
+    // Initialize controller with model
+    this.#controller.initialize(nextModel, app.ticker);
+  }
+
+  private stopEngineMotions(model: Live2DModel): void {
+    const internal = model.internalModel;
+    if (!internal) return;
+
+    // Stop primary motion manager
+    if (typeof internal.motionManager?.stopAllMotions === "function") {
+      internal.motionManager.stopAllMotions();
+    }
+
+    // Stop parallel motion managers (e.g., for Cubism 2.1 .mtn files)
+    if (Array.isArray(internal.parallelMotionManager)) {
+      for (const pm of internal.parallelMotionManager) {
+        if (typeof pm?.stopAllMotions === "function") {
+          pm.stopAllMotions();
+        }
+      }
+    }
   }
 
   private getSpeechAnchorTopY(
@@ -211,16 +254,15 @@ class Model {
     return model.position.y + (localTopY - model.pivot.y) * model.scale.y;
   }
 
-  private getHeadTopY(model: Live2DModel): number | undefined {
-    const headHitArea = Object.values(model.internalModel.hitAreas).find(
-      ({ name }) => HEAD_HIT_AREA_PATTERN.test(name),
-    );
-    if (!headHitArea) {
+  private getHeadTopY(_model: Live2DModel): number | undefined {
+    // Use semantic layer for hit area lookup when available
+    const headIndex = this.#controller.getSemanticLayer().getHitAreaIndex(HEAD_HIT_AREA_PATTERN);
+    if (headIndex === undefined) {
       return;
     }
 
-    const headBounds = model.internalModel.getDrawableBounds(headHitArea.index);
-    if (!Number.isFinite(headBounds.y) || headBounds.height <= 0) {
+    const headBounds = this.#controller.getSemanticLayer().getDrawableBounds(headIndex);
+    if (!headBounds) {
       return;
     }
 
@@ -286,6 +328,23 @@ class Model {
       }
 
       await this.replaceModel(model);
+
+      if (this.#config.consoleShowStatus) {
+        const profile = this.#controller.getSemanticLayer().getCapabilityProfile();
+        const detectedNames = Array.from(profile.detected.keys()).join(", ");
+        const missingNames = profile.missing.join(", ");
+        console.log(
+          `[Status] Semantic parameters detected: ${profile.detected.size}, missing: ${profile.missing.length}`,
+        );
+        if (detectedNames) {
+          console.log(`[Status] Detected: ${detectedNames}`);
+        }
+        if (missingNames) {
+          console.log(`[Status] Missing: ${missingNames}`);
+        }
+      }
+
+      this.setupEyeTrackingEvents();
 
       if (options.successMessage) {
         sendMessage(options.successMessage, MESSAGE_TIMEOUT_MS, 3);
@@ -372,7 +431,76 @@ class Model {
     });
   }
 
+  getController(): Live2dRuntimeController {
+    return this.#controller;
+  }
+
+  getSemanticLayer(): SemanticParameterLayer {
+    return this.#controller.getSemanticLayer();
+  }
+
+  getBehaviorFSM(): BehaviorFSM | undefined {
+    return this.#controller.getBehaviorFSM();
+  }
+
+  getEmotionTimeline(): EmotionTimeline | undefined {
+    return this.#controller.getEmotionTimeline();
+  }
+
+  private setupEyeTrackingEvents(): void {
+    const eyeTracking = this.#controller.getProceduralSystem()?.getEyeTrackingModule();
+    if (!eyeTracking) return;
+
+    const canvas = this.#live2dRootElement;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      eyeTracking.updateCursorPosition(e.clientX, e.clientY, rect);
+    };
+
+    const handleMouseLeave = () => {
+      eyeTracking.onCursorLeave();
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const rect = canvas.getBoundingClientRect();
+        eyeTracking.updateCursorPosition(
+          e.touches[0].clientX,
+          e.touches[0].clientY,
+          rect,
+        );
+      }
+    };
+
+    const handleTouchEnd = () => {
+      eyeTracking.onCursorLeave();
+    };
+
+    // Bind to window so tracking works even when cursor is outside the canvas
+    // (e.g. when Live2D is inside a shadow DOM container)
+    window.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseleave", handleMouseLeave);
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd);
+
+    // Store cleanup function on the element for later removal
+    (canvas as unknown as EyeTrackingCleanup)._cleanupEyeTracking = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }
+
   destroy(): void {
+    // Cleanup eye tracking events
+    const cleanup = (this.#live2dRootElement as unknown as EyeTrackingCleanup)
+      ._cleanupEyeTracking;
+    cleanup?.();
+
+    this.#controller.destroy(this.#app?.ticker);
+
     if (this.#currentModel && this.#app) {
       this.#app.stage.removeChild(this.#currentModel);
       this.#currentModel.destroy();

@@ -1,4 +1,8 @@
-## ADDED Requirements
+## Purpose
+
+Define the Live2D rendering capabilities for the Halo plugin, ensuring support for Cubism 2/3/4/5 models through a maintained renderer while preserving existing interaction flows.
+
+## Requirements
 
 ### Requirement: Plugin SHALL render supported Live2D models through the maintained renderer
 The plugin SHALL replace `pixi-live2d-display` with a maintained renderer integration that can load the plugin's configured Live2D assets for Cubism 2 / 3 / 4 / 5 models.
