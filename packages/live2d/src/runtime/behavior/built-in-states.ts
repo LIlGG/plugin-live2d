@@ -1,5 +1,5 @@
-import type { BehaviorState, BehaviorProfile } from "./types";
 import { buildProfile } from "./profile";
+import type { BehaviorProfile, BehaviorState } from "./types";
 
 // ── Base profile ──────────────────────────────────────────────
 
@@ -51,8 +51,6 @@ const sadProfile: BehaviorProfile = buildProfile(baseProfile, {
         browLY: { value: 0.3, blendMode: "override" },
         browRY: { value: 0.3, blendMode: "override" },
         mouthForm: { value: -0.3, blendMode: "override" },
-        eyeLOpen: { value: 0.8, blendMode: "override" },
-        eyeROpen: { value: 0.8, blendMode: "override" },
       },
       fadeIn: 600,
     },
@@ -82,8 +80,6 @@ const embarrassedProfile: BehaviorProfile = buildProfile(baseProfile, {
     expression: {
       parameters: {
         cheek: { value: 0.5, blendMode: "override" },
-        eyeLOpen: { value: 0.7, blendMode: "override" },
-        eyeROpen: { value: 0.7, blendMode: "override" },
         browLY: { value: 0.1, blendMode: "override" },
         browRY: { value: 0.1, blendMode: "override" },
         mouthSmile: { value: 0.2, blendMode: "override" },
@@ -100,8 +96,6 @@ const thinkingProfile: BehaviorProfile = buildProfile(baseProfile, {
       parameters: {
         browLY: { value: -0.2, blendMode: "override" },
         browRY: { value: -0.2, blendMode: "override" },
-        eyeLOpen: { value: 0.85, blendMode: "override" },
-        eyeROpen: { value: 0.85, blendMode: "override" },
         mouthForm: { value: 0.1, blendMode: "override" },
       },
       fadeIn: 600,
@@ -124,13 +118,6 @@ const talkingProfile: BehaviorProfile = buildProfile(baseProfile, {
       },
       fadeIn: 200,
     },
-    expression: {
-      parameters: {
-        eyeLOpen: { value: 0.9, blendMode: "override" },
-        eyeROpen: { value: 0.9, blendMode: "override" },
-      },
-      fadeIn: 300,
-    },
   },
 });
 
@@ -138,17 +125,12 @@ const sleepyProfile: BehaviorProfile = buildProfile(baseProfile, {
   motionLayers: {
     expression: {
       parameters: {
-        eyeLOpen: { value: 0.4, blendMode: "override" },
-        eyeROpen: { value: 0.4, blendMode: "override" },
         browLY: { value: 0.15, blendMode: "override" },
         browRY: { value: 0.15, blendMode: "override" },
         mouthForm: { value: 0.05, blendMode: "override" },
       },
       fadeIn: 1000,
     },
-  },
-  proceduralOverrides: {
-    Blink: false,
   },
 });
 
