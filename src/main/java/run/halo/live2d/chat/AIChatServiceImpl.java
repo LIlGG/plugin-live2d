@@ -1,6 +1,7 @@
 package run.halo.live2d.chat;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.codec.ServerSentEvent;
@@ -8,45 +9,46 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.aifoundation.AiModelService;
-import run.halo.aifoundation.AiServices;
 import run.halo.aifoundation.ChatChunk;
 import run.halo.aifoundation.Message;
 import run.halo.aifoundation.ModelDisabledException;
 import run.halo.aifoundation.ModelNotFoundException;
 import run.halo.aifoundation.ProviderApiException;
 import run.halo.aifoundation.ProviderDisabledException;
+import run.halo.app.plugin.extensionpoint.ExtensionGetter;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AIChatServiceImpl implements AiChatService {
+
+    private final ExtensionGetter extensionGetter;
+
+    private Mono<AiModelService> aiModelService() {
+        return extensionGetter.getEnabledExtension(AiModelService.class);
+    }
+
     @Override
-    public Flux<ServerSentEvent<ChatResult>> streamChatCompletion(String modelName, List<Message> messages) {
+    public Flux<ServerSentEvent<ChatResult>> streamChatCompletion(String modelName,
+        List<Message> messages) {
         if (StringUtils.isBlank(modelName)) {
             return Flux.just(buildEvent(ChatResult.error("请先在插件设置中配置 Halo AI 模型")));
-        }
-        final AiModelService modelService;
-        try {
-            modelService = AiServices.getModelService();
-        } catch (IllegalStateException e) {
-            log.error("Halo AI foundation service is unavailable.", e);
-            return Flux.just(buildEvent(ChatResult.error(resolveErrorMessage(e))));
-        }
-
-        if (modelService == null) {
-            log.error("Halo AI foundation service locator returned null model service.");
-            return Flux.just(buildEvent(ChatResult.error("AI 基础设施未启用，请联系站长")));
         }
 
         var request = run.halo.aifoundation.ChatRequest.builder()
             .messages(messages)
             .build();
 
-        log.debug("Stream Halo AI chat completion with model: {}, messages: {}", modelName, messages);
-        return modelService.languageModel(modelName)
+        log.debug("Stream Halo AI chat completion with model: {}, messages: {}", modelName,
+            messages);
+       
+        return aiModelService()
+            .flatMap(service -> service.languageModel(modelName))
             .flatMapMany(model -> model.streamChat(request))
             .concatMap(this::adaptChunk)
             .onErrorResume(throwable -> {
-                log.error("Error occurred while generating Halo AI chat result, model: {}", modelName,
+                log.error("Error occurred while generating Halo AI chat result, model: {}",
+                    modelName,
                     throwable);
                 return Flux.just(buildEvent(ChatResult.error(resolveErrorMessage(throwable))));
             });
@@ -60,7 +62,8 @@ public class AIChatServiceImpl implements AiChatService {
         return switch (chunk.getType()) {
             case TEXT -> adaptTextChunk(chunk);
             case ERROR -> Flux.just(buildEvent(ChatResult.error(
-                StringUtils.defaultIfBlank(chunk.getContent(), "对话接口异常了哦～快去联系我的主人吧！"))));
+                StringUtils.defaultIfBlank(chunk.getContent(),
+                    "对话接口异常了哦～快去联系我的主人吧！"))));
             case FINISH -> Flux.just(buildEvent(ChatResult.finish()));
             case REASONING, TOOL_CALL -> Flux.empty();
         };
@@ -86,7 +89,8 @@ public class AIChatServiceImpl implements AiChatService {
     }
 
     private String resolveErrorMessage(Throwable throwable) {
-        if (throwable instanceof ModelNotFoundException || throwable instanceof ModelDisabledException) {
+        if (throwable instanceof ModelNotFoundException
+            || throwable instanceof ModelDisabledException) {
             return "当前配置的 Halo AI 模型不可用，请联系站长检查配置";
         }
         if (throwable instanceof ProviderDisabledException) {
@@ -98,6 +102,7 @@ public class AIChatServiceImpl implements AiChatService {
         if (throwable instanceof IllegalStateException) {
             return "AI 基础设施未启用，请联系站长";
         }
-        return StringUtils.defaultIfBlank(throwable.getMessage(), "对话接口异常了哦～快去联系我的主人吧！");
+        return StringUtils.defaultIfBlank(throwable.getMessage(),
+            "对话接口异常了哦～快去联系我的主人吧！");
     }
 }
