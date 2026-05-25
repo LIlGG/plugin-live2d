@@ -1,4 +1,6 @@
 import type { CustomToolConfig } from "@/live2d/live2d/tools/custom-tool-config";
+import type { ProceduralConfig } from "@/live2d/runtime/procedural";
+import type { EmotionTimelineConfig } from "@/live2d/runtime/emotion";
 import { createContext } from "@lit/context";
 
 export interface ObjectAny extends Record<string, unknown> {}
@@ -131,6 +133,34 @@ export interface Live2dConfig extends Live2dToolsConfig {
     showChatMessageTimeout?: number | string;
     requestAcceptedMessage?: string;
     chatContextRounds?: number | string;
+  };
+  // 滤镜质量等级 (low / medium / high)
+  filterQuality?: "low" | "medium" | "high";
+  // 程序化动画配置
+  proceduralAnimation?: ProceduralConfig;
+  // 运动层系统配置
+  motionLayers?: {
+    enabled?: boolean;
+    layers?: {
+      idle?: { priority?: number };
+      expression?: { priority?: number };
+      talk?: { priority?: number };
+      gesture?: { priority?: number };
+      physics?: { priority?: number };
+    };
+    defaultCrossfadeDuration?: number;
+  };
+  // 行为状态机配置
+  behaviorFSM?: {
+    enabled?: boolean;
+    initialState?: string;
+    defaultDebounceMs?: number;
+  };
+  // 情感时间线配置
+  emotionTimeline?: EmotionTimelineConfig;
+  // 开发工具配置
+  devTools?: {
+    enabled?: boolean;
   };
   [key: string]: unknown;
 }

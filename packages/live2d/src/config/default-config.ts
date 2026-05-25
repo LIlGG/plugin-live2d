@@ -13,7 +13,7 @@ export const DEFAULT_TOOL_NAMES = [
 export const createDefaultLive2dConfig = (): Live2dConfig => ({
   apiPath: "https://live2d.fghrsh.net/api/",
   live2dLocation: "left",
-  consoleShowStatus: false,
+  consoleShowStatus: import.meta.env.DEV ?? false,
   isForceUseDefaultConfig: false,
   modelId: 1,
   modelTexturesId: 53,
@@ -34,4 +34,53 @@ export const createDefaultLive2dConfig = (): Live2dConfig => ({
   requestAcceptedMessage: "收到啦，马上就来陪你啦～",
   chatContextRounds: 20,
   screenshotName: "live2d",
+  filterQuality: "high",
+  proceduralAnimation: {
+    enabled: true,
+    breathing: {
+      enabled: true,
+      period: 3000,
+      amplitude: 0.15,
+    },
+    blink: {
+      enabled: false,
+      minInterval: 2000,
+      maxInterval: 6000,
+      duration: 150,
+    },
+    eyeTracking: {
+      enabled: true,
+      maxAngleX: 15,
+      maxAngleY: 10,
+      maxEyeBallX: 1.5,
+      maxEyeBallY: 1.5,
+      smoothing: 0.15,
+    },
+  },
+  motionLayers: {
+    enabled: true,
+    layers: {
+      idle: { priority: 1 },
+      expression: { priority: 2 },
+      talk: { priority: 3 },
+      gesture: { priority: 4 },
+      physics: { priority: 5 },
+    },
+    defaultCrossfadeDuration: 300,
+  },
+  behaviorFSM: {
+    enabled: true,
+    initialState: "idle",
+    defaultDebounceMs: 300,
+  },
+  emotionTimeline: {
+    enabled: true,
+    defaultDuration: 800,
+    minDuration: 200,
+    defaultEasing: "easeOut",
+    idleReturnDelay: 3000,
+  },
+  devTools: {
+    enabled: false,
+  },
 });

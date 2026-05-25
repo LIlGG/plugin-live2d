@@ -74,3 +74,6 @@ application-local.properties
 /workplace/
 
 /node_modules/
+
+### TypeScript
+*.tsbuildinfo
