@@ -9,12 +9,15 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.aifoundation.AiModelService;
-import run.halo.aifoundation.ChatChunk;
-import run.halo.aifoundation.Message;
-import run.halo.aifoundation.ModelDisabledException;
-import run.halo.aifoundation.ModelNotFoundException;
-import run.halo.aifoundation.ProviderApiException;
-import run.halo.aifoundation.ProviderDisabledException;
+import run.halo.aifoundation.chat.GenerateTextRequest;
+import run.halo.aifoundation.chat.ReasoningOptions;
+import run.halo.aifoundation.exception.ModelDisabledException;
+import run.halo.aifoundation.exception.ModelNotFoundException;
+import run.halo.aifoundation.exception.ProviderApiException;
+import run.halo.aifoundation.exception.ProviderDisabledException;
+import run.halo.aifoundation.message.ModelMessage;
+import run.halo.aifoundation.part.PartType;
+import run.halo.aifoundation.part.TextStreamPart;
 import run.halo.app.plugin.extensionpoint.ExtensionGetter;
 
 @Slf4j
@@ -30,22 +33,23 @@ public class AIChatServiceImpl implements AiChatService {
 
     @Override
     public Flux<ServerSentEvent<ChatResult>> streamChatCompletion(String modelName,
-        List<Message> messages) {
+        List<ModelMessage> messages) {
         if (StringUtils.isBlank(modelName)) {
             return Flux.just(buildEvent(ChatResult.error("请先在插件设置中配置 Halo AI 模型")));
         }
 
-        var request = run.halo.aifoundation.ChatRequest.builder()
+        var request = GenerateTextRequest.builder()
             .messages(messages)
+            .reasoning(ReasoningOptions.disabled())
             .build();
 
         log.debug("Stream Halo AI chat completion with model: {}, messages: {}", modelName,
             messages);
-       
+
         return aiModelService()
             .flatMap(service -> service.languageModel(modelName))
-            .flatMapMany(model -> model.streamChat(request))
-            .concatMap(this::adaptChunk)
+            .flatMapMany(model -> model.streamText(request).fullStream())
+            .concatMap(this::adaptStreamPart)
             .onErrorResume(throwable -> {
                 log.error("Error occurred while generating Halo AI chat result, model: {}",
                     modelName,
@@ -54,34 +58,26 @@ public class AIChatServiceImpl implements AiChatService {
             });
     }
 
-    private Flux<ServerSentEvent<ChatResult>> adaptChunk(ChatChunk chunk) {
-        if (chunk == null || chunk.getType() == null) {
+    private Flux<ServerSentEvent<ChatResult>> adaptStreamPart(TextStreamPart part) {
+        if (part == null || part.getType() == null) {
             return Flux.empty();
         }
 
-        return switch (chunk.getType()) {
-            case TEXT -> adaptTextChunk(chunk);
-            case ERROR -> Flux.just(buildEvent(ChatResult.error(
-                StringUtils.defaultIfBlank(chunk.getContent(),
+        return switch (part.getType()) {
+            case PartType.TEXT_DELTA -> adaptTextDelta(part);
+            case PartType.ERROR -> Flux.just(buildEvent(ChatResult.error(
+                StringUtils.defaultIfBlank(part.getErrorText(),
                     "对话接口异常了哦～快去联系我的主人吧！"))));
-            case FINISH -> Flux.just(buildEvent(ChatResult.finish()));
-            case REASONING, TOOL_CALL -> Flux.empty();
+            case PartType.FINISH, PartType.ABORT -> Flux.just(buildEvent(ChatResult.finish()));
+            default -> Flux.empty();
         };
     }
 
-    private Flux<ServerSentEvent<ChatResult>> adaptTextChunk(ChatChunk chunk) {
-        if (StringUtils.isBlank(chunk.getContent())) {
-            return chunk.isLast()
-                ? Flux.just(buildEvent(ChatResult.finish()))
-                : Flux.empty();
+    private Flux<ServerSentEvent<ChatResult>> adaptTextDelta(TextStreamPart part) {
+        if (StringUtils.isBlank(part.getDelta())) {
+            return Flux.empty();
         }
-
-        Mono<ServerSentEvent<ChatResult>> textChunk =
-            Mono.just(buildEvent(ChatResult.ok(chunk.getContent())));
-        if (chunk.isLast()) {
-            return Flux.concat(textChunk, Mono.just(buildEvent(ChatResult.finish())));
-        }
-        return Flux.from(textChunk);
+        return Flux.just(buildEvent(ChatResult.ok(part.getDelta())));
     }
 
     private ServerSentEvent<ChatResult> buildEvent(ChatResult result) {

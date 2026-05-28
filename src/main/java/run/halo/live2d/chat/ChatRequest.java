@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Locale;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
-import run.halo.aifoundation.Message;
+import run.halo.aifoundation.message.ModelMessage;
 
 /**
  * @author LIlGG
@@ -18,7 +18,7 @@ public class ChatRequest {
         private String role;
         private String content;
 
-        public Message toFoundationMessage() {
+        public ModelMessage toFoundationMessage() {
             if (StringUtils.isBlank(content)) {
                 throw new IllegalArgumentException("chat message content must not be blank");
             }
@@ -26,9 +26,9 @@ public class ChatRequest {
                 .trim()
                 .toLowerCase(Locale.ROOT);
             return switch (normalizedRole) {
-                case "assistant" -> Message.assistant(content);
-                case "system" -> Message.system(content);
-                case "user", "" -> Message.user(content);
+                case "assistant" -> ModelMessage.assistant(content);
+                case "system" -> ModelMessage.system(content);
+                case "user", "" -> ModelMessage.user(content);
                 default -> throw new IllegalArgumentException(
                     "unsupported chat message role: " + role);
             };
