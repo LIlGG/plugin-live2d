@@ -23,6 +23,7 @@ dependencies {
     testImplementation 'run.halo.app:api'
     testImplementation files('api.jar')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 test {
