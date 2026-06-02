@@ -30,10 +30,12 @@ public class ThemeFetcher {
         return this.extensionClient.fetch(ConfigMap.class,
                 SystemSetting.SYSTEM_CONFIG
             )
-            .map(ConfigMap::getData)
-            .map(data -> JsonUtils.jsonToObject(
-                data.get("theme"), JsonNode.class).get("active").asText()
-            );
+            .flatMap(configMap -> Mono.justOrEmpty(configMap.getData()))
+            .flatMap(data -> Mono.justOrEmpty(data.get("theme")))
+            .filter(themeConfig -> !themeConfig.isBlank())
+            .map(themeConfig -> JsonUtils.jsonToObject(themeConfig, JsonNode.class))
+            .map(themeConfig -> themeConfig.path("active").asText(null))
+            .filter(themeName -> themeName != null && !themeName.isBlank());
     }
 
     public Mono<String> getActiveThemeLive2dTipsPath(String pathTemplate) {
