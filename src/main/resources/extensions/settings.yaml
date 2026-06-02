@@ -205,7 +205,7 @@ spec:
                 name: modelName
                 label: Halo AI 模型
                 help: 选择 Halo AI 基础设施中已配置且可用的语言模型
-                modelType: LANGUAGE
+                modelType: language
                 available: true
                 validation: required|String
                 placeholder: 请选择语言模型

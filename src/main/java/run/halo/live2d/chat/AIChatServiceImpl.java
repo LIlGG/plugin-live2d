@@ -10,6 +10,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.aifoundation.AiModelService;
 import run.halo.aifoundation.chat.GenerateTextRequest;
+import run.halo.aifoundation.chat.ReasoningOptions;
 import run.halo.aifoundation.exception.ModelDisabledException;
 import run.halo.aifoundation.exception.ModelNotFoundException;
 import run.halo.aifoundation.exception.ProviderApiException;
@@ -38,6 +39,7 @@ public class AIChatServiceImpl implements AiChatService {
         var request = GenerateTextRequest.builder()
             .system(systemMessage)
             .messages(messages)
+            .reasoning(ReasoningOptions.disabled())
             .build();
 
         log.debug("Stream Halo AI text generation with model: {}, messages: {}", modelName,
