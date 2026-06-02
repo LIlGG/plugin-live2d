@@ -166,7 +166,7 @@ spec:
           label: 聊天基本设置
           value:
             isAnonymous: true
-            modelName: deepseek/deepseek-chat
+            modelName: ""
             chatContextRounds: 20
             requestAcceptedMessage: "收到啦，马上就来陪你啦～"
             systemMessage: |-
@@ -200,11 +200,16 @@ spec:
               label: 是否开启公共聊天
               help: 关闭后，用户需要登录后才能与 Live2d 进行对话
               name: isAnonymous
-            - $formkit: text
-              label: Halo AI 模型标识
-              name: modelName
-              help: 填写 Halo AI 基础设施中的模型名称，例如 openai/gpt-4o 或 deepseek/deepseek-chat
-              validation: required|String
+            - $cmp: AiModelSelector
+              props:
+                name: modelName
+                label: Halo AI 模型
+                help: 选择 Halo AI 基础设施中已配置且可用的语言模型
+                modelType: LANGUAGE
+                available: true
+                validation: required|String
+                placeholder: 请选择语言模型
+                searchPlaceholder: 搜索模型
             - $formkit: textarea
               label: 角色设定
               name: systemMessage

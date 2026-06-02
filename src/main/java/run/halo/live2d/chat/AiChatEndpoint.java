@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.plugin.ReactiveSettingFetcher;
-import run.halo.aifoundation.Message;
+import run.halo.aifoundation.message.ModelMessage;
 
 @Slf4j
 @Component
@@ -90,12 +90,12 @@ public class AiChatEndpoint implements CustomEndpoint {
                         ChatResult.error("AI 聊天功能未启用")).build()));
                 }
 
-                List<Message> messages = this.buildChatMessage(
-                    aiChatConfig.aiChatBaseSetting().systemMessage(), body);
+                var baseSetting = aiChatConfig.aiChatBaseSetting();
+                List<ModelMessage> messages = this.buildChatMessage(body);
 
-                if (aiChatConfig.aiChatBaseSetting().isAnonymous()) {
+                if (baseSetting.isAnonymous()) {
                     return Mono.just(aiChatService.streamChatCompletion(
-                        aiChatConfig.aiChatBaseSetting().modelName(), messages));
+                        baseSetting.modelName(), baseSetting.systemMessage(), messages));
                 }
 
                 return ReactiveSecurityContextHolder.getContext()
@@ -104,7 +104,7 @@ public class AiChatEndpoint implements CustomEndpoint {
                     .switchIfEmpty(Mono.error(
                         new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录")))
                     .map(authentication -> aiChatService.streamChatCompletion(
-                        aiChatConfig.aiChatBaseSetting().modelName(), messages));
+                        baseSetting.modelName(), baseSetting.systemMessage(), messages));
             });
     }
 
@@ -117,12 +117,11 @@ public class AiChatEndpoint implements CustomEndpoint {
         return "anonymousUser".equals(name);
     }
 
-    private List<Message> buildChatMessage(String systemMessage, ChatRequest body) {
+    private List<ModelMessage> buildChatMessage(ChatRequest body) {
         if (body.getMessage() == null || body.getMessage().isEmpty()) {
             throw new IllegalArgumentException("chat messages must not be empty");
         }
-        List<Message> messages = new ArrayList<>();
-        messages.add(Message.system(systemMessage));
+        List<ModelMessage> messages = new ArrayList<>();
         body.getMessage().stream()
             .map(ChatRequest.ChatMessagePayload::toFoundationMessage)
             .forEach(messages::add);

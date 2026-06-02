@@ -18,10 +18,10 @@ dependencies {
     implementation platform('run.halo.tools.platform:plugin:2.24.0')
 
     compileOnly 'run.halo.app:api'
-    compileOnly files('api-1.0.0-SNAPSHOT.jar')
+    compileOnly files('api.jar')
 
     testImplementation 'run.halo.app:api'
-    testImplementation files('api-1.0.0-SNAPSHOT.jar')
+    testImplementation files('api.jar')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
