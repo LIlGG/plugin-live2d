@@ -195,13 +195,11 @@ export class ChatApi {
       });
       this.chat = sdkChat;
       unsubscribe = sdkChat.subscribe(() => {
-        console.log("[Chat API] Stream messages:", sdkChat.messages);
         const latest = sdkChat.messages[sdkChat.messages.length - 1];
         if (!latest || latest.role !== "assistant") {
           return;
         }
         const text = messageText(latest);
-        console.log("[Chat API] Stream text:", text);
         if (text.length > streamedText.length) {
           stopWaitingMessage();
           hasVisibleAssistantContent = true;
