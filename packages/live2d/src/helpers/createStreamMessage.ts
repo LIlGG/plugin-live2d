@@ -28,6 +28,14 @@ export function createStreamMessage(
   };
 
   /**
+   * 替换流式消息框中的文本
+   * @param text 要显示的文本
+   */
+  const setMessage = (text: string) => {
+    window.dispatchEvent(new StreamMessageEvent({ text, mode: "replace" }));
+  };
+
+  /**
    * 停止流式消息，并在指定时间后关闭消息框
    */
   const stop = () => {
@@ -36,6 +44,7 @@ export function createStreamMessage(
 
   return {
     sendMessage,
+    setMessage,
     stop,
   };
 }
@@ -45,6 +54,10 @@ export interface StreamMessageController {
    * 发送消息片段
    */
   sendMessage: (text: string) => void;
+  /**
+   * 替换当前消息内容
+   */
+  setMessage: (text: string) => void;
   /**
    * 停止流式消息
    */

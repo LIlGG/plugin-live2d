@@ -1,18 +1,28 @@
 import { createStreamMessage } from "@/live2d/helpers/createStreamMessage";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
+import {
+  Chat,
+  DefaultChatTransport,
+  messageText,
+  pruneMessages,
+  type UIMessage,
+  validateUIMessages,
+} from "@halo-dev/ai-foundation-sdk";
+
+const DEFAULT_REASONING_MESSAGES = [
+  "我正在认真想一想～",
+  "让我整理一下思路，很快就好～",
+  "稍等一下，我正在组织语言呢～",
+];
+const WAITING_MESSAGE = "正在接收来自母星的消息，请耐心等待～";
 
 /**
  * 聊天消息角色
  */
-export type ChatRole = "user" | "assistant";
-
 /**
  * 聊天消息
  */
-export interface ChatMessage {
-  role: ChatRole;
-  content: string;
-}
+export type ChatMessage = UIMessage;
 
 /**
  * 聊天 API 配置
@@ -26,16 +36,12 @@ export interface ChatApiConfig {
   showChatMessageTimeout?: number;
   // 请求已收到时的即时提示语
   requestAcceptedMessage?: string;
+  // 模型思考阶段的提示语
+  reasoningMessages?: string[] | string | { message?: string }[];
+  // 思考提示语轮换间隔（秒）
+  reasoningMessageInterval?: number;
   // 保留上下文轮数
   chatContextRounds?: number;
-}
-
-/**
- * 聊天响应结果
- */
-export interface ChatResponse {
-  text: string;
-  status: number;
 }
 
 /**
@@ -43,7 +49,7 @@ export interface ChatResponse {
  */
 export class ChatApi {
   private config: ChatApiConfig;
-  private controller: AbortController | null = null;
+  private chat: Chat | null = null;
   private requestTimeoutId: number | null = null;
   private messageTimer: number | null = null;
 
@@ -56,6 +62,12 @@ export class ChatApi {
       showChatMessageTimeout: config.showChatMessageTimeout || 10,
       requestAcceptedMessage:
         config.requestAcceptedMessage || "收到啦，马上就来陪你啦～",
+      reasoningMessages: this.normalizeReasoningMessages(
+        config.reasoningMessages,
+      ),
+      reasoningMessageInterval: this.normalizeReasoningMessageInterval(
+        config.reasoningMessageInterval,
+      ),
       chatContextRounds: this.normalizeContextRounds(config.chatContextRounds),
     };
   }
@@ -70,17 +82,9 @@ export class ChatApi {
     message: string,
     historyMessages: ChatMessage[],
   ): Promise<void> {
-    const trimmedHistory = this.trimHistory(historyMessages);
-
-    // 添加用户消息到历史
-    const userMessage: ChatMessage = {
-      role: "user",
-      content: message,
-    };
-    trimmedHistory.push(userMessage);
-
-    // 创建 AbortController 用于取消请求
-    this.controller = new AbortController();
+    const trimmedHistory = this.trimHistory(
+      this.normalizeHistory(historyMessages),
+    );
 
     // 设置请求超时
     const timeoutMs = (this.config.chunkTimeout || 60) * 1000;
@@ -88,44 +92,14 @@ export class ChatApi {
       this.abort();
     }, timeoutMs) as unknown as number;
 
-    sendMessage(this.config.requestAcceptedMessage, 2000, 2);
-
-    // 显示等待消息
-    if (this.messageTimer) {
-      clearTimeout(this.messageTimer);
-      this.messageTimer = null;
-    }
-    this.messageTimer = setTimeout(() => {
-      sendMessage("正在接收来自母星的消息，请耐心等待～", 2000, 2);
-    }, 5000) as unknown as number;
-
     try {
       const apiEndpoint = this.config.apiEndpoint;
       if (!apiEndpoint) {
         throw new Error("API endpoint is not configured");
       }
 
-      const response = await fetch(apiEndpoint, {
-        method: "POST",
-        cache: "no-cache",
-        keepalive: true,
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-        },
-        body: JSON.stringify({
-          message: trimmedHistory,
-        }),
-        signal: this.controller.signal,
-      });
-
-      if (!response.ok) {
-        this.handleErrorResponse(response);
-        return;
-      }
-
       // 处理流式响应
-      await this.handleStreamResponse(response, trimmedHistory);
+      await this.handleStreamResponse(apiEndpoint, message, trimmedHistory);
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
         console.error("[Chat API] Request failed:", error);
@@ -137,23 +111,11 @@ export class ChatApi {
   }
 
   /**
-   * 处理错误响应
-   */
-  private handleErrorResponse(response: Response): void {
-    if (response.status === 401) {
-      sendMessage("请先登录！", 2000, 4);
-    } else {
-      sendMessage("对话接口异常了哦～快去联系我的主人吧！", 5000, 4);
-    }
-    console.error("[Chat API] Response error:", response);
-    this.abort();
-  }
-
-  /**
    * 处理流式响应
    */
   private async handleStreamResponse(
-    response: Response,
+    apiEndpoint: string,
+    messageTextValue: string,
     historyMessages: ChatMessage[],
   ): Promise<void> {
     // 清除定时器
@@ -170,70 +132,110 @@ export class ChatApi {
     const streamTimeout = (this.config.chunkTimeout || 60) * 1000;
     const showTimeout = (this.config.showChatMessageTimeout || 10) * 1000;
     const chat = createStreamMessage(streamTimeout, showTimeout);
+    chat.setMessage(this.config.requestAcceptedMessage || "");
 
-    if (!response.body) {
-      throw new Error("Response body is null");
-    }
-
-    const reader = response.body.getReader();
-    const textDecoder = new TextDecoder();
-
-    const chatMessage: ChatMessage = {
-      role: "assistant",
-      content: "",
-    };
-
-    try {
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) {
-          break;
-        }
-
-        const text = textDecoder.decode(value);
-        const textArrays = text.split("\n\n");
-
-        for (let decoderText of textArrays) {
-          if (!decoderText) continue;
-
-          // 移除 "data:" 前缀
-          if (decoderText.startsWith("data:")) {
-            const dataIndex = decoderText.indexOf("data:");
-            if (dataIndex !== -1) {
-              decoderText = decoderText.substring(dataIndex + 5);
-            }
-          }
-
-          try {
-            const chatResult: ChatResponse = JSON.parse(decoderText);
-            const { text, status } = chatResult;
-
-            if (status === 200) {
-              if (text === "[DONE]") {
-                // 消息接收完成，保存到历史记录
-                historyMessages.push(chatMessage);
-                localStorage.setItem(
-                  "historyMessages",
-                  JSON.stringify(historyMessages),
-                );
-                chat.stop();
-              } else {
-                // 追加文本片段
-                chatMessage.content += text;
-                chat.sendMessage(text);
-              }
-            } else {
-              throw new Error(text);
-            }
-          } catch (e) {
-            console.error("[Chat API] Parse error:", decoderText, e);
-            chat.sendMessage(`聊天接口出现异常了：${decoderText}`);
-          }
-        }
+    let unsubscribe: (() => void) | undefined;
+    let hasVisibleAssistantContent = false;
+    let waitingMessageTimer: number | null = setTimeout(() => {
+      if (!hasVisibleAssistantContent) {
+        chat.setMessage(WAITING_MESSAGE);
       }
+      waitingMessageTimer = null;
+    }, 5000) as unknown as number;
+    let reasoningMessageTimer: number | null = null;
+    let reasoningMessageVisible = false;
+    const stopWaitingMessage = () => {
+      if (waitingMessageTimer) {
+        clearTimeout(waitingMessageTimer);
+        waitingMessageTimer = null;
+      }
+    };
+    const stopReasoningMessages = () => {
+      if (reasoningMessageTimer) {
+        clearInterval(reasoningMessageTimer);
+        reasoningMessageTimer = null;
+      }
+    };
+    const showReasoningMessage = () => {
+      const message = this.pickReasoningMessage();
+      if (!message) {
+        return;
+      }
+      stopWaitingMessage();
+      hasVisibleAssistantContent = true;
+      reasoningMessageVisible = true;
+      chat.setMessage(message);
+    };
+    const startReasoningMessages = () => {
+      if (reasoningMessageTimer) {
+        return;
+      }
+      showReasoningMessage();
+      reasoningMessageTimer = setInterval(
+        showReasoningMessage,
+        (this.config.reasoningMessageInterval || 5) * 1000,
+      ) as unknown as number;
+    };
+    try {
+      let streamedText = "";
+      const sdkChat = new Chat({
+        id: "live2d-chat",
+        messages: historyMessages,
+        transport: new DefaultChatTransport({
+          api: apiEndpoint,
+        }),
+        onError: (error) => {
+          console.error("[Chat API] Stream error:", error);
+        },
+        onFinish: ({ messages, isAbort, isError }) => {
+          if (!isAbort && !isError) {
+            localStorage.setItem("historyMessages", JSON.stringify(messages));
+          }
+        },
+      });
+      this.chat = sdkChat;
+      unsubscribe = sdkChat.subscribe(() => {
+        console.log("[Chat API] Stream messages:", sdkChat.messages);
+        const latest = sdkChat.messages[sdkChat.messages.length - 1];
+        if (!latest || latest.role !== "assistant") {
+          return;
+        }
+        const text = messageText(latest);
+        console.log("[Chat API] Stream text:", text);
+        if (text.length > streamedText.length) {
+          stopWaitingMessage();
+          hasVisibleAssistantContent = true;
+          stopReasoningMessages();
+          if (reasoningMessageVisible && streamedText.length === 0) {
+            chat.setMessage("");
+            reasoningMessageVisible = false;
+          }
+          chat.sendMessage(text.slice(streamedText.length));
+        } else if (text.length === 0 && this.hasReasoningContent(latest)) {
+          startReasoningMessages();
+        }
+        streamedText = text;
+      });
+      await sdkChat.sendMessage({ text: messageTextValue });
+      if (sdkChat.error) {
+        throw sdkChat.error;
+      }
+      chat.stop();
     } catch (error) {
       console.error("[Chat API] Stream error:", error);
-      throw error;
+      stopWaitingMessage();
+      stopReasoningMessages();
+      if ((error as Error).name !== "AbortError") {
+        if (reasoningMessageVisible) {
+          chat.setMessage("");
+        }
+        chat.sendMessage(this.resolveErrorMessage(error));
+      }
+      chat.stop();
+    } finally {
+      stopWaitingMessage();
+      stopReasoningMessages();
+      unsubscribe?.();
     }
   }
 
@@ -241,9 +243,7 @@ export class ChatApi {
    * 中止当前请求
    */
   abort(): void {
-    if (this.controller) {
-      this.controller.abort();
-    }
+    this.chat?.stop();
     this.cleanup();
   }
 
@@ -259,14 +259,14 @@ export class ChatApi {
       clearTimeout(this.requestTimeoutId);
       this.requestTimeoutId = null;
     }
-    this.controller = null;
+    this.chat = null;
   }
 
   /**
    * 检查是否正在加载
    */
   isLoading(): boolean {
-    return this.controller !== null;
+    return this.chat !== null;
   }
 
   private normalizeContextRounds(rounds: number | undefined): number {
@@ -280,9 +280,80 @@ export class ChatApi {
     const maxMessages = this.config.chatContextRounds
       ? this.config.chatContextRounds * 2
       : 40;
-    if (historyMessages.length <= maxMessages) {
-      return [...historyMessages];
+    return pruneMessages(historyMessages, { maxMessages });
+  }
+
+  private normalizeReasoningMessages(messages: unknown): string[] {
+    if (typeof messages === "string" && messages.trim()) {
+      return [messages.trim()];
     }
-    return historyMessages.slice(-maxMessages);
+    if (!Array.isArray(messages)) {
+      return [...DEFAULT_REASONING_MESSAGES];
+    }
+    const normalized = messages
+      .map((message) => {
+        if (typeof message === "string" && message.trim()) {
+          return message.trim();
+        }
+        if (
+          typeof message === "object" &&
+          message !== null &&
+          "message" in message &&
+          typeof message.message === "string" &&
+          message.message.trim()
+        ) {
+          return message.message.trim();
+        }
+        return undefined;
+      })
+      .filter((message): message is string => message !== undefined);
+    return normalized.length > 0 ? normalized : [...DEFAULT_REASONING_MESSAGES];
+  }
+
+  private normalizeReasoningMessageInterval(interval: number | undefined): number {
+    if (!Number.isFinite(interval) || !interval || interval < 1) {
+      return 5;
+    }
+    return Math.floor(interval);
+  }
+
+  private pickReasoningMessage(): string | undefined {
+    const messages = this.config.reasoningMessages;
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return;
+    }
+    const message = messages[Math.floor(Math.random() * messages.length)];
+    if (typeof message === "string") {
+      return message;
+    }
+    return message?.message;
+  }
+
+  private hasReasoningContent(message: UIMessage): boolean {
+    return message.parts.some(
+      (part) => part.type === "reasoning" && part.text.trim().length > 0,
+    );
+  }
+
+  private normalizeHistory(messages: unknown): ChatMessage[] {
+    if (!Array.isArray(messages)) {
+      return [];
+    }
+    const issues = validateUIMessages(messages);
+    if (issues.length > 0) {
+      console.warn("[Chat API] Ignore invalid UI message history:", issues);
+      return [];
+    }
+    return messages as ChatMessage[];
+  }
+
+  private resolveErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message.trim()) {
+      return error.message;
+    }
+    if (typeof error === "string" && error.trim()) {
+      return error;
+    }
+    return "对话接口异常了哦～快去联系我的主人吧！";
   }
 }

@@ -4,6 +4,7 @@ import {
   type Live2dConfig,
   configContext,
 } from "@/live2d/context/config-context";
+import { loadMergedTips } from "@/live2d/helpers/loadMergedTips";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { DraggableMixin } from "@/live2d/mixins/draggable";
 import { consume } from "@lit/context";
@@ -183,12 +184,20 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
     this.focusInput();
 
     if (!this.chatApi) {
+      const mergedTips = this.config
+        ? await loadMergedTips(this.config).catch(() => undefined)
+        : undefined;
       this.chatApi = new ChatApi({
         chunkTimeout: Number(this.config?.chunkTimeout || 60),
         showChatMessageTimeout: Number(
           this.config?.showChatMessageTimeout || 10,
         ),
         requestAcceptedMessage: this.config?.requestAcceptedMessage,
+        reasoningMessages:
+          this.config?.reasoningMessages ?? mergedTips?.message.reasoning,
+        reasoningMessageInterval: Number(
+          this.config?.reasoningMessageInterval || 5,
+        ),
         chatContextRounds: Number(this.config?.chatContextRounds || 20),
       });
     }

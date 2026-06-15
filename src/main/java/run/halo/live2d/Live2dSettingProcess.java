@@ -30,7 +30,8 @@ public class Live2dSettingProcess implements Live2dSetting {
     private static final List<String> ADVANCED_FIELDS = List.of(
         "consoleShowStatu", "photoName", "live2dLocation");
     private static final List<String> AI_CHAT_PUBLIC_FIELDS = List.of(
-        "chunkTimeout", "showChatMessageTimeout", "requestAcceptedMessage", "chatContextRounds");
+        "chunkTimeout", "showChatMessageTimeout", "requestAcceptedMessage",
+        "reasoningMessages", "reasoningMessageInterval", "chatContextRounds");
 
     private final ReactiveSettingFetcher settingFetcher;
 

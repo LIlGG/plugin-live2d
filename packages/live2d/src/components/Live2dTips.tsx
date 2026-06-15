@@ -174,6 +174,10 @@ export class Live2dTips extends UnoLitElement {
       return;
     }
     const { text } = e.detail;
+    if (e.detail.mode === "replace") {
+      this._message = text;
+      return;
+    }
     this._message += text;
   }
 

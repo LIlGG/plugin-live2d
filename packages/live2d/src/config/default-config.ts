@@ -32,6 +32,12 @@ export const createDefaultLive2dConfig = (): Live2dConfig => ({
   chunkTimeout: 10,
   showChatMessageTimeout: 10,
   requestAcceptedMessage: "收到啦，马上就来陪你啦～",
+  reasoningMessages: [
+    "我正在认真想一想～",
+    "让我整理一下思路，很快就好～",
+    "稍等一下，我正在组织语言呢～",
+  ],
+  reasoningMessageInterval: 5,
   chatContextRounds: 20,
   screenshotName: "live2d",
   filterQuality: "high",

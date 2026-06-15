@@ -169,6 +169,11 @@ spec:
             modelName: ""
             chatContextRounds: 20
             requestAcceptedMessage: "收到啦，马上就来陪你啦～"
+            reasoningMessages:
+              - message: "我正在认真想一想～"
+              - message: "让我整理一下思路，很快就好～"
+              - message: "稍等一下，我正在组织语言呢～"
+            reasoningMessageInterval: 5
             systemMessage: |-
               你现在以 Live2D 二次元看板娘的身份与用户聊天，请始终稳定代入这个角色，不要跳出设定。
 
@@ -200,16 +205,14 @@ spec:
               label: 是否开启公共聊天
               help: 关闭后，用户需要登录后才能与 Live2d 进行对话
               name: isAnonymous
-            - $cmp: AiModelSelector
-              props:
-                name: modelName
-                label: Halo AI 模型
-                help: 选择 Halo AI 基础设施中已配置且可用的语言模型
-                modelType: language
-                available: true
-                validation: required|String
-                placeholder: 请选择语言模型
-                searchPlaceholder: 搜索模型
+            - $formkit: aiModelSelector
+              name: modelName
+              label: 对话模型
+              modelType: language
+              available: true
+              validation: required
+              placeholder: 请选择对话模型
+              searchPlaceholder: 搜索模型
             - $formkit: textarea
               label: 角色设定
               name: systemMessage
@@ -221,6 +224,21 @@ spec:
               name: requestAcceptedMessage
               help: 用户发送消息后，Live2D 会立刻展示这条提示语，减少等待时的空白感
               validation: String
+            - $formkit: repeater
+              label: 思考中提示语
+              name: reasoningMessages
+              help: 当模型正在返回思考内容但还没有可展示回复时，Live2D 会随机展示其中一条。思考时间较长时会自动切换
+              min: 1
+              children:
+                - $formkit: text
+                  name: message
+                  label: 提示语
+                  validation: required
+            - $formkit: text
+              label: 思考提示切换间隔（秒）
+              name: reasoningMessageInterval
+              help: 模型长时间处于思考阶段时，提示语的自动切换间隔，默认 5 秒
+              validation: Number|between:1,60
             - $formkit: text
               label: 保留上下文轮数
               name: chatContextRounds

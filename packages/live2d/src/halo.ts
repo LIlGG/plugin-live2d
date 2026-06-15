@@ -12,6 +12,9 @@ export const bootstrapFromHalo = async (): Promise<void> => {
 
   bootstrapPromise = (async () => {
     const config = readHaloLive2dConfig();
+    if (import.meta.env.DEV) {
+      await import("@vitejs/plugin-react/preamble");
+    }
     const { createLive2d } = await import("./live2d/runtime");
     const live2d = window.live2d ?? createLive2d();
     if (!window.live2d) {

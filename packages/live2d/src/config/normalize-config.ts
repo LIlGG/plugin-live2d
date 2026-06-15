@@ -14,6 +14,8 @@ export interface LegacyLive2dConfigInput extends Partial<Live2dConfig> {
     chunkTimeout?: number | string;
     showChatMessageTimeout?: number | string;
     requestAcceptedMessage?: string;
+    reasoningMessages?: string[] | string | { message?: string }[];
+    reasoningMessageInterval?: number | string;
     chatContextRounds?: number | string;
   };
   consoleShowStatu?: boolean;
@@ -26,6 +28,32 @@ const normalizeTools = (tools: unknown): string[] | undefined => {
     return;
   }
   return tools.filter((tool): tool is string => isNotEmptyString(tool));
+};
+
+const normalizeMessages = (messages: unknown): string[] | undefined => {
+  if (isNotEmptyString(messages)) {
+    return [messages];
+  }
+  if (!Array.isArray(messages)) {
+    return;
+  }
+  const normalized = messages
+    .map((message) => {
+      if (isNotEmptyString(message)) {
+        return message;
+      }
+      if (
+        typeof message === "object" &&
+        message !== null &&
+        "message" in message &&
+        isNotEmptyString(message.message)
+      ) {
+        return message.message;
+      }
+      return undefined;
+    })
+    .filter((message): message is string => message !== undefined);
+  return normalized.length > 0 ? normalized : undefined;
 };
 
 export const normalizeLive2dConfig = (
@@ -78,6 +106,17 @@ export const normalizeLive2dConfig = (
         input.aiChatBaseSetting?.requestAcceptedMessage,
         defaults.requestAcceptedMessage,
       ) ?? defaults.requestAcceptedMessage,
+    reasoningMessages:
+      normalizeMessages(input.reasoningMessages) ??
+      normalizeMessages(input.aiChatBaseSetting?.reasoningMessages) ??
+      normalizeMessages(defaults.reasoningMessages) ??
+      [],
+    reasoningMessageInterval:
+      pickNumber(
+        input.reasoningMessageInterval,
+        input.aiChatBaseSetting?.reasoningMessageInterval,
+        defaults.reasoningMessageInterval,
+      ) ?? defaults.reasoningMessageInterval,
     chatContextRounds:
       pickNumber(
         input.chatContextRounds,

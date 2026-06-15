@@ -30,6 +30,7 @@ export interface TipMessage extends ObjectAny {
   console?: string[] | string;
   copy?: string[] | string;
   loading?: string[] | string;
+  reasoning?: string[] | string;
   visibilitychange?: string[] | string;
 }
 
@@ -58,6 +59,10 @@ export interface Live2dToolsConfig {
   showChatMessageTimeout?: number;
   // 用户请求已收到时的即时提示语
   requestAcceptedMessage?: string;
+  // 模型思考阶段的提示语
+  reasoningMessages?: string[] | string;
+  // 思考提示语轮换间隔（秒）
+  reasoningMessageInterval?: number;
   // 保留上下文轮数
   chatContextRounds?: number;
   // 一言图标
@@ -132,6 +137,8 @@ export interface Live2dConfig extends Live2dToolsConfig {
     chunkTimeout?: number | string;
     showChatMessageTimeout?: number | string;
     requestAcceptedMessage?: string;
+    reasoningMessages?: string[] | string | { message?: string }[];
+    reasoningMessageInterval?: number | string;
     chatContextRounds?: number | string;
   };
   // 滤镜质量等级 (low / medium / high)
