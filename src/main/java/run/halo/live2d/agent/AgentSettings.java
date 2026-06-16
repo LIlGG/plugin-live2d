@@ -53,13 +53,17 @@ public record AgentSettings(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AgentBuiltInCapabilities(
-        boolean pageContext,
-        boolean haloNavigation,
-        boolean haloContentSearch,
-        boolean networkAccess,
+        Boolean pageContext,
+        Boolean haloNavigation,
+        Boolean haloContentSearch,
+        Boolean networkAccess,
         AgentCommentCapability commentCapability
     ) {
         public AgentBuiltInCapabilities {
+            pageContext = pageContext == null ? true : pageContext;
+            haloNavigation = haloNavigation == null ? true : haloNavigation;
+            haloContentSearch = haloContentSearch == null ? true : haloContentSearch;
+            networkAccess = networkAccess == null ? false : networkAccess;
             commentCapability = commentCapability == null
                 ? AgentCommentCapability.ASSIST
                 : commentCapability;
@@ -74,8 +78,12 @@ public record AgentSettings(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AgentToolSecurity(
         Object allowedExternalOrigins,
-        boolean allowNewTab
+        Boolean allowNewTab
     ) {
+        public AgentToolSecurity {
+            allowNewTab = allowNewTab == null ? false : allowNewTab;
+        }
+
         public static AgentToolSecurity defaults() {
             return new AgentToolSecurity(List.of(), false);
         }
@@ -88,8 +96,12 @@ public record AgentSettings(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AgentHaloSearchSettings(
         List<String> allowedTypes,
-        int defaultLimit
+        Integer defaultLimit
     ) {
+        public AgentHaloSearchSettings {
+            defaultLimit = defaultLimit == null ? 5 : defaultLimit;
+        }
+
         public static AgentHaloSearchSettings defaults() {
             return new AgentHaloSearchSettings(List.of(), 5);
         }
@@ -108,9 +120,10 @@ public record AgentSettings(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AgentHaloResourceDetailSettings(
-        int maxContentChars
+        Integer maxContentChars
     ) {
         public AgentHaloResourceDetailSettings {
+            maxContentChars = maxContentChars == null ? 3000 : maxContentChars;
             if (maxContentChars < 500) {
                 maxContentChars = 3000;
             }
@@ -127,9 +140,14 @@ public record AgentSettings(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AgentNetworkAccessSettings(
         Object allowedOrigins,
-        int maxResponseChars,
-        int timeoutSeconds
+        Integer maxResponseChars,
+        Integer timeoutSeconds
     ) {
+        public AgentNetworkAccessSettings {
+            maxResponseChars = maxResponseChars == null ? 4000 : maxResponseChars;
+            timeoutSeconds = timeoutSeconds == null ? 5 : timeoutSeconds;
+        }
+
         public static AgentNetworkAccessSettings defaults() {
             return new AgentNetworkAccessSettings(List.of(), 4000, 5);
         }
@@ -152,7 +170,7 @@ public record AgentSettings(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AgentToolConfig(
         String name,
-        boolean enabled,
+        Boolean enabled,
         String description,
         JsonNode inputSchema,
         AgentToolApproval approval,
@@ -161,6 +179,7 @@ public record AgentSettings(
         JsonNode testInput
     ) {
         public AgentToolConfig {
+            enabled = enabled == null ? false : enabled;
             approval = approval == null ? AgentToolApproval.DEFAULT : approval;
             requiredAuth = requiredAuth == null ? AgentToolAuth.NONE : requiredAuth;
         }
