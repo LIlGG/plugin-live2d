@@ -34,7 +34,12 @@
 Agent 的设计目标是：让看板娘能帮访客更快找到内容、理解当前页面并完成轻量站点操作，同时保持清晰的权限边界。
 
 ## 下载及使用说明
-1. 前往 [Github Release](https://github.com/LIlGG/plugin-live2d/releases/latest) 下载 jar 包
+> [!TIP]
+> 在 2.x 版本之后，插件依赖了 [Ai Foundation 插件](https://www.halo.run/store/apps/app-acslk9nu) ，因此安装此插件前请先安装 Ai Foundation 插件。
+
+
+1. 前往 Halo 应用市场，安装 [Ai Foundation 插件](https://www.halo.run/store/apps/app-acslk9nu) 插件。
+2. 在 [Github Release](https://github.com/LIlGG/plugin-live2d/releases/latest) 下载 jar 包 或者前往 Halo 应用市场下载[本插件](https://www.halo.run/store/apps/app-oPNFQ)。
 2. 通过 Halo-2.x [安装插件](https://docs.halo.run/user-guide/plugins#%E5%AE%89%E8%A3%85%E6%8F%92%E4%BB%B6) 功能安装本插件
 3. 打开网站，即可在左下角看到萌萌哒的看板娘哦~
 
