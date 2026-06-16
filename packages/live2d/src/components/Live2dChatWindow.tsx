@@ -62,6 +62,7 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
   private chatApi: ChatApi | null = null;
   private historyMessages: ChatMessage[] = [];
   private _hidePopoverTimer?: number;
+  private _chatRequestSeq = 0;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -83,8 +84,9 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
         ? "pointer-events-auto opacity-100"
         : "pointer-events-none opacity-0",
     ].join(" ");
-    const sendButtonClass =
-      this._canSend && !this._isLoading
+    const sendButtonClass = this._isLoading
+      ? "bg-[#f97373] text-white shadow-[0_6px_16px_rgba(249,115,115,0.25)] hover:bg-[#ef4444]"
+      : this._canSend
         ? "bg-[#ffab5c] text-white shadow-[0_6px_16px_rgba(255,171,92,0.25)] hover:bg-[#ff9840]"
         : "bg-[#eee7de] text-slate-400 cursor-not-allowed";
 
@@ -109,13 +111,13 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
             type="button"
             class="inline-flex h-8 w-8 flex-none items-center justify-center rounded-full border-none transition-colors ${sendButtonClass}"
             @click=${this.handleSend}
-            aria-label=${this._isLoading ? "发送中" : "发送消息"}
+            aria-label=${this._isLoading ? "停止生成" : "发送消息"}
           >
             ${
               this._isLoading
                 ? html`<iconify-icon
-                    id="loadingIcon"
-                    icon="line-md:loading-twotone-loop"
+                    id="stop"
+                    icon="mingcute:stop-fill"
                     width="18"
                     height="18"
                     class="text-current"
@@ -176,10 +178,22 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
   };
 
   handleSend = (): void => {
-    if (this._canSend && !this._isLoading) {
+    if (this._isLoading) {
+      this.stopMessage();
+      return;
+    }
+    if (this._canSend) {
       void this.sendMessage();
     }
   };
+
+  private stopMessage(): void {
+    this._chatRequestSeq += 1;
+    this.chatApi?.abort();
+    this._isLoading = false;
+    this._canSend = !!this._input?.value.length;
+    this.focusInput();
+  }
 
   private async sendMessage(): Promise<void> {
     if (!this._input || !this._input.value || this._isLoading) {
@@ -195,17 +209,20 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
     this._canSend = false;
     this._isLoading = true;
     this.focusInput();
+    const requestSeq = ++this._chatRequestSeq;
 
     try {
       await this.sendChatMessage(message, this.readStoredHistoryMessages());
     } catch (error) {
       console.error("[Live2dChatWindow] Send message error:", error);
     } finally {
-      this._isLoading = false;
-      if (this._input) {
-        this._canSend = this._input.value.length > 0;
+      if (requestSeq === this._chatRequestSeq) {
+        this._isLoading = false;
+        if (this._input) {
+          this._canSend = this._input.value.length > 0;
+        }
+        this.focusInput();
       }
-      this.focusInput();
     }
   }
 
@@ -273,6 +290,7 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
     this._isLoading = true;
     this._canSend = false;
     this.focusInput();
+    const requestSeq = ++this._chatRequestSeq;
     try {
       await this.sendChatMessage(resume.message, resume.historyMessages);
     } catch (error) {
@@ -281,11 +299,13 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
         error,
       );
     } finally {
-      this._isLoading = false;
-      if (this._input) {
-        this._canSend = this._input.value.length > 0;
+      if (requestSeq === this._chatRequestSeq) {
+        this._isLoading = false;
+        if (this._input) {
+          this._canSend = this._input.value.length > 0;
+        }
+        this.focusInput();
       }
-      this.focusInput();
     }
   }
 

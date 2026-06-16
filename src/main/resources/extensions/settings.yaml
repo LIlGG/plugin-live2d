@@ -117,11 +117,18 @@ spec:
           label: 打开控制台提示语
           name: openConsoleTip
           value: "你是想要看看我的小秘密吗？"
-        - $formkit: repeater
+        - $formkit: array
           name: selectorTips
           label: 选择器提示语
           help: 根据 CSS 选择器自定义 Live2d 呈现的文本（各主题选择器可能不同）。
           value: []
+          addLabel: 添加选择器提示语
+          emptyText: 暂无选择器提示语
+          itemLabels:
+            - type: text
+              label: $value.mouseAction
+            - type: text
+              label: $value.selector
           children:
             - $formkit: select
               name: mouseAction
@@ -136,12 +143,17 @@ spec:
               name: selector
               label: CSS 选择器
               validation: required
-            - $formkit: repeater
+            - $formkit: array
               name: messageTexts
               label: 提示语集合
               help: 可以填写多个提示语，Live2d 将会随机选择一个
               min: 1
               value: []
+              addLabel: 添加提示语
+              emptyText: 暂无提示语
+              itemLabels:
+                - type: text
+                  label: $value.message
               children:
                 - $formkit: text
                   name: message
@@ -234,11 +246,16 @@ spec:
               name: requestAcceptedMessage
               help: 用户发送消息后，Live2D 会立刻展示这条提示语，减少等待时的空白感
               validation: String
-            - $formkit: repeater
+            - $formkit: array
               label: 思考中提示语
               name: reasoningMessages
               help: 当模型正在返回思考内容但还没有可展示回复时，Live2D 会随机展示其中一条。思考时间较长时会自动切换
               min: 1
+              addLabel: 添加思考提示语
+              emptyText: 暂无思考提示语
+              itemLabels:
+                - type: text
+                  label: $value.message
               children:
                 - $formkit: text
                   name: message
@@ -317,11 +334,16 @@ spec:
             allowedExternalOrigins: []
             allowNewTab: false
           children:
-            - $formkit: repeater
+            - $formkit: array
               name: allowedExternalOrigins
               label: 允许打开的外部站点
               help: 仅填写 origin，例如 https://github.com。外链仍会默认请求访客确认。
               value: []
+              addLabel: 添加外部站点
+              emptyText: 暂无外部站点
+              itemLabels:
+                - type: text
+                  label: $value.origin
               children:
                 - $formkit: text
                   name: origin
@@ -365,11 +387,16 @@ spec:
             maxResponseChars: 4000
             timeoutSeconds: 5
           children:
-            - $formkit: repeater
+            - $formkit: array
               name: allowedOrigins
               label: 允许访问的 Origin
               help: 仅填写可信公网 Origin，例如 https://api.example.com。不会跟随重定向，也不会访问 localhost、内网或链路本地地址。
               value: []
+              addLabel: 添加 Origin
+              emptyText: 暂无 Origin
+              itemLabels:
+                - type: text
+                  label: $value.origin
               children:
                 - $formkit: text
                   name: origin
@@ -414,15 +441,6 @@ spec:
           name: photoName
           validation: required
           value: live2d
-        - $formkit: select
-          label: 看板娘位置
-          name: live2dLocation
-          value: left
-          options:
-            - value: left
-              label: 屏幕左侧
-            - value: right
-              label: 屏幕右侧
         - $formkit: select
           help: 页面何时加载 Live2d。网站带宽有限时，可选择优先加载页面全部内容再加载 Live2d。
           label: Live2d 加载时机
