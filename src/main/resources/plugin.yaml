@@ -6,7 +6,9 @@ metadata:
     "store.halo.run/app-id": "app-oPNFQ"
 spec:
   enabled: true
-  requires: ">=2.22.0"
+  requires: ">=2.25.0"
+  pluginDependencies:
+    ai-foundation: "*"
   author:
     name: LIlGG
     website: https://lixingyong.com

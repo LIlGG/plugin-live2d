@@ -1,12 +1,14 @@
 package run.halo.live2d.chat;
 
-import com.theokanning.openai.completion.chat.ChatMessage;
-import java.util.List;
-import org.springframework.http.codec.ServerSentEvent;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import run.halo.aifoundation.ui.UIMessageChatRequest;
+import run.halo.aifoundation.ui.UIMessageStreamResponse;
+import run.halo.live2d.agent.AgentToolSet;
 
-@FunctionalInterface
 public interface AiChatService {
 
-    Flux<ServerSentEvent<ChatResult>> streamChatCompletion(List<ChatMessage> messages);
+    Mono<UIMessageStreamResponse> streamChatCompletion(String modelName, String systemMessage,
+        UIMessageChatRequest<Void> chatRequest, AgentToolSet agentToolSet);
+
+    UIMessageStreamResponse errorResponse(String message);
 }

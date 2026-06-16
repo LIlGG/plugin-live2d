@@ -165,7 +165,15 @@ spec:
           if: "$get(isAiChat).value === true"
           label: 聊天基本设置
           value:
-            isAnonymous: true
+            accessMode: anonymous_chat
+            modelName: ""
+            chatContextRounds: 20
+            requestAcceptedMessage: "收到啦，马上就来陪你啦～"
+            reasoningMessages:
+              - message: "我正在认真想一想～"
+              - message: "让我整理一下思路，很快就好～"
+              - message: "稍等一下，我正在组织语言呢～"
+            reasoningMessageInterval: 5
             systemMessage: |-
               你现在以 Live2D 二次元看板娘的身份与用户聊天，请始终稳定代入这个角色，不要跳出设定。
 
@@ -190,14 +198,31 @@ spec:
               - 始终保持看板娘人设稳定，不要频繁切换身份、语气或叙述视角。
               - 回复应以易读、自然为主，避免过长大段输出。
               - 在合适场景下可以表现出贴心、活泼、害羞、关心等情绪，但不要夸张失控。
-            timeout: 10
             chunkTimeout: 10
             showChatMessageTimeout: 10
+            autoContinuationMessageMinVisibleMs: 1500
           children:
-            - $formkit: switch
-              label: 是否开启公共聊天
-              help: 关闭后，用户需要登录后才能与 Live2d 进行对话
-              name: isAnonymous
+            - $formkit: select
+              label: 访问模式
+              help: 控制访客能否对话，以及是否允许 Live2D Agent 操作站点能力。旧版公共聊天开启会按“匿名用户可对话”兼容。
+              name: accessMode
+              options:
+                - value: anonymous_chat
+                  label: 匿名用户可对话
+                - value: anonymous_chat_agent
+                  label: 匿名用户可对话和使用 Agent
+                - value: authenticated_chat
+                  label: 登录用户可对话
+                - value: authenticated_chat_agent
+                  label: 登录用户可对话和使用 Agent
+            - $formkit: aiModelSelector
+              name: modelName
+              label: 对话模型
+              modelType: language
+              available: true
+              validation: required
+              placeholder: 请选择对话模型
+              searchPlaceholder: 搜索模型
             - $formkit: textarea
               label: 角色设定
               name: systemMessage
@@ -205,9 +230,30 @@ spec:
               rows: 16
               validation: String
             - $formkit: text
-              label: 接口超时时间（秒）
-              name: timeout
-              validation: Number
+              label: 请求已收到提示语
+              name: requestAcceptedMessage
+              help: 用户发送消息后，Live2D 会立刻展示这条提示语，减少等待时的空白感
+              validation: String
+            - $formkit: repeater
+              label: 思考中提示语
+              name: reasoningMessages
+              help: 当模型正在返回思考内容但还没有可展示回复时，Live2D 会随机展示其中一条。思考时间较长时会自动切换
+              min: 1
+              children:
+                - $formkit: text
+                  name: message
+                  label: 提示语
+                  validation: required
+            - $formkit: text
+              label: 思考提示切换间隔（秒）
+              name: reasoningMessageInterval
+              help: 模型长时间处于思考阶段时，提示语的自动切换间隔，默认 5 秒
+              validation: Number|between:1,60
+            - $formkit: text
+              label: 保留上下文轮数
+              name: chatContextRounds
+              help: 1 轮等于 1 次用户消息 + 1 次看板娘回复。超过后仅保留最近几轮上下文，默认 20
+              validation: Number|between:1,100
             - $formkit: text
               label: 看板娘消息框最大等待时间（秒）
               help: 请求接口数据时，看板娘消息框最大等待时间
@@ -218,65 +264,142 @@ spec:
               help: 获取到完整消息后，看板娘展示的时间
               name: showChatMessageTimeout
               validation: Number
+            - $formkit: text
+              label: Agent 自动续写前消息最短展示时间（毫秒）
+              help: Agent 自动调用工具并继续回复时，上一段看板娘回复至少展示这段时间，避免被后续回复过快覆盖；设置为 0 表示不延迟
+              name: autoContinuationMessageMinVisibleMs
+              validation: Number|between:0,10000
+    - group: agent
+      label: Agent 能力
+      formSchema:
         - $formkit: group
-          name: proxySetting
-          if: "$get(isAiChat).value === true"
-          label: 全局代理设置
-          help: 建议自建代理，而不是使用别人的公开代理
+          name: builtIn
+          label: 预设能力
           value:
-            isProxy: false
+            pageContext: true
+            haloNavigation: true
+            haloContentSearch: true
+            networkAccess: false
+            commentCapability: assist
           children:
             - $formkit: switch
-              label: 启用代理
-              name: isProxy
-              id: isProxy
-              key: isProxy
-            - $formkit: text
-              if: "$value.isProxy === true"
-              label: 代理地址
-              name: proxyHost
-            - $formkit: text
-              if: "$value.isProxy === true"
-              label: 代理端口
-              name: proxyPort
-              validation: Number|between:0,65535
-        - $formkit: group
-          name: openAiSetting
-          if: "$get(isAiChat).value === true"
-          label: OpenAI 设置
-          value:
-            isOpenAi: false
-            openAiBaseUrl: https://api.openai.com
-            openAiModel: gpt-3.5-turbo
-          children:
+              name: pageContext
+              label: 当前页面上下文
+              help: 允许模型读取当前页面标题、地址和选中文本等基础上下文
             - $formkit: switch
-              label: 启用 OpenAI
-              help: 基于 OpenAI 进行智能对话
-              name: isOpenAi
-              id: isOpenAi
-              key: isOpenAi
-            - $formkit: text
-              if: "$value.isOpenAi === true"
-              label: TOKEN
-              help: sk-xxx，可在 https://beta.openai.com/account/api-keys 获取
-              name: openAiToken
-              validation: required|String
-            - $formkit: text
-              if: "$value.isOpenAi === true"
-              label: API_BASE_URL
-              help: 接口地址，国内如果访问不了，可考虑使用 openai-api-proxy
-              name: openAiBaseUrl
-              validation: required|url
+              name: haloNavigation
+              label: Halo 导航
+              help: 允许模型打开可信的 Halo 资源链接
+            - $formkit: switch
+              name: haloContentSearch
+              label: Halo 内容搜索
+              help: 允许模型通过 Halo 搜索引擎查询公开内容
+            - $formkit: switch
+              name: networkAccess
+              label: 网络访问
+              help: 允许模型通过后端工具读取站长白名单中的公网 URL。默认关闭，且会阻止 localhost、内网、链路本地地址和未授权 Origin。
             - $formkit: select
-              if: "$value.isOpenAi === true"
-              name: openAiModel
-              label: 模型
-              help: 使用的 OpenAi 模型，可在 https://platform.openai.com/docs/models 查看
+              name: commentCapability
+              label: 评论能力
+              help: 关闭：不向模型开放评论相关工具。辅助：允许模型打开评论区、读取当前评论状态并生成评论草稿，但不提交。提交：在站点允许且访客确认后，允许模型尝试提交评论。
+              value: assist
               options:
-                - value: gpt-4
-                  label: gpt-4
-                - value: gpt-3.5-turbo
-                  label: gpt-3.5-turbo
+                - value: off
+                  label: 关闭
+                - value: assist
+                  label: 辅助
+                - value: submit
+                  label: 提交
+        - $formkit: group
+          name: toolSecurity
+          label: 安全策略
+          value:
+            allowedExternalOrigins: []
+            allowNewTab: false
+          children:
+            - $formkit: repeater
+              name: allowedExternalOrigins
+              label: 允许打开的外部站点
+              help: 仅填写 origin，例如 https://github.com。外链仍会默认请求访客确认。
+              value: []
+              children:
+                - $formkit: text
+                  name: origin
+                  label: Origin
+            - $formkit: switch
+              name: allowNewTab
+              label: 允许新窗口打开
+              value: false
+        - $formkit: group
+          name: haloSearch
+          label: Halo 搜索
+          value:
+            allowedTypes:
+              - post.content.halo.run
+              - singlepage.content.halo.run
+            defaultLimit: 5
+          children:
+            - $formkit: checkbox
+              name: allowedTypes
+              label: 允许搜索的内容类型
+              help: 只有选中的公开内容类型会暴露给 Agent 搜索。Moment 等类型需要对应插件已接入 Halo 搜索索引。
+              value:
+                - post.content.halo.run
+                - singlepage.content.halo.run
+              options:
+                - value: post.content.halo.run
+                  label: 文章
+                - value: singlepage.content.halo.run
+                  label: 独立页面
+                - value: moment.moment.halo.run
+                  label: 瞬间
+            - $formkit: text
+              name: defaultLimit
+              label: 默认返回数量
+              validation: Number|between:1,20
+        - $formkit: group
+          name: networkAccess
+          label: 网络访问安全策略
+          value:
+            allowedOrigins: []
+            maxResponseChars: 4000
+            timeoutSeconds: 5
+          children:
+            - $formkit: repeater
+              name: allowedOrigins
+              label: 允许访问的 Origin
+              help: 仅填写可信公网 Origin，例如 https://api.example.com。不会跟随重定向，也不会访问 localhost、内网或链路本地地址。
+              value: []
+              children:
+                - $formkit: text
+                  name: origin
+                  label: Origin
+            - $formkit: text
+              name: maxResponseChars
+              label: 最大响应字符数
+              help: 超出部分会被截断，范围 1000 到 20000，默认 4000
+              validation: Number|between:1000,20000
+            - $formkit: text
+              name: timeoutSeconds
+              label: 请求超时（秒）
+              help: 后端网络请求超时时间，范围 1 到 15，默认 5
+              validation: Number|between:1,15
+        - $formkit: group
+          name: haloResourceDetail
+          label: 资源详情
+          value:
+            maxContentChars: 3000
+          children:
+            - $formkit: text
+              name: maxContentChars
+              label: 最大正文字符数
+              validation: Number|between:500,10000
+        - $formkit: textarea
+          name: aiTools
+          label: 自定义 Agent 工具 JSON
+          help: 高级配置项。填写工具数组 JSON，支持 navigate、scroll-to、highlight、dispatch-event、registered。
+          rows: 12
+          value: "[]"
     - group: advanced
       label: 高级设置
       formSchema:

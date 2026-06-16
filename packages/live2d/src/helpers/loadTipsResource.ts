@@ -85,6 +85,7 @@ const isTipMessage = (value: unknown): value is TipMessage => {
     "console",
     "copy",
     "loading",
+    "reasoning",
     "visibilitychange",
   ];
   return optionalFields.every((field) => {

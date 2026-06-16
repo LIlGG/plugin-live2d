@@ -22,6 +22,8 @@ export interface StreamMessageStartEventDetail {
 export interface StreamMessageEventDetail {
   // 流式消息文本片段
   text: string;
+  // 消息写入模式：默认追加；思考提示等临时内容可替换当前消息
+  mode?: "append" | "replace";
 }
 
 export interface StreamMessageStopEventDetail {

@@ -1,12 +1,18 @@
 plugins {
     id 'java'
     id "io.freefair.lombok" version "9.2.0"
-    id "run.halo.plugin.devtools" version "0.6.2"
+    id "run.halo.plugin.devtools" version "0.8.0"
 }
 
 group 'run.halo.live2d'
 
 repositories {
+    maven {
+        url = uri('https://central.sonatype.com/repository/maven-snapshots/')
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
     mavenCentral()
 }
 
@@ -16,11 +22,12 @@ configurations.runtimeClasspath {
 
 dependencies {
     implementation platform('run.halo.tools.platform:plugin:2.24.0')
-    implementation 'com.theokanning.openai-gpt3-java:api:0.17.0'
 
     compileOnly 'run.halo.app:api'
+    compileOnly 'run.halo.aifoundation:api:1.0.0-SNAPSHOT'
 
     testImplementation 'run.halo.app:api'
+    testImplementation 'run.halo.aifoundation:api:1.0.0-SNAPSHOT'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -80,11 +87,10 @@ tasks.named("processResources") {
 }
 
 halo {
-    version = '2.24.2'
-    port = 8090
+    version = '2.25'
+    port = 8092
     superAdminUsername = 'admin'
     superAdminPassword = 'admin'
-    externalUrl = 'http://localhost:8090'
     debug = true
 }
 

@@ -1,8 +1,10 @@
 # live2d-public-runtime-config Specification
 
 ## Purpose
-TBD - created by archiving change integrate-modern-live2d-frontend. Update Purpose after archive.
+Define the frontend-safe runtime configuration contract emitted by the backend for the modern Live2D runtime.
+
 ## Requirements
+
 ### Requirement: Backend SHALL publish a frontend-safe Live2D runtime config payload
 The plugin backend SHALL publish a dedicated public config payload for the Live2D frontend instead of exposing a broad merged settings object directly to inline initialization code.
 
@@ -16,6 +18,16 @@ The plugin backend SHALL publish a dedicated public config payload for the Live2
 - **THEN** it MUST receive the fields needed to preserve current widget behavior, including runtime toggles, tips sources, model defaults, AI-chat runtime timings, and declarative custom tool definitions when configured
 - **AND** it MUST not require the backend to expose raw settings groups that are not part of the frontend contract
 
+#### Scenario: Public payload includes safe Agent browser execution metadata
+- **WHEN** Agent capabilities are configured
+- **THEN** the public payload MUST include only normalized browser execution metadata needed by the frontend to execute allowed browser tools
+- **AND** it MUST exclude backend-only model identifiers, provider configuration, server executor details, and invalid tool definitions
+
+#### Scenario: Public payload cannot expand model-visible tools
+- **WHEN** frontend scripts register Agent tool executors at runtime
+- **THEN** those registrations MUST only bind executors for tools already present in the normalized public Agent runtime config
+- **AND** they MUST NOT create additional model-visible tool declarations
+
 ### Requirement: Halo bootstrap SHALL deliver config separately from execution logic
 The plugin SHALL provide the runtime config payload in a transport that is separate from the frontend execution bundle so configuration and code loading can evolve independently.
 
@@ -28,4 +40,3 @@ The plugin SHALL provide the runtime config payload in a transport that is separ
 - **WHEN** the frontend is loaded from packaged assets or from a dev server
 - **THEN** both startup modes MUST read the same public config payload shape
 - **AND** environment-specific bootstrap differences MUST not require a second config format
-

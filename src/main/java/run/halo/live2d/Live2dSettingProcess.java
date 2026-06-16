@@ -1,6 +1,7 @@
 package run.halo.live2d;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import run.halo.live2d.agent.AgentSettings;
+import run.halo.live2d.agent.AgentToolNormalizer;
 import run.halo.app.plugin.ReactiveSettingFetcher;
 
 /**
@@ -29,8 +32,14 @@ public class Live2dSettingProcess implements Live2dSetting {
         "openConsole", "openConsoleTip", "selectorTips", "tipsPath");
     private static final List<String> ADVANCED_FIELDS = List.of(
         "consoleShowStatu", "photoName", "live2dLocation");
+    private static final List<String> AI_CHAT_PUBLIC_FIELDS = List.of(
+        "chunkTimeout", "showChatMessageTimeout", "autoContinuationMessageMinVisibleMs",
+        "requestAcceptedMessage", "reasoningMessages", "reasoningMessageInterval",
+        "chatContextRounds");
 
     private final ReactiveSettingFetcher settingFetcher;
+    private final AgentToolNormalizer agentToolNormalizer;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public Mono<JsonNode> getGroup(String groupName) {
@@ -51,6 +60,7 @@ public class Live2dSettingProcess implements Live2dSetting {
             copyFields(objectNode, data.get("tips"), TIPS_FIELDS);
             copyFields(objectNode, data.get("advanced"), ADVANCED_FIELDS);
             copyAiChatFields(objectNode, data.get("aichat"));
+            copyAgentFields(objectNode, data.get("agent"));
             copyCustomTools(objectNode, data.get("customTools"));
             if (themeTipsPath != null && !themeTipsPath.isBlank()) {
                 objectNode.put("themeTipsPath", themeTipsPath);
@@ -86,8 +96,46 @@ public class Live2dSettingProcess implements Live2dSetting {
             return;
         }
 
-        copyField(target, aiChatBaseSetting, "chunkTimeout");
-        copyField(target, aiChatBaseSetting, "showChatMessageTimeout");
+        copyFields(target, aiChatBaseSetting, AI_CHAT_PUBLIC_FIELDS);
+    }
+
+    private void copyAgentFields(ObjectNode target, JsonNode source) {
+        if (source == null || source.isNull()) {
+            return;
+        }
+
+        AgentSettings settings = objectMapper.convertValue(source, AgentSettings.class);
+        ObjectNode agentNode = JsonNodeFactory.instance.objectNode();
+        agentNode.set("builtIn", objectMapper.valueToTree(settings.builtIn()));
+        ObjectNode securityNode = JsonNodeFactory.instance.objectNode();
+        securityNode.set("allowedExternalOrigins",
+            objectMapper.valueToTree(settings.toolSecurity().normalizedAllowedExternalOrigins()));
+        securityNode.put("allowNewTab", settings.toolSecurity().allowNewTab());
+        agentNode.set("toolSecurity", securityNode);
+        ObjectNode searchNode = JsonNodeFactory.instance.objectNode();
+        searchNode.set("allowedTypes",
+            objectMapper.valueToTree(settings.haloSearch().normalizedAllowedTypes()));
+        searchNode.put("defaultLimit", settings.haloSearch().normalizedDefaultLimit());
+        agentNode.set("haloSearch", searchNode);
+        agentNode.set("haloResourceDetail", objectMapper.valueToTree(settings.haloResourceDetail()));
+
+        ArrayNode tools = JsonNodeFactory.instance.arrayNode();
+        agentToolNormalizer.normalizeCustomTools(settings).forEach(tool -> {
+            ObjectNode toolNode = JsonNodeFactory.instance.objectNode();
+            toolNode.put("name", tool.name());
+            toolNode.put("description", tool.description());
+            toolNode.set("inputSchema", objectMapper.valueToTree(tool.inputSchema()));
+            toolNode.put("approval", tool.approval().value());
+            toolNode.put("requiredAuth", tool.requiredAuth().value());
+            toolNode.put("actionType", tool.actionType());
+            toolNode.set("action", tool.action());
+            if (tool.testInput() != null && !tool.testInput().isNull()) {
+                toolNode.set("testInput", tool.testInput());
+            }
+            tools.add(toolNode);
+        });
+        agentNode.set("aiTools", tools);
+        target.set("agent", agentNode);
     }
 
     private void copyCustomTools(ObjectNode target, JsonNode source) {

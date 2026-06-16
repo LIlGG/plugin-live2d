@@ -6,6 +6,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    server: {
+      deps: {
+        inline: ["@halo-dev/ai-foundation-sdk"],
+      },
+    },
   },
   plugins: [
     react({

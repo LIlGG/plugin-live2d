@@ -1,9 +1,14 @@
+import {
+  type AgentAfterNavigationResume,
+  consumeAgentAfterNavigationIntent,
+} from "@/live2d/api/agent-navigation-intent";
 import { ChatApi, type ChatMessage } from "@/live2d/api/chat-api";
 import { UnoLitElement } from "@/live2d/common/UnoLitElement";
 import {
   type Live2dConfig,
   configContext,
 } from "@/live2d/context/config-context";
+import { loadMergedTips } from "@/live2d/helpers/loadMergedTips";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { DraggableMixin } from "@/live2d/mixins/draggable";
 import { consume } from "@lit/context";
@@ -98,7 +103,6 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
             class="h-8.5 w-full appearance-none rounded-full border border-solid border-[#eadbc5] bg-white/98 px-3.5 py-0.5 text-3.25 text-slate-700 shadow-none outline-none transition-colors placeholder:text-slate-400 focus:border-[#ffbb72] focus:ring-1 focus:ring-[#ffd8ac] focus:shadow-none"
             @input=${this.handleInput}
             @keydown=${this.handleKeydown}
-            ?disabled=${this._isLoading}
           />
           <button
             id="live2d-chat-send"
@@ -138,7 +142,16 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
     `;
   }
 
-  handleToggle = (): void => {
+  handleToggle = (event?: Event): void => {
+    const detail = event instanceof CustomEvent ? event.detail : undefined;
+    if (detail?.open === true) {
+      void this.showChat(detail.focus !== false);
+      return;
+    }
+    if (detail?.open === false) {
+      this.hideChat();
+      return;
+    }
     if (this._isShow) {
       this.hideChat();
       return;
@@ -181,21 +194,10 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
     this._input.value = "";
     this._canSend = false;
     this._isLoading = true;
-
-    if (!this.chatApi) {
-      this.chatApi = new ChatApi({
-        chunkTimeout: Number(this.config?.chunkTimeout || 60),
-        showChatMessageTimeout: Number(
-          this.config?.showChatMessageTimeout || 10,
-        ),
-      });
-    }
-
-    const historyJson = localStorage.getItem("historyMessages");
-    this.historyMessages = historyJson ? JSON.parse(historyJson) : [];
+    this.focusInput();
 
     try {
-      await this.chatApi.sendMessage(message, this.historyMessages);
+      await this.sendChatMessage(message, this.readStoredHistoryMessages());
     } catch (error) {
       console.error("[Live2dChatWindow] Send message error:", error);
     } finally {
@@ -203,6 +205,7 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
       if (this._input) {
         this._canSend = this._input.value.length > 0;
       }
+      this.focusInput();
     }
   }
 
@@ -211,9 +214,82 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
     this._input?.addEventListener("focus", () => {
       sendMessage("按下回车键可以快速发送消息哦", 2000, 1);
     });
+    const intent = consumeAgentAfterNavigationIntent();
+    if (intent?.openChat) {
+      void this.showChat(intent.focusChatInput).then(() => {
+        if (intent.resume) {
+          void this.resumeAgentAfterNavigation(intent.resume);
+        }
+      });
+    }
   }
 
-  private async showChat(): Promise<void> {
+  private async ensureChatApi(): Promise<ChatApi> {
+    if (!this.chatApi) {
+      const mergedTips = this.config
+        ? await loadMergedTips(this.config).catch(() => undefined)
+        : undefined;
+      this.chatApi = new ChatApi({
+        chunkTimeout: Number(this.config?.chunkTimeout || 60),
+        showChatMessageTimeout: Number(
+          this.config?.showChatMessageTimeout || 10,
+        ),
+        autoContinuationMessageMinVisibleMs: Number(
+          this.config?.autoContinuationMessageMinVisibleMs ?? 1500,
+        ),
+        requestAcceptedMessage: this.config?.requestAcceptedMessage,
+        reasoningMessages:
+          this.config?.reasoningMessages ?? mergedTips?.message.reasoning,
+        reasoningMessageInterval: Number(
+          this.config?.reasoningMessageInterval || 5,
+        ),
+        chatContextRounds: Number(this.config?.chatContextRounds || 20),
+        agent: this.config?.agent,
+      });
+    }
+    return this.chatApi;
+  }
+
+  private readStoredHistoryMessages(): ChatMessage[] {
+    const historyJson = localStorage.getItem("historyMessages");
+    this.historyMessages = historyJson ? JSON.parse(historyJson) : [];
+    return this.historyMessages;
+  }
+
+  private async sendChatMessage(
+    message: string,
+    historyMessages: ChatMessage[],
+  ): Promise<void> {
+    const chatApi = await this.ensureChatApi();
+    await chatApi.sendMessage(message, historyMessages);
+  }
+
+  private async resumeAgentAfterNavigation(
+    resume: AgentAfterNavigationResume,
+  ): Promise<void> {
+    if (this._isLoading) {
+      return;
+    }
+    this._isLoading = true;
+    this._canSend = false;
+    this.focusInput();
+    try {
+      await this.sendChatMessage(resume.message, resume.historyMessages);
+    } catch (error) {
+      console.error(
+        "[Live2dChatWindow] Resume agent after navigation error:",
+        error,
+      );
+    } finally {
+      this._isLoading = false;
+      if (this._input) {
+        this._canSend = this._input.value.length > 0;
+      }
+      this.focusInput();
+    }
+  }
+
+  private async showChat(focus = true): Promise<void> {
     this.clearHidePopoverTimer();
     await this.updateComplete;
     if (
@@ -225,9 +301,11 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
 
     requestAnimationFrame(() => {
       this._isShow = true;
-      void this.updateComplete.then(() => {
-        this._input?.focus();
-      });
+      if (focus) {
+        void this.updateComplete.then(() => {
+          this.focusInput();
+        });
+      }
     });
   }
 
@@ -265,6 +343,12 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
       window.clearTimeout(this._hidePopoverTimer);
       this._hidePopoverTimer = undefined;
     }
+  }
+
+  private focusInput(): void {
+    requestAnimationFrame(() => {
+      this._input?.focus();
+    });
   }
 }
 

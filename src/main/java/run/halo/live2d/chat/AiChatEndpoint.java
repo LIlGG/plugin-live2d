@@ -4,10 +4,9 @@ import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder
 import static org.springdoc.core.fn.builders.content.Builder.contentBuilder;
 import static org.springdoc.core.fn.builders.requestbody.Builder.requestBodyBuilder;
 
-import com.theokanning.openai.completion.chat.ChatMessage;
-import com.theokanning.openai.completion.chat.ChatMessageRole;
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -24,11 +23,18 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ResponseStatusException;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.plugin.ReactiveSettingFetcher;
+import run.halo.aifoundation.ui.InvalidUIMessageException;
+import run.halo.aifoundation.ui.UIMessageChatRequest;
+import run.halo.aifoundation.ui.UIMessageChunk;
+import run.halo.aifoundation.ui.UIMessageStreamResponse;
+import run.halo.aifoundation.ui.UIMessageTransportCodec;
+import run.halo.live2d.agent.AgentAccessMode;
+import run.halo.live2d.agent.AgentSettings;
+import run.halo.live2d.agent.AgentToolService;
 
 @Slf4j
 @Component
@@ -38,6 +44,10 @@ public class AiChatEndpoint implements CustomEndpoint {
     private final ReactiveSettingFetcher reactiveSettingFetcher;
 
     private final AiChatService aiChatService;
+
+    private final AgentToolService agentToolService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public RouterFunction<ServerResponse> endpoint() {
@@ -51,52 +61,79 @@ public class AiChatEndpoint implements CustomEndpoint {
                     .requestBody(requestBodyBuilder()
                         .required(true)
                         .content(contentBuilder()
-                            .mediaType(MediaType.TEXT_EVENT_STREAM_VALUE)
+                            .mediaType(MediaType.APPLICATION_JSON_VALUE)
                             .schema(Builder.schemaBuilder()
-                                .implementation(ChatRequest.class)
+                                .implementation(Map.class)
                             )
                         ))
                     .response(responseBuilder()
-                        .implementation(ServerSentEvent.class))
+                        .implementation(String.class))
             )
             .build();
     }
 
     private Mono<ServerResponse> chatProcess(ServerRequest request) {
-        return request.bodyToMono(ChatRequest.class)
-            .map(this::chatCompletion)
-            .onErrorResume(throwable -> {
-                if (throwable instanceof IllegalArgumentException) {
-                    return Mono.just(
-                        Flux.just(
-                            ServerSentEvent.builder(
-                                ChatResult.ok(throwable.getMessage())).build()
-                        )
-                    );
-                }
-                return Mono.error(throwable);
-            })
-            .flatMap(sse -> ServerResponse.ok()
+        return request.bodyToMono(Map.class)
+            .map(this::toChatRequest)
+            .flatMap(this::chatCompletion)
+            .onErrorMap(InvalidUIMessageException.class,
+                throwable -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    throwable.getMessage(), throwable))
+            .onErrorResume(IllegalArgumentException.class,
+                throwable -> Mono.just(aiChatService.errorResponse(throwable.getMessage())))
+            .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
-                .body(sse, ServerSentEvent.class)
+                .headers(headers -> headers.setAll(response.headers()))
+                .body(response.stream()
+                    .map(chunk -> ServerSentEvent.builder(serializeChunk(chunk)).build())
+                    .concatWithValues(ServerSentEvent.builder(
+                        UIMessageStreamResponse.DONE_MARKER).build()), ServerSentEvent.class)
             );
     }
 
 
-    private Flux<ServerSentEvent<ChatResult>> chatCompletion(ChatRequest body) {
+    private Mono<UIMessageStreamResponse> chatCompletion(UIMessageChatRequest<Void> chatRequest) {
         return reactiveSettingFetcher.fetch("aichat", AiChatConfig.class)
-            .map(aiChatConfig -> ReactiveSecurityContextHolder.getContext()
-                .map(SecurityContext::getAuthentication)
-                .flatMapMany(authentication -> {
-                    if (!aiChatConfig.aiChatBaseSetting.isAnonymous && !isAuthenticated(
-                        authentication)) {
-                        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录");
-                    }
-                    String systemMessage = aiChatConfig.aiChatBaseSetting.systemMessage;
-                    List<ChatMessage> messages = this.buildChatMessage(systemMessage, body);
-                    return aiChatService.streamChatCompletion(messages);
-                }))
-            .flatMapMany(Flux::from);
+            .flatMap(aiChatConfig -> {
+                if (!aiChatConfig.isAiChat()) {
+                    return Mono.just(aiChatService.errorResponse("AI 聊天功能未启用"));
+                }
+
+                var baseSetting = aiChatConfig.aiChatBaseSetting();
+                var accessMode = baseSetting.resolvedAccessMode();
+
+                if (!accessMode.authenticationRequired()) {
+                    return loadAgentSettings()
+                        .map(settings -> agentToolService.buildTools(settings, accessMode, false))
+                        .flatMap(toolSet -> aiChatService.streamChatCompletion(
+                            baseSetting.modelName(),
+                            agentToolService.appendCapabilityPrompt(
+                                baseSetting.systemMessage(), toolSet),
+                            chatRequest,
+                            toolSet));
+                }
+
+                return ReactiveSecurityContextHolder.getContext()
+                    .map(SecurityContext::getAuthentication)
+                    .filter(this::isAuthenticated)
+                    .switchIfEmpty(Mono.error(
+                        new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录")))
+                    .flatMap(authentication -> loadAgentSettings()
+                        .map(settings -> agentToolService.buildTools(settings, accessMode, true))
+                        .flatMap(toolSet -> aiChatService.streamChatCompletion(
+                            baseSetting.modelName(),
+                            agentToolService.appendCapabilityPrompt(
+                                baseSetting.systemMessage(), toolSet),
+                            chatRequest,
+                            toolSet)));
+            });
+    }
+
+    private Mono<AgentSettings> loadAgentSettings() {
+        return reactiveSettingFetcher.get("agent")
+            .map(node -> objectMapper.convertValue(node, AgentSettings.class))
+            .defaultIfEmpty(AgentSettings.defaults())
+            .onErrorReturn(AgentSettings.defaults());
     }
 
     private boolean isAuthenticated(Authentication authentication) {
@@ -108,23 +145,41 @@ public class AiChatEndpoint implements CustomEndpoint {
         return "anonymousUser".equals(name);
     }
 
-    private List<ChatMessage> buildChatMessage(String systemMessage, ChatRequest body) {
-        ChatMessage chatMessage =
-            new ChatMessage(ChatMessageRole.SYSTEM.value(), systemMessage);
-        final List<ChatMessage> messages = new ArrayList<>();
-        messages.add(chatMessage);
-        messages.addAll(body.getMessage());
-        return messages;
+    @SuppressWarnings("unchecked")
+    private UIMessageChatRequest<Void> toChatRequest(Map<?, ?> body) {
+        return UIMessageTransportCodec.chatRequestFromMap((Map<String, Object>) body,
+            ignored -> null);
     }
 
-    record AiChatConfig(String isAiChat, AiChatBaseSetting aiChatBaseSetting) {
+    private String serializeChunk(UIMessageChunk chunk) {
+        try {
+            return objectMapper.writeValueAsString(UIMessageTransportCodec.chunkToMap(chunk));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize UI message chunk", e);
+        }
     }
 
-    record AiChatBaseSetting(boolean isAnonymous, String systemMessage) {
+    record AiChatConfig(boolean isAiChat, AiChatBaseSetting aiChatBaseSetting) {
+        AiChatConfig {
+            if (isAiChat && aiChatBaseSetting == null) {
+                throw new IllegalArgumentException("ai chat base setting must not be null");
+            }
+        }
+    }
+
+    record AiChatBaseSetting(boolean isAnonymous, String accessMode, String systemMessage,
+                             String modelName) {
         AiChatBaseSetting {
             if (StringUtils.isBlank(systemMessage)) {
                 throw new IllegalArgumentException("system message must not be null");
             }
+            if (StringUtils.isBlank(modelName)) {
+                throw new IllegalArgumentException("model name must not be null");
+            }
+        }
+
+        AgentAccessMode resolvedAccessMode() {
+            return AgentAccessMode.from(accessMode, isAnonymous);
         }
     }
 

@@ -1,6 +1,10 @@
+import type {
+  AgentAccessMode,
+  AgentRuntimeConfig,
+} from "@/live2d/config/agent-tools/agent-tool-config";
 import type { CustomToolConfig } from "@/live2d/live2d/tools/custom-tool-config";
-import type { ProceduralConfig } from "@/live2d/runtime/procedural";
 import type { EmotionTimelineConfig } from "@/live2d/runtime/emotion";
+import type { ProceduralConfig } from "@/live2d/runtime/procedural";
 import { createContext } from "@lit/context";
 
 export interface ObjectAny extends Record<string, unknown> {}
@@ -30,6 +34,7 @@ export interface TipMessage extends ObjectAny {
   console?: string[] | string;
   copy?: string[] | string;
   loading?: string[] | string;
+  reasoning?: string[] | string;
   visibilitychange?: string[] | string;
 }
 
@@ -50,12 +55,26 @@ export interface Live2dToolsConfig {
   customTools?: CustomToolConfig[];
   // 是否启用 AI 聊天功能
   isAiChat?: boolean;
+  // AI 聊天与 Agent 能力访问模式
+  accessMode?: AgentAccessMode;
+  // Agent 能力运行时配置
+  agent?: AgentRuntimeConfig;
   // openai 图标
   openaiIcon?: string;
   // 聊天请求超时时间（秒）
   chunkTimeout?: number;
   // 聊天消息显示时间（秒）
   showChatMessageTimeout?: number;
+  // Agent 自动续写时，上一段助手消息最短可见时间（毫秒）
+  autoContinuationMessageMinVisibleMs?: number;
+  // 用户请求已收到时的即时提示语
+  requestAcceptedMessage?: string;
+  // 模型思考阶段的提示语
+  reasoningMessages?: string[] | string;
+  // 思考提示语轮换间隔（秒）
+  reasoningMessageInterval?: number;
+  // 保留上下文轮数
+  chatContextRounds?: number;
   // 一言图标
   hitokotoIcon?: string;
   // 一言API
@@ -127,6 +146,13 @@ export interface Live2dConfig extends Live2dToolsConfig {
   aiChatBaseSetting?: {
     chunkTimeout?: number | string;
     showChatMessageTimeout?: number | string;
+    autoContinuationMessageMinVisibleMs?: number | string;
+    requestAcceptedMessage?: string;
+    reasoningMessages?: string[] | string | { message?: string }[];
+    reasoningMessageInterval?: number | string;
+    chatContextRounds?: number | string;
+    accessMode?: AgentAccessMode;
+    isAnonymous?: boolean;
   };
   // 滤镜质量等级 (low / medium / high)
   filterQuality?: "low" | "medium" | "high";
