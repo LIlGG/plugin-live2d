@@ -167,7 +167,7 @@ public class AiChatEndpoint implements CustomEndpoint {
         }
     }
 
-    record AiChatBaseSetting(boolean isAnonymous, String accessMode, String systemMessage,
+    record AiChatBaseSetting(Boolean isAnonymous, String accessMode, String systemMessage,
                              String modelName) {
         AiChatBaseSetting {
             if (StringUtils.isBlank(systemMessage)) {
@@ -179,7 +179,7 @@ public class AiChatEndpoint implements CustomEndpoint {
         }
 
         AgentAccessMode resolvedAccessMode() {
-            return AgentAccessMode.from(accessMode, isAnonymous);
+            return AgentAccessMode.from(accessMode, Boolean.TRUE.equals(isAnonymous));
         }
     }
 

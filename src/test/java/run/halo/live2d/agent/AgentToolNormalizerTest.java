@@ -50,6 +50,56 @@ class AgentToolNormalizerTest {
     }
 
     @Test
+    void mapsNullPrimitiveAgentSettingsToDefaults() throws Exception {
+        var settings = objectMapper.readValue(
+            """
+                {
+                  "builtIn": {
+                    "pageContext": null,
+                    "haloNavigation": null,
+                    "haloContentSearch": null,
+                    "networkAccess": null,
+                    "commentCapability": null
+                  },
+                  "toolSecurity": {
+                    "allowNewTab": null
+                  },
+                  "haloSearch": {
+                    "defaultLimit": null
+                  },
+                  "haloResourceDetail": {
+                    "maxContentChars": null
+                  },
+                  "networkAccess": {
+                    "maxResponseChars": null,
+                    "timeoutSeconds": null
+                  },
+                  "aiTools": [{
+                    "name": "open_contact_form",
+                    "enabled": null,
+                    "description": "打开留言面板",
+                    "action": {
+                      "type": "registered"
+                    }
+                  }]
+                }
+                """,
+            AgentSettings.class);
+
+        assertThat(settings.builtIn().pageContext()).isTrue();
+        assertThat(settings.builtIn().haloNavigation()).isTrue();
+        assertThat(settings.builtIn().haloContentSearch()).isTrue();
+        assertThat(settings.builtIn().networkAccess()).isFalse();
+        assertThat(settings.builtIn().commentCapability()).isEqualTo(AgentCommentCapability.ASSIST);
+        assertThat(settings.toolSecurity().allowNewTab()).isFalse();
+        assertThat(settings.haloSearch().normalizedDefaultLimit()).isEqualTo(5);
+        assertThat(settings.haloResourceDetail().maxContentChars()).isEqualTo(3000);
+        assertThat(settings.networkAccess().normalizedMaxResponseChars()).isEqualTo(4000);
+        assertThat(settings.networkAccess().normalizedTimeoutSeconds()).isEqualTo(5);
+        assertThat(settings.normalizedAiTools().getFirst().enabled()).isFalse();
+    }
+
+    @Test
     void normalizesValidCustomTool() throws Exception {
         var settings = new AgentSettings(
             null,
