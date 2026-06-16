@@ -1,3 +1,4 @@
+import { normalizeAgentRuntimeConfig } from "@/live2d/config/agent-tools/normalize-agent-tools";
 import { normalizeCustomTools } from "@/live2d/config/custom-tools/normalize-custom-tools";
 import { createDefaultLive2dConfig } from "@/live2d/config/default-config";
 import {
@@ -13,10 +14,13 @@ export interface LegacyLive2dConfigInput extends Partial<Live2dConfig> {
   aiChatBaseSetting?: {
     chunkTimeout?: number | string;
     showChatMessageTimeout?: number | string;
+    autoContinuationMessageMinVisibleMs?: number | string;
     requestAcceptedMessage?: string;
     reasoningMessages?: string[] | string | { message?: string }[];
     reasoningMessageInterval?: number | string;
     chatContextRounds?: number | string;
+    accessMode?: Live2dConfig["accessMode"];
+    isAnonymous?: boolean;
   };
   consoleShowStatu?: boolean;
   photoName?: string;
@@ -56,6 +60,21 @@ const normalizeMessages = (messages: unknown): string[] | undefined => {
   return normalized.length > 0 ? normalized : undefined;
 };
 
+const normalizeAccessMode = (
+  accessMode: unknown,
+  legacyAnonymous: unknown,
+): Live2dConfig["accessMode"] => {
+  if (
+    accessMode === "anonymous_chat" ||
+    accessMode === "anonymous_chat_agent" ||
+    accessMode === "authenticated_chat" ||
+    accessMode === "authenticated_chat_agent"
+  ) {
+    return accessMode;
+  }
+  return legacyAnonymous === false ? "authenticated_chat" : "anonymous_chat";
+};
+
 export const normalizeLive2dConfig = (
   assetPath: string,
   input: LegacyLive2dConfigInput = {},
@@ -88,6 +107,11 @@ export const normalizeLive2dConfig = (
       defaults.screenshotName,
     tools: normalizeTools(input.tools) ?? [...(defaults.tools ?? [])],
     customTools: normalizeCustomTools(input.customTools) ?? [],
+    accessMode: normalizeAccessMode(
+      input.accessMode ?? input.aiChatBaseSetting?.accessMode,
+      input.aiChatBaseSetting?.isAnonymous,
+    ),
+    agent: normalizeAgentRuntimeConfig(input.agent),
     chunkTimeout:
       pickNumber(
         input.chunkTimeout,
@@ -100,6 +124,12 @@ export const normalizeLive2dConfig = (
         input.aiChatBaseSetting?.showChatMessageTimeout,
         defaults.showChatMessageTimeout,
       ) ?? defaults.showChatMessageTimeout,
+    autoContinuationMessageMinVisibleMs:
+      pickNumber(
+        input.autoContinuationMessageMinVisibleMs,
+        input.aiChatBaseSetting?.autoContinuationMessageMinVisibleMs,
+        defaults.autoContinuationMessageMinVisibleMs,
+      ) ?? defaults.autoContinuationMessageMinVisibleMs,
     requestAcceptedMessage:
       pickString(
         input.requestAcceptedMessage,

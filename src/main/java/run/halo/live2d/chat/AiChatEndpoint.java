@@ -32,6 +32,9 @@ import run.halo.aifoundation.ui.UIMessageChatRequest;
 import run.halo.aifoundation.ui.UIMessageChunk;
 import run.halo.aifoundation.ui.UIMessageStreamResponse;
 import run.halo.aifoundation.ui.UIMessageTransportCodec;
+import run.halo.live2d.agent.AgentAccessMode;
+import run.halo.live2d.agent.AgentSettings;
+import run.halo.live2d.agent.AgentToolService;
 
 @Slf4j
 @Component
@@ -41,6 +44,8 @@ public class AiChatEndpoint implements CustomEndpoint {
     private final ReactiveSettingFetcher reactiveSettingFetcher;
 
     private final AiChatService aiChatService;
+
+    private final AgentToolService agentToolService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -95,10 +100,17 @@ public class AiChatEndpoint implements CustomEndpoint {
                 }
 
                 var baseSetting = aiChatConfig.aiChatBaseSetting();
+                var accessMode = baseSetting.resolvedAccessMode();
 
-                if (baseSetting.isAnonymous()) {
-                    return aiChatService.streamChatCompletion(
-                        baseSetting.modelName(), baseSetting.systemMessage(), chatRequest);
+                if (!accessMode.authenticationRequired()) {
+                    return loadAgentSettings()
+                        .map(settings -> agentToolService.buildTools(settings, accessMode, false))
+                        .flatMap(toolSet -> aiChatService.streamChatCompletion(
+                            baseSetting.modelName(),
+                            agentToolService.appendCapabilityPrompt(
+                                baseSetting.systemMessage(), toolSet),
+                            chatRequest,
+                            toolSet));
                 }
 
                 return ReactiveSecurityContextHolder.getContext()
@@ -106,9 +118,22 @@ public class AiChatEndpoint implements CustomEndpoint {
                     .filter(this::isAuthenticated)
                     .switchIfEmpty(Mono.error(
                         new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录")))
-                    .flatMap(authentication -> aiChatService.streamChatCompletion(
-                        baseSetting.modelName(), baseSetting.systemMessage(), chatRequest));
+                    .flatMap(authentication -> loadAgentSettings()
+                        .map(settings -> agentToolService.buildTools(settings, accessMode, true))
+                        .flatMap(toolSet -> aiChatService.streamChatCompletion(
+                            baseSetting.modelName(),
+                            agentToolService.appendCapabilityPrompt(
+                                baseSetting.systemMessage(), toolSet),
+                            chatRequest,
+                            toolSet)));
             });
+    }
+
+    private Mono<AgentSettings> loadAgentSettings() {
+        return reactiveSettingFetcher.get("agent")
+            .map(node -> objectMapper.convertValue(node, AgentSettings.class))
+            .defaultIfEmpty(AgentSettings.defaults())
+            .onErrorReturn(AgentSettings.defaults());
     }
 
     private boolean isAuthenticated(Authentication authentication) {
@@ -142,7 +167,8 @@ public class AiChatEndpoint implements CustomEndpoint {
         }
     }
 
-    record AiChatBaseSetting(boolean isAnonymous, String systemMessage, String modelName) {
+    record AiChatBaseSetting(boolean isAnonymous, String accessMode, String systemMessage,
+                             String modelName) {
         AiChatBaseSetting {
             if (StringUtils.isBlank(systemMessage)) {
                 throw new IllegalArgumentException("system message must not be null");
@@ -150,6 +176,10 @@ public class AiChatEndpoint implements CustomEndpoint {
             if (StringUtils.isBlank(modelName)) {
                 throw new IllegalArgumentException("model name must not be null");
             }
+        }
+
+        AgentAccessMode resolvedAccessMode() {
+            return AgentAccessMode.from(accessMode, isAnonymous);
         }
     }
 

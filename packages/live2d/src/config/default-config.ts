@@ -29,8 +29,31 @@ export const createDefaultLive2dConfig = (): Live2dConfig => ({
   isTools: true,
   tools: [...DEFAULT_TOOL_NAMES],
   isAiChat: true,
+  accessMode: "anonymous_chat",
+  agent: {
+    builtIn: {
+      pageContext: true,
+      haloNavigation: true,
+      haloContentSearch: true,
+      networkAccess: false,
+      commentCapability: "assist",
+    },
+    aiTools: [],
+    toolSecurity: {
+      allowedExternalOrigins: [],
+      allowNewTab: false,
+    },
+    haloSearch: {
+      allowedTypes: ["post.content.halo.run", "singlepage.content.halo.run"],
+      defaultLimit: 5,
+    },
+    haloResourceDetail: {
+      maxContentChars: 3000,
+    },
+  },
   chunkTimeout: 10,
   showChatMessageTimeout: 10,
+  autoContinuationMessageMinVisibleMs: 1500,
   requestAcceptedMessage: "收到啦，马上就来陪你啦～",
   reasoningMessages: [
     "我正在认真想一想～",

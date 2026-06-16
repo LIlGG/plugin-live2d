@@ -18,8 +18,8 @@ importers:
   packages/live2d:
     dependencies:
       '@halo-dev/ai-foundation-sdk':
-        specifier: https://pkg.pr.new/halo-dev/plugin-ai-foundation/@halo-dev/ai-foundation-sdk@8200c2a
-        version: https://pkg.pr.new/halo-dev/plugin-ai-foundation/@halo-dev/ai-foundation-sdk@8200c2a(vue@3.5.38(typescript@5.7.3))
+        specifier: 1.0.0-beta.1
+        version: 1.0.0-beta.1(vue@3.5.38(typescript@5.7.3))
       '@lit/context':
         specifier: ^1.1.6
         version: 1.1.6
@@ -59,7 +59,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       '@unocss/postcss':
         specifier: ^66.6.8
-        version: 66.6.8(postcss@8.5.14)
+        version: 66.6.8(postcss@8.5.15)
       '@vitejs/plugin-react':
         specifier: ^6.0.2
         version: 6.0.2(vite@8.0.13(@types/node@22.13.1)(jiti@2.7.0)(terser@5.38.0)(tsx@4.19.2))
@@ -71,7 +71,7 @@ importers:
         version: 2.0.2
       unocss:
         specifier: ^66.6.8
-        version: 66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@unocss/postcss@66.6.8(postcss@8.5.14))(vite@8.0.13(@types/node@22.13.1)(jiti@2.7.0)(terser@5.38.0)(tsx@4.19.2))
+        version: 66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@unocss/postcss@66.6.8(postcss@8.5.15))(vite@8.0.13(@types/node@22.13.1)(jiti@2.7.0)(terser@5.38.0)(tsx@4.19.2))
       vite:
         specifier: ^8.0.13
         version: 8.0.13(@types/node@22.13.1)(jiti@2.7.0)(terser@5.38.0)(tsx@4.19.2)
@@ -379,9 +379,8 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@halo-dev/ai-foundation-sdk@https://pkg.pr.new/halo-dev/plugin-ai-foundation/@halo-dev/ai-foundation-sdk@8200c2a':
-    resolution: {integrity: sha512-83g/hZWKUyeoTj2Fp9yEzeAFFP/6OR5urXAhdbKokzWD2SgXYsRE7ZgTNjZdyXTa/aYmxdC5L6UAg1pV/MaPcQ==, tarball: https://pkg.pr.new/halo-dev/plugin-ai-foundation/@halo-dev/ai-foundation-sdk@8200c2a}
-    version: 0.1.0
+  '@halo-dev/ai-foundation-sdk@1.0.0-beta.1':
+    resolution: {integrity: sha512-r9bOT0Azso7iJldN8k2AiSBJrTJjFQ9lmRegPxbA2hueZ9xdGnvYl6eM5M25sJvzA0yO1lpvZnji5v/WP/SJVQ==}
     peerDependencies:
       vue: ^3.5.x
       zod: '*'
@@ -1908,7 +1907,7 @@ snapshots:
 
   '@exodus/bytes@1.15.0': {}
 
-  '@halo-dev/ai-foundation-sdk@https://pkg.pr.new/halo-dev/plugin-ai-foundation/@halo-dev/ai-foundation-sdk@8200c2a(vue@3.5.38(typescript@5.7.3))':
+  '@halo-dev/ai-foundation-sdk@1.0.0-beta.1(vue@3.5.38(typescript@5.7.3))':
     dependencies:
       vue: 3.5.38(typescript@5.7.3)
 
@@ -2182,13 +2181,13 @@ snapshots:
       gzip-size: 6.0.0
       sirv: 3.0.2
 
-  '@unocss/postcss@66.6.8(postcss@8.5.14)':
+  '@unocss/postcss@66.6.8(postcss@8.5.15)':
     dependencies:
       '@unocss/config': 66.6.8
       '@unocss/core': 66.6.8
       '@unocss/rule-utils': 66.6.8
       css-tree: 3.2.1
-      postcss: 8.5.14
+      postcss: 8.5.15
       tinyglobby: 0.2.16
 
   '@unocss/preset-attributify@66.6.8':
@@ -3046,7 +3045,7 @@ snapshots:
 
   undici@7.25.0: {}
 
-  unocss@66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@unocss/postcss@66.6.8(postcss@8.5.14))(vite@8.0.13(@types/node@22.13.1)(jiti@2.7.0)(terser@5.38.0)(tsx@4.19.2)):
+  unocss@66.6.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@unocss/postcss@66.6.8(postcss@8.5.15))(vite@8.0.13(@types/node@22.13.1)(jiti@2.7.0)(terser@5.38.0)(tsx@4.19.2)):
     dependencies:
       '@unocss/cli': 66.6.8
       '@unocss/core': 66.6.8
@@ -3066,7 +3065,7 @@ snapshots:
       '@unocss/transformer-variant-group': 66.6.8
       '@unocss/vite': 66.6.8(vite@8.0.13(@types/node@22.13.1)(jiti@2.7.0)(terser@5.38.0)(tsx@4.19.2))
     optionalDependencies:
-      '@unocss/postcss': 66.6.8(postcss@8.5.14)
+      '@unocss/postcss': 66.6.8(postcss@8.5.15)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'

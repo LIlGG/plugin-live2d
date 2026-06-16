@@ -34,6 +34,7 @@ export class Live2dTips extends UnoLitElement {
   private _bottomOffset = Live2dTips.DEFAULT_BOTTOM_OFFSET;
   private priority = -1;
   private messageTimer: number | null = null;
+  private streamInactivityTimeout = 60_000;
   // 流式消息模式标志
   private isStreamMode = false;
   private readonly onMessage = (event: Event) => {
@@ -108,6 +109,7 @@ export class Live2dTips extends UnoLitElement {
     window.removeEventListener("live2d:stream-message", this.onStreamMessage);
     window.removeEventListener("live2d:stream-message-stop", this.onStreamStop);
     window.removeEventListener("live2d:model-layout", this.onModelLayout);
+    this.clearMessageTimer();
   }
 
   handleMessage(e: SendMessageEvent): void {
@@ -122,10 +124,7 @@ export class Live2dTips extends UnoLitElement {
     if (priority < this.priority) {
       return;
     }
-    if (this.messageTimer) {
-      clearTimeout(this.messageTimer);
-      this.messageTimer = null;
-    }
+    this.clearMessageTimer();
     const message = randomSelection(text);
     if (!isNotEmpty(message)) {
       return;
@@ -147,23 +146,13 @@ export class Live2dTips extends UnoLitElement {
     const STREAM_PRIORITY = 99999;
     this.priority = STREAM_PRIORITY;
     this.isStreamMode = true;
+    this.streamInactivityTimeout = timeout;
 
     // 清空消息并显示
     this._message = "";
     this._isShow = true;
 
-    // 清除旧的定时器
-    if (this.messageTimer) {
-      clearTimeout(this.messageTimer);
-      this.messageTimer = null;
-    }
-
-    // 设置超时自动关闭
-    this.messageTimer = setTimeout(() => {
-      this._isShow = false;
-      this.priority = -1;
-      this.isStreamMode = false;
-    }, timeout);
+    this.scheduleStreamInactivityTimeout(timeout);
   }
 
   /**
@@ -174,6 +163,7 @@ export class Live2dTips extends UnoLitElement {
       return;
     }
     const { text } = e.detail;
+    this.scheduleStreamInactivityTimeout(this.streamInactivityTimeout);
     if (e.detail.mode === "replace") {
       this._message = text;
       return;
@@ -190,11 +180,7 @@ export class Live2dTips extends UnoLitElement {
     }
     const { showTimeout } = e.detail;
 
-    // 清除旧的定时器
-    if (this.messageTimer) {
-      clearTimeout(this.messageTimer);
-      this.messageTimer = null;
-    }
+    this.clearMessageTimer();
 
     // 设置新的定时器，在指定时间后关闭
     this.messageTimer = setTimeout(() => {
@@ -214,6 +200,25 @@ export class Live2dTips extends UnoLitElement {
 
   private applyHostPosition(): void {
     this.style.bottom = `${this._bottomOffset}px`;
+  }
+
+  private clearMessageTimer(): void {
+    if (this.messageTimer) {
+      clearTimeout(this.messageTimer);
+      this.messageTimer = null;
+    }
+  }
+
+  private scheduleStreamInactivityTimeout(timeout?: number): void {
+    this.clearMessageTimer();
+    this.messageTimer = setTimeout(
+      () => {
+        this._isShow = false;
+        this.priority = -1;
+        this.isStreamMode = false;
+      },
+      timeout ?? Number(this.config?.chunkTimeout || 60) * 1000,
+    );
   }
 }
 

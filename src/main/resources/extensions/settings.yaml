@@ -165,7 +165,7 @@ spec:
           if: "$get(isAiChat).value === true"
           label: 聊天基本设置
           value:
-            isAnonymous: true
+            accessMode: anonymous_chat
             modelName: ""
             chatContextRounds: 20
             requestAcceptedMessage: "收到啦，马上就来陪你啦～"
@@ -200,11 +200,21 @@ spec:
               - 在合适场景下可以表现出贴心、活泼、害羞、关心等情绪，但不要夸张失控。
             chunkTimeout: 10
             showChatMessageTimeout: 10
+            autoContinuationMessageMinVisibleMs: 1500
           children:
-            - $formkit: switch
-              label: 是否开启公共聊天
-              help: 关闭后，用户需要登录后才能与 Live2d 进行对话
-              name: isAnonymous
+            - $formkit: select
+              label: 访问模式
+              help: 控制访客能否对话，以及是否允许 Live2D Agent 操作站点能力。旧版公共聊天开启会按“匿名用户可对话”兼容。
+              name: accessMode
+              options:
+                - value: anonymous_chat
+                  label: 匿名用户可对话
+                - value: anonymous_chat_agent
+                  label: 匿名用户可对话和使用 Agent
+                - value: authenticated_chat
+                  label: 登录用户可对话
+                - value: authenticated_chat_agent
+                  label: 登录用户可对话和使用 Agent
             - $formkit: aiModelSelector
               name: modelName
               label: 对话模型
@@ -254,6 +264,142 @@ spec:
               help: 获取到完整消息后，看板娘展示的时间
               name: showChatMessageTimeout
               validation: Number
+            - $formkit: text
+              label: Agent 自动续写前消息最短展示时间（毫秒）
+              help: Agent 自动调用工具并继续回复时，上一段看板娘回复至少展示这段时间，避免被后续回复过快覆盖；设置为 0 表示不延迟
+              name: autoContinuationMessageMinVisibleMs
+              validation: Number|between:0,10000
+    - group: agent
+      label: Agent 能力
+      formSchema:
+        - $formkit: group
+          name: builtIn
+          label: 预设能力
+          value:
+            pageContext: true
+            haloNavigation: true
+            haloContentSearch: true
+            networkAccess: false
+            commentCapability: assist
+          children:
+            - $formkit: switch
+              name: pageContext
+              label: 当前页面上下文
+              help: 允许模型读取当前页面标题、地址和选中文本等基础上下文
+            - $formkit: switch
+              name: haloNavigation
+              label: Halo 导航
+              help: 允许模型打开可信的 Halo 资源链接
+            - $formkit: switch
+              name: haloContentSearch
+              label: Halo 内容搜索
+              help: 允许模型通过 Halo 搜索引擎查询公开内容
+            - $formkit: switch
+              name: networkAccess
+              label: 网络访问
+              help: 允许模型通过后端工具读取站长白名单中的公网 URL。默认关闭，且会阻止 localhost、内网、链路本地地址和未授权 Origin。
+            - $formkit: select
+              name: commentCapability
+              label: 评论能力
+              help: 关闭：不向模型开放评论相关工具。辅助：允许模型打开评论区、读取当前评论状态并生成评论草稿，但不提交。提交：在站点允许且访客确认后，允许模型尝试提交评论。
+              value: assist
+              options:
+                - value: off
+                  label: 关闭
+                - value: assist
+                  label: 辅助
+                - value: submit
+                  label: 提交
+        - $formkit: group
+          name: toolSecurity
+          label: 安全策略
+          value:
+            allowedExternalOrigins: []
+            allowNewTab: false
+          children:
+            - $formkit: repeater
+              name: allowedExternalOrigins
+              label: 允许打开的外部站点
+              help: 仅填写 origin，例如 https://github.com。外链仍会默认请求访客确认。
+              value: []
+              children:
+                - $formkit: text
+                  name: origin
+                  label: Origin
+            - $formkit: switch
+              name: allowNewTab
+              label: 允许新窗口打开
+              value: false
+        - $formkit: group
+          name: haloSearch
+          label: Halo 搜索
+          value:
+            allowedTypes:
+              - post.content.halo.run
+              - singlepage.content.halo.run
+            defaultLimit: 5
+          children:
+            - $formkit: checkbox
+              name: allowedTypes
+              label: 允许搜索的内容类型
+              help: 只有选中的公开内容类型会暴露给 Agent 搜索。Moment 等类型需要对应插件已接入 Halo 搜索索引。
+              value:
+                - post.content.halo.run
+                - singlepage.content.halo.run
+              options:
+                - value: post.content.halo.run
+                  label: 文章
+                - value: singlepage.content.halo.run
+                  label: 独立页面
+                - value: moment.moment.halo.run
+                  label: 瞬间
+            - $formkit: text
+              name: defaultLimit
+              label: 默认返回数量
+              validation: Number|between:1,20
+        - $formkit: group
+          name: networkAccess
+          label: 网络访问安全策略
+          value:
+            allowedOrigins: []
+            maxResponseChars: 4000
+            timeoutSeconds: 5
+          children:
+            - $formkit: repeater
+              name: allowedOrigins
+              label: 允许访问的 Origin
+              help: 仅填写可信公网 Origin，例如 https://api.example.com。不会跟随重定向，也不会访问 localhost、内网或链路本地地址。
+              value: []
+              children:
+                - $formkit: text
+                  name: origin
+                  label: Origin
+            - $formkit: text
+              name: maxResponseChars
+              label: 最大响应字符数
+              help: 超出部分会被截断，范围 1000 到 20000，默认 4000
+              validation: Number|between:1000,20000
+            - $formkit: text
+              name: timeoutSeconds
+              label: 请求超时（秒）
+              help: 后端网络请求超时时间，范围 1 到 15，默认 5
+              validation: Number|between:1,15
+        - $formkit: group
+          name: haloResourceDetail
+          label: 资源详情
+          value:
+            maxContentChars: 3000
+          children:
+            - $formkit: text
+              name: maxContentChars
+              label: 最大正文字符数
+              validation: Number|between:500,10000
+        - $formkit: textarea
+          name: aiTools
+          label: 自定义 Agent 工具 JSON
+          help: 高级配置项。填写工具数组 JSON，支持 navigate、scroll-to、highlight、dispatch-event、registered。
+          rows: 12
+          value: "[]"
     - group: advanced
       label: 高级设置
       formSchema:

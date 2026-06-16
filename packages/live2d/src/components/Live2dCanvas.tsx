@@ -6,6 +6,10 @@ import {
 import { BeforeInitEvent } from "@/live2d/events/before-init.js";
 import { ModelReadyEvent } from "@/live2d/events/model-ready";
 import Model from "@/live2d/live2d/model";
+import {
+  clearCurrentLive2dModel,
+  setCurrentLive2dModel,
+} from "@/live2d/live2d/model-store";
 import { consume } from "@lit/context";
 import { type PropertyValues, type TemplateResult, html } from "lit";
 import { property, query, state } from "lit/decorators.js";
@@ -36,6 +40,7 @@ export class Live2dCanvas extends UnoLitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    clearCurrentLive2dModel(this.model);
     this.model?.destroy();
     this.model = null;
     this._modelInitialized = false;
@@ -62,6 +67,7 @@ export class Live2dCanvas extends UnoLitElement {
 
     try {
       this.model = await Model.create(this._live2d, this.config);
+      setCurrentLive2dModel(this.model);
       window.dispatchEvent(new ModelReadyEvent({ model: this.model }));
     } catch (error) {
       this._modelInitialized = false;
