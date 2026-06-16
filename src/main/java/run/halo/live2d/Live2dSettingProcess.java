@@ -30,8 +30,7 @@ public class Live2dSettingProcess implements Live2dSetting {
     private static final List<String> TIPS_FIELDS = List.of(
         "firstOpenSite", "backSite", "backSiteTip", "copyContent", "copyContentTip",
         "openConsole", "openConsoleTip", "selectorTips", "tipsPath");
-    private static final List<String> ADVANCED_FIELDS = List.of(
-        "consoleShowStatu", "photoName", "live2dLocation");
+    private static final List<String> ADVANCED_FIELDS = List.of("consoleShowStatu", "photoName");
     private static final List<String> AI_CHAT_PUBLIC_FIELDS = List.of(
         "chunkTimeout", "showChatMessageTimeout", "autoContinuationMessageMinVisibleMs",
         "requestAcceptedMessage", "reasoningMessages", "reasoningMessageInterval",
