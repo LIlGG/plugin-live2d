@@ -4,11 +4,12 @@ metadata:
   name: PluginLive2d
   annotations:
     "store.halo.run/app-id": "app-oPNFQ"
+    "store.halo.run/recommended-apps": '["app-acslk9nu"]'
 spec:
   enabled: true
   requires: ">=2.25.0"
   pluginDependencies:
-    ai-foundation: "*"
+    ai-foundation?: "*"
   author:
     name: LIlGG
     website: https://lixingyong.com
