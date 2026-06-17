@@ -3,6 +3,7 @@ package run.halo.live2d;
 import org.springframework.stereotype.Component;
 import run.halo.app.plugin.BasePlugin;
 import run.halo.app.plugin.PluginContext;
+import run.halo.live2d.chat.ChatSecurityService;
 
 /**
  * @author LIlGG
@@ -10,8 +11,15 @@ import run.halo.app.plugin.PluginContext;
  */
 @Component
 public class Live2dPlugin extends BasePlugin {
+    private final ChatSecurityService chatSecurityService;
 
-    public Live2dPlugin(PluginContext context) {
+    public Live2dPlugin(PluginContext context, ChatSecurityService chatSecurityService) {
         super(context);
+        this.chatSecurityService = chatSecurityService;
+    }
+
+    @Override
+    public void stop() {
+        chatSecurityService.dispose();
     }
 }

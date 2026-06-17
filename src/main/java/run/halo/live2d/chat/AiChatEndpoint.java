@@ -4,8 +4,10 @@ import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder
 import static org.springdoc.core.fn.builders.content.Builder.contentBuilder;
 import static org.springdoc.core.fn.builders.requestbody.Builder.requestBodyBuilder;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,8 @@ public class AiChatEndpoint implements CustomEndpoint {
 
     private final AgentToolService agentToolService;
 
+    private final ChatSecurityService chatSecurityService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -75,7 +79,7 @@ public class AiChatEndpoint implements CustomEndpoint {
     private Mono<ServerResponse> chatProcess(ServerRequest request) {
         return request.bodyToMono(Map.class)
             .map(this::toChatRequest)
-            .flatMap(this::chatCompletion)
+            .flatMap(chatRequest -> chatCompletion(request, chatRequest))
             .onErrorMap(InvalidUIMessageException.class,
                 throwable -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     throwable.getMessage(), throwable))
@@ -92,7 +96,8 @@ public class AiChatEndpoint implements CustomEndpoint {
     }
 
 
-    private Mono<UIMessageStreamResponse> chatCompletion(UIMessageChatRequest<Void> chatRequest) {
+    private Mono<UIMessageStreamResponse> chatCompletion(ServerRequest request,
+        UIMessageChatRequest<Void> chatRequest) {
         return reactiveSettingFetcher.fetch("aichat", AiChatConfig.class)
             .flatMap(aiChatConfig -> {
                 if (!aiChatConfig.isAiChat()) {
@@ -103,7 +108,8 @@ public class AiChatEndpoint implements CustomEndpoint {
                 var accessMode = baseSetting.resolvedAccessMode();
 
                 if (!accessMode.authenticationRequired()) {
-                    return loadAgentSettings()
+                    return chatSecurityService.secure(request, aiChatConfig.securitySetting(), null)
+                        .then(loadAgentSettings())
                         .map(settings -> agentToolService.buildTools(settings, accessMode, false))
                         .flatMap(toolSet -> aiChatService.streamChatCompletion(
                             baseSetting.modelName(),
@@ -118,14 +124,16 @@ public class AiChatEndpoint implements CustomEndpoint {
                     .filter(this::isAuthenticated)
                     .switchIfEmpty(Mono.error(
                         new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录")))
-                    .flatMap(authentication -> loadAgentSettings()
-                        .map(settings -> agentToolService.buildTools(settings, accessMode, true))
-                        .flatMap(toolSet -> aiChatService.streamChatCompletion(
-                            baseSetting.modelName(),
-                            agentToolService.appendCapabilityPrompt(
-                                baseSetting.systemMessage(), toolSet),
-                            chatRequest,
-                            toolSet)));
+                    .flatMap(authentication -> chatSecurityService.secure(request,
+                            aiChatConfig.securitySetting(), authentication)
+                        .then(loadAgentSettings()
+                            .map(settings -> agentToolService.buildTools(settings, accessMode, true))
+                            .flatMap(toolSet -> aiChatService.streamChatCompletion(
+                                baseSetting.modelName(),
+                                agentToolService.appendCapabilityPrompt(
+                                    baseSetting.systemMessage(), toolSet),
+                                chatRequest,
+                                toolSet))));
             });
     }
 
@@ -159,14 +167,25 @@ public class AiChatEndpoint implements CustomEndpoint {
         }
     }
 
-    record AiChatConfig(boolean isAiChat, AiChatBaseSetting aiChatBaseSetting) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AiChatConfig(boolean isAiChat, AiChatBaseSetting aiChatBaseSetting,
+                        AiChatDisplaySetting aiChatDisplaySetting,
+                        AiChatSecuritySetting aiChatSecuritySetting) {
         AiChatConfig {
             if (isAiChat && aiChatBaseSetting == null) {
                 throw new IllegalArgumentException("ai chat base setting must not be null");
             }
         }
+
+        AiChatSecuritySetting securitySetting() {
+            if (aiChatSecuritySetting != null) {
+                return aiChatSecuritySetting;
+            }
+            return AiChatSecuritySetting.defaults();
+        }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     record AiChatBaseSetting(Boolean isAnonymous, String accessMode, String systemMessage,
                              String modelName) {
         AiChatBaseSetting {
@@ -180,6 +199,50 @@ public class AiChatEndpoint implements CustomEndpoint {
 
         AgentAccessMode resolvedAccessMode() {
             return AgentAccessMode.from(accessMode, Boolean.TRUE.equals(isAnonymous));
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AiChatDisplaySetting(Integer chatContextRounds, Integer chunkTimeout,
+                                Integer showChatMessageTimeout,
+                                Integer autoContinuationMessageMinVisibleMs,
+                                String requestAcceptedMessage, Object reasoningMessages,
+                                Integer reasoningMessageInterval) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AiChatSecuritySetting(Boolean antiHotlinkEnabled, Boolean allowMissingOrigin,
+                                 Object allowedOrigins, Boolean rateLimitEnabled,
+                                 Integer rateLimitRequests, Integer rateLimitWindowSeconds) {
+        AiChatSecuritySetting {
+            antiHotlinkEnabled = antiHotlinkEnabled == null ? true : antiHotlinkEnabled;
+            allowMissingOrigin = allowMissingOrigin == null ? false : allowMissingOrigin;
+            allowedOrigins = allowedOrigins == null ? List.of() : allowedOrigins;
+            rateLimitEnabled = rateLimitEnabled == null ? true : rateLimitEnabled;
+            rateLimitRequests = rateLimitRequests == null ? 20 : rateLimitRequests;
+            rateLimitWindowSeconds = rateLimitWindowSeconds == null ? 60 : rateLimitWindowSeconds;
+        }
+
+        static AiChatSecuritySetting defaults() {
+            return new AiChatSecuritySetting(true, false, List.of(), true, 20, 60);
+        }
+
+        List<String> normalizedAllowedOrigins() {
+            return ChatSecurityService.normalizeStringList(allowedOrigins, "origin");
+        }
+
+        int normalizedRateLimitRequests() {
+            if (rateLimitRequests < 1 || rateLimitRequests > 1000) {
+                return 20;
+            }
+            return rateLimitRequests;
+        }
+
+        int normalizedRateLimitWindowSeconds() {
+            if (rateLimitWindowSeconds < 10 || rateLimitWindowSeconds > 86400) {
+                return 60;
+            }
+            return rateLimitWindowSeconds;
         }
     }
 

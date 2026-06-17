@@ -179,13 +179,6 @@ spec:
           value:
             accessMode: anonymous_chat
             modelName: ""
-            chatContextRounds: 20
-            requestAcceptedMessage: "收到啦，马上就来陪你啦～"
-            reasoningMessages:
-              - message: "我正在认真想一想～"
-              - message: "让我整理一下思路，很快就好～"
-              - message: "稍等一下，我正在组织语言呢～"
-            reasoningMessageInterval: 5
             systemMessage: |-
               你现在以 Live2D 二次元看板娘的身份与用户聊天，请始终稳定代入这个角色，不要跳出设定。
 
@@ -210,9 +203,6 @@ spec:
               - 始终保持看板娘人设稳定，不要频繁切换身份、语气或叙述视角。
               - 回复应以易读、自然为主，避免过长大段输出。
               - 在合适场景下可以表现出贴心、活泼、害羞、关心等情绪，但不要夸张失控。
-            chunkTimeout: 10
-            showChatMessageTimeout: 10
-            autoContinuationMessageMinVisibleMs: 1500
           children:
             - $formkit: select
               label: 访问模式
@@ -241,6 +231,22 @@ spec:
               help: 建议按“角色身份 / 说话风格 / 互动方式 / 行为约束”分段填写，这样模型更容易稳定理解设定
               rows: 16
               validation: String
+        - $formkit: group
+          name: aiChatDisplaySetting
+          if: "$get(isAiChat).value === true"
+          label: 聊天体验设置
+          value:
+            chatContextRounds: 20
+            requestAcceptedMessage: "收到啦，马上就来陪你啦～"
+            reasoningMessages:
+              - message: "我正在认真想一想～"
+              - message: "让我整理一下思路，很快就好～"
+              - message: "稍等一下，我正在组织语言呢～"
+            reasoningMessageInterval: 5
+            chunkTimeout: 10
+            showChatMessageTimeout: 10
+            autoContinuationMessageMinVisibleMs: 1500
+          children:
             - $formkit: text
               label: 请求已收到提示语
               name: requestAcceptedMessage
@@ -286,6 +292,57 @@ spec:
               help: Agent 自动调用工具并继续回复时，上一段看板娘回复至少展示这段时间，避免被后续回复过快覆盖；设置为 0 表示不延迟
               name: autoContinuationMessageMinVisibleMs
               validation: Number|between:0,10000
+        - $formkit: group
+          name: aiChatSecuritySetting
+          if: "$get(isAiChat).value === true"
+          label: 接口安全策略
+          value:
+            antiHotlinkEnabled: true
+            allowMissingOrigin: false
+            allowedOrigins: []
+            rateLimitEnabled: true
+            rateLimitRequests: 20
+            rateLimitWindowSeconds: 60
+          children:
+            - $formkit: switch
+              name: antiHotlinkEnabled
+              label: 启用防盗链
+              help: 开启后仅允许本站页面或白名单 Origin 调用 AI 聊天接口，并拒绝浏览器跨站请求。
+              value: true
+            - $formkit: switch
+              name: allowMissingOrigin
+              label: 允许缺失来源
+              help: 关闭后，没有 Origin 或 Referer 的请求会被拒绝，可减少脚本直接调用。
+              value: false
+            - $formkit: array
+              name: allowedOrigins
+              label: 额外允许的 Origin
+              help: 仅填写可信站点 Origin，例如 https://example.com。本站 Origin 会自动允许。
+              value: []
+              addLabel: 添加 Origin
+              emptyText: 暂无额外 Origin
+              itemLabels:
+                - type: text
+                  label: $value.origin
+              children:
+                - $formkit: text
+                  name: origin
+                  label: Origin
+            - $formkit: switch
+              name: rateLimitEnabled
+              label: 启用限流
+              help: 按登录用户或匿名访问 IP 限制 AI 聊天和 Agent 调用频率。
+              value: true
+            - $formkit: text
+              name: rateLimitRequests
+              label: 时间窗口内最多请求数
+              help: 范围 1 到 1000，默认 20。
+              validation: Number|between:1,1000
+            - $formkit: text
+              name: rateLimitWindowSeconds
+              label: 时间窗口（秒）
+              help: 范围 10 到 86400，默认 60。
+              validation: Number|between:10,86400
     - group: agent
       label: Agent 能力
       formSchema:
