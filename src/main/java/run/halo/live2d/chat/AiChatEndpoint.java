@@ -35,9 +35,11 @@ import run.halo.aifoundation.ui.UIMessageTransportCodec;
 import run.halo.live2d.agent.AgentAccessMode;
 import run.halo.live2d.agent.AgentSettings;
 import run.halo.live2d.agent.AgentToolService;
+import run.halo.live2d.ai.ConditionalOnHaloAiFoundation;
 
 @Slf4j
 @Component
+@ConditionalOnHaloAiFoundation
 @AllArgsConstructor
 public class AiChatEndpoint implements CustomEndpoint {
 

@@ -20,13 +20,17 @@ import run.halo.aifoundation.ui.UIMessageStreams;
 import run.halo.aifoundation.tool.ToolChoice;
 import run.halo.app.plugin.extensionpoint.ExtensionGetter;
 import run.halo.live2d.agent.AgentToolSet;
+import run.halo.live2d.ai.ConditionalOnHaloAiFoundation;
+import run.halo.live2d.ai.HaloAiFoundationAvailability;
 
 @Slf4j
 @Component
+@ConditionalOnHaloAiFoundation
 @RequiredArgsConstructor
 public class AIChatServiceImpl implements AiChatService {
 
     private final ExtensionGetter extensionGetter;
+    private final HaloAiFoundationAvailability haloAiFoundationAvailability;
 
     private Mono<AiModelService> aiModelService() {
         return extensionGetter.getEnabledExtension(AiModelService.class);
@@ -35,27 +39,33 @@ public class AIChatServiceImpl implements AiChatService {
     @Override
     public Mono<UIMessageStreamResponse> streamChatCompletion(String modelName,
         String systemMessage, UIMessageChatRequest<Void> chatRequest, AgentToolSet agentToolSet) {
-        if (StringUtils.isBlank(modelName)) {
-            return Mono.just(errorResponse("请先在插件设置中配置 Halo AI 模型"));
-        }
+        return haloAiFoundationAvailability.isEnabled()
+            .flatMap(enabled -> {
+                if (!enabled) {
+                    return Mono.just(errorResponse("Halo AI Foundation 插件未安装或未启用，请联系站长"));
+                }
+                if (StringUtils.isBlank(modelName)) {
+                    return Mono.just(errorResponse("请先在插件设置中配置 Halo AI 模型"));
+                }
 
-        return aiModelService()
-            .flatMap(service -> service.languageModel(modelName))
-            .map(model -> {
-                var chat = UIMessageChatHandlers.<Void>streamText(options -> options
-                    .model(model)
-                    .chatRequest(chatRequest)
-                    .request(builder -> builder
-                        .system(systemMessage)
-                        .tools(agentToolSet == null ? null : agentToolSet.tools())
-                        .toolChoice(agentToolSet == null || agentToolSet.tools().isEmpty()
-                            ? ToolChoice.none()
-                            : ToolChoice.auto())
-                        .stopWhen(agentToolSet == null || agentToolSet.tools().isEmpty()
-                            ? null
-                            : StopCondition.stepCountIs(3)))
-                    .onError(this::resolveErrorMessage));
-                return chat.response();
+                return aiModelService()
+                    .flatMap(service -> service.languageModel(modelName))
+                    .map(model -> {
+                        var chat = UIMessageChatHandlers.<Void>streamText(options -> options
+                            .model(model)
+                            .chatRequest(chatRequest)
+                            .request(builder -> builder
+                                .system(systemMessage)
+                                .tools(agentToolSet == null ? null : agentToolSet.tools())
+                                .toolChoice(agentToolSet == null || agentToolSet.tools().isEmpty()
+                                    ? ToolChoice.none()
+                                    : ToolChoice.auto())
+                                .stopWhen(agentToolSet == null || agentToolSet.tools().isEmpty()
+                                    ? null
+                                    : StopCondition.stepCountIs(3)))
+                            .onError(this::resolveErrorMessage));
+                        return chat.response();
+                    });
             })
             .onErrorResume(throwable -> {
                 logChatError(modelName, throwable);

@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 import run.halo.live2d.agent.AgentSettings;
 import run.halo.live2d.agent.AgentToolNormalizer;
 import run.halo.app.plugin.ReactiveSettingFetcher;
+import run.halo.live2d.ai.HaloAiFoundationAvailability;
 
 /**
  * Live2d 配置处理器
@@ -38,6 +39,7 @@ public class Live2dSettingProcess implements Live2dSetting {
 
     private final ReactiveSettingFetcher settingFetcher;
     private final AgentToolNormalizer agentToolNormalizer;
+    private final HaloAiFoundationAvailability haloAiFoundationAvailability;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -52,20 +54,23 @@ public class Live2dSettingProcess implements Live2dSetting {
 
     @Override
     public Mono<JsonNode> getPublicConfig(String themeTipsPath) {
-        return settingFetcher.getValues().map(data -> {
-            ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
-            copyFields(objectNode, data.get("base"), BASE_FIELDS);
-            copyFields(objectNode, data.get("api"), API_FIELDS);
-            copyFields(objectNode, data.get("tips"), TIPS_FIELDS);
-            copyFields(objectNode, data.get("advanced"), ADVANCED_FIELDS);
-            copyAiChatFields(objectNode, data.get("aichat"));
-            copyAgentFields(objectNode, data.get("agent"));
-            copyCustomTools(objectNode, data.get("customTools"));
-            if (themeTipsPath != null && !themeTipsPath.isBlank()) {
-                objectNode.put("themeTipsPath", themeTipsPath);
-            }
-            return objectNode;
-        });
+        return Mono.zip(settingFetcher.getValues(), haloAiFoundationAvailability.isEnabled())
+            .map(tuple -> {
+                var data = tuple.getT1();
+                var aiFoundationEnabled = tuple.getT2();
+                ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
+                copyFields(objectNode, data.get("base"), BASE_FIELDS);
+                copyFields(objectNode, data.get("api"), API_FIELDS);
+                copyFields(objectNode, data.get("tips"), TIPS_FIELDS);
+                copyFields(objectNode, data.get("advanced"), ADVANCED_FIELDS);
+                copyAiChatFields(objectNode, data.get("aichat"), aiFoundationEnabled);
+                copyAgentFields(objectNode, data.get("agent"));
+                copyCustomTools(objectNode, data.get("customTools"));
+                if (themeTipsPath != null && !themeTipsPath.isBlank()) {
+                    objectNode.put("themeTipsPath", themeTipsPath);
+                }
+                return objectNode;
+            });
     }
 
     private void copyFields(ObjectNode target, JsonNode source, List<String> fields) {
@@ -80,14 +85,17 @@ public class Live2dSettingProcess implements Live2dSetting {
         });
     }
 
-    private void copyAiChatFields(ObjectNode target, JsonNode source) {
+    private void copyAiChatFields(ObjectNode target, JsonNode source, boolean aiFoundationEnabled) {
+        if (!aiFoundationEnabled) {
+            target.put("isAiChat", false);
+        }
         if (source == null || source.isNull()) {
             return;
         }
 
         var isAiChat = source.get("isAiChat");
-        if (isAiChat != null && !isAiChat.isNull()) {
-            target.set("isAiChat", isAiChat);
+        if (aiFoundationEnabled && isAiChat != null && !isAiChat.isNull()) {
+            target.put("isAiChat", isAiChat.asBoolean(false));
         }
 
         var aiChatBaseSetting = source.get("aiChatBaseSetting");

@@ -8,8 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import run.halo.aifoundation.schema.JsonSchema;
 import run.halo.aifoundation.tool.ToolDefinition;
+import run.halo.live2d.ai.ConditionalOnHaloAiFoundation;
 
 @Component
+@ConditionalOnHaloAiFoundation
 @RequiredArgsConstructor
 public class AgentToolService {
     private final AgentToolNormalizer normalizer;

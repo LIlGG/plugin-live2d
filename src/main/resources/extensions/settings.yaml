@@ -167,7 +167,24 @@ spec:
       formSchema:
         - $formkit: switch
           label: 启用 AI 聊天功能
-          help: 启用后，Live2d 将可以进行 AI 智能对话
+          help: 启用后，Live2d 将可以进行 AI 智能对话。此功能需要先安装并启用 Halo AI Foundation（推荐应用），否则前台不会显示 AI 聊天入口。
+          __raw__sectionsSchema:
+            help:
+              children:
+                - $el: span
+                  children: "启用后，Live2d 将可以进行 AI 智能对话。此功能需要先安装并启用 "
+                - $el: a
+                  children: "Halo AI Foundation"
+                  attrs:
+                    href: "https://www.halo.run/store/apps/app-acslk9nu"
+                    class: "block inline"
+                    target: "_blank"
+                    rel: "noopener noreferrer"
+                    style:
+                      color: "#1890ff"
+                      whiteSpace: "pre"
+                - $el: span
+                  children: "（推荐应用），否则前台不会显示 AI 聊天入口。"
           name: isAiChat
           id: isAiChat
           key: isAiChat
@@ -230,6 +247,24 @@ spec:
             - $formkit: aiModelSelector
               name: modelName
               label: 对话模型
+              help: 如果这里无法选择模型，请先安装并启用 Halo AI Foundation，然后在其中配置可用的语言模型。
+              __raw__sectionsSchema:
+                help:
+                  children:
+                    - $el: span
+                      children: "如果这里无法选择模型，请先安装并启用 "
+                    - $el: a
+                      children: "Halo AI Foundation"
+                      attrs:
+                        href: "https://www.halo.run/store/apps/app-acslk9nu"
+                        class: "block inline"
+                        target: "_blank"
+                        rel: "noopener noreferrer"
+                        style:
+                          color: "#1890ff"
+                          whiteSpace: "pre"
+                    - $el: span
+                      children: "，然后在其中配置可用的语言模型。"
               modelType: language
               available: true
               validation: required
