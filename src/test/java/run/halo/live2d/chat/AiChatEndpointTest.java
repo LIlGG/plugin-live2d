@@ -44,4 +44,49 @@ class AiChatEndpointTest {
         assertThat(config.aiChatBaseSetting().resolvedAccessMode())
             .isEqualTo(AgentAccessMode.ANONYMOUS_CHAT);
     }
+
+    @Test
+    void ignoresUiOnlyFieldsAndParsesSplitSettings() throws Exception {
+        var config = objectMapper.readValue("""
+            {
+              "isAiChat": true,
+              "aiChatBaseSetting": {
+                "accessMode": "anonymous_chat_agent",
+                "systemMessage": "system",
+                "modelName": "model"
+              },
+              "aiChatDisplaySetting": {
+                "chunkTimeout": 10,
+                "showChatMessageTimeout": 10
+              },
+              "aiChatSecuritySetting": {
+                "antiHotlinkEnabled": true,
+                "rateLimitRequests": 5,
+                "rateLimitWindowSeconds": 30
+              }
+            }
+            """, AiChatEndpoint.AiChatConfig.class);
+
+        assertThat(config.aiChatBaseSetting().resolvedAccessMode())
+            .isEqualTo(AgentAccessMode.ANONYMOUS_CHAT_AGENT);
+        assertThat(config.securitySetting().normalizedRateLimitRequests())
+            .isEqualTo(5);
+        assertThat(config.securitySetting().allowMissingOrigin()).isFalse();
+    }
+
+    @Test
+    void usesSecurityDefaultsWhenSplitSecurityIsMissing() throws Exception {
+        var config = objectMapper.readValue("""
+            {
+              "isAiChat": true,
+              "aiChatBaseSetting": {
+                "accessMode": "anonymous_chat",
+                "systemMessage": "system",
+                "modelName": "model"
+              }
+            }
+            """, AiChatEndpoint.AiChatConfig.class);
+
+        assertThat(config.securitySetting().normalizedRateLimitRequests()).isEqualTo(20);
+    }
 }

@@ -99,11 +99,14 @@ public class Live2dSettingProcess implements Live2dSetting {
         }
 
         var aiChatBaseSetting = source.get("aiChatBaseSetting");
-        if (aiChatBaseSetting == null || aiChatBaseSetting.isNull()) {
-            return;
+        if (aiChatBaseSetting != null && !aiChatBaseSetting.isNull()) {
+            copyFields(target, aiChatBaseSetting, AI_CHAT_PUBLIC_FIELDS);
         }
 
-        copyFields(target, aiChatBaseSetting, AI_CHAT_PUBLIC_FIELDS);
+        var aiChatDisplaySetting = source.get("aiChatDisplaySetting");
+        if (aiChatDisplaySetting != null && !aiChatDisplaySetting.isNull()) {
+            copyFields(target, aiChatDisplaySetting, AI_CHAT_PUBLIC_FIELDS);
+        }
     }
 
     private void copyAgentFields(ObjectNode target, JsonNode source) {
