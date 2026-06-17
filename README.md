@@ -2,7 +2,7 @@
 <p align="center">
   <a href="https://github.com/halo-dev/halo"><img alt="Halo version" src="https://img.shields.io/badge/halo-2.25.0%2B-brightgreen?style=for-the-badge" /></a>
   <a href="https://github.com/LIlGG/halo-theme-sakura"><img alt="Build Status" src="https://img.shields.io/badge/build-positive-brightgreen?style=for-the-badge"></a>
-  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-2.0.0-blue?style=for-the-badge"></a>
+  <a href="https://github.com/prettier/prettier"><img alt="Code Style: Prettier" src="https://img.shields.io/badge/release-2.1.0-blue?style=for-the-badge"></a>
   <a href="./LICENSE"><img alt="LICENSE MIT" src="https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge"></a>
 </p>
 
@@ -14,6 +14,18 @@
 ![](assert/live2d.jpg)
 
 **注：本仓库仅提供基础渲染框架，不包含任何 Live2d 模型及其接口**
+
+## 功能介绍
+- [x] 一只萌萌的看板娘，为网站增添一份活力
+- [x] 支持 Cubism 2 / 3 / 4 / 5 模型
+- [x] 基于 OpenAi 的对话交互功能【会思考的萌娘】
+- [x] 一键换装、换肤
+- [x] 支持一言功能
+- [x] 小飞机游戏（把坏人全都打跑！）
+- [x] 自定义看板娘接口
+- [x] 支持外部自定义 TIPS 文件，更适合你的网站
+- [x] 支持自定义工具栏
+- [x] 支持 Agent 能力，让 AI 在授权范围内搜索 Halo 内容、打开可信资源并协助访客完成站点操作
 
 ## Live2D Agent
 
@@ -54,18 +66,6 @@ pnpm --dir packages/live2d dev
 ```
 
 本地联调时，可以在 Halo 后台开启 `插件设置 -> 高级设置 -> 前端调试模式`，并让其指向本地 Vite 服务地址（默认 `http://localhost:5173`）。这样 Halo 页面会直接加载开发中的前端模块，方便调试现代化后的 Live2d 运行时。
-
-## 功能介绍
-- [x] 一只萌萌的看板娘，为网站增添一份活力
-- [x] 支持 Cubism 2 / 3 / 4 / 5 模型
-- [x] 基于 OpenAi 的对话交互功能【会思考的萌娘】
-- [x] 一键换装、换肤
-- [x] 支持一言功能
-- [x] 小飞机游戏（把坏人全都打跑！）
-- [x] 自定义看板娘接口
-- [x] 支持外部自定义 TIPS 文件，更适合你的网站
-- [x] 支持自定义工具栏
-- [x] 支持 Agent 能力，让 AI 在授权范围内搜索 Halo 内容、打开可信资源并协助访客完成站点操作
 
 ## 自定义配置
 > 此部分内容建议初步尝试过 Live2d 的用户观看。
