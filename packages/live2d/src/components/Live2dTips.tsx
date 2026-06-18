@@ -10,6 +10,10 @@ import type {
   StreamMessageStartEvent,
   StreamMessageStopEvent,
 } from "@/live2d/events/stream-message";
+import {
+  hasMarkdownBlockElements,
+  renderMarkdown,
+} from "@/live2d/helpers/renderMarkdown";
 import { isNotEmpty } from "@/live2d/utils/isNotEmpty";
 import { randomSelection } from "@/live2d/utils/randomSelection";
 import { consume } from "@lit/context";
@@ -60,6 +64,11 @@ export class Live2dTips extends UnoLitElement {
   }
 
   render(): TemplateResult {
+    const renderedMessage = this.isStreamMode
+      ? renderMarkdown(this._message)
+      : this._message;
+    const isMarkdownBlock =
+      this.isStreamMode && hasMarkdownBlockElements(renderedMessage);
     const classes = {
       "animate-shake": true,
       "animate-delay-5s": true,
@@ -78,13 +87,14 @@ export class Live2dTips extends UnoLitElement {
       "text-ellipsis": true,
       "transition-opacity-1000": true,
       "break-all": true,
+      "live2d-tips-markdown": isMarkdownBlock,
       "opacity-100": this._isShow,
       "opacity-0": !this._isShow,
       "select-none": true,
     };
     return html`
       <div id="live2d-tips" class=${classMap(classes)}>
-        ${unsafeHTML(this._message)}
+        ${unsafeHTML(renderedMessage)}
       </div>
     `;
   }

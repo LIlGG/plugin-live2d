@@ -27,6 +27,7 @@
     "@pixi/sound": "^6.0.1",
     "iconify-icon": "^3.0.2",
     "lit": "^3.3.3",
+    "markdown-it": "^14.2.0",
     "pixi.js": "^8.13.1",
     "query-string": "^9.3.1",
     "react": "^19.2.6",
@@ -34,6 +35,7 @@
     "untitled-pixi-live2d-engine": "^1.1.0"
   },
   "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@unocss/postcss": "^66.6.8",

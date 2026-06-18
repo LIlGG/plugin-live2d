@@ -1,1 +1,78 @@
 @unocss;
+
+.live2d-tips-markdown {
+  max-height: min(18rem, 42vh);
+  overflow-y: auto;
+  text-align: left;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.live2d-tips-markdown :is(p, ul, ol, blockquote, pre) {
+  margin: 0.25rem 0;
+}
+
+.live2d-tips-markdown :is(h1, h2, h3) {
+  margin: 0.25rem 0;
+  color: #6f4b27;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.live2d-tips-markdown h1 {
+  font-size: 1rem;
+}
+
+.live2d-tips-markdown h2 {
+  font-size: 0.95rem;
+}
+
+.live2d-tips-markdown h3 {
+  font-size: 0.9rem;
+}
+
+.live2d-tips-markdown :is(ul, ol) {
+  padding-left: 1.15rem;
+}
+
+.live2d-tips-markdown li + li {
+  margin-top: 0.15rem;
+}
+
+.live2d-tips-markdown blockquote {
+  border-left: 3px solid rgba(139, 94, 52, 0.35);
+  padding-left: 0.55rem;
+  color: #765b44;
+}
+
+.live2d-tips-markdown code {
+  border-radius: 0.25rem;
+  background: rgba(255, 250, 244, 0.85);
+  padding: 0.05rem 0.25rem;
+  color: #7f3f22;
+  font-size: 0.85em;
+}
+
+.live2d-tips-markdown pre {
+  overflow-x: auto;
+  border-radius: 0.4rem;
+  background: rgba(255, 250, 244, 0.9);
+  padding: 0.5rem;
+}
+
+.live2d-tips-markdown pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.live2d-tips-markdown a {
+  color: #b75f21;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.live2d-tips-markdown hr {
+  margin: 0.45rem 0;
+  border: 0;
+  border-top: 1px solid rgba(139, 94, 52, 0.22);
+}

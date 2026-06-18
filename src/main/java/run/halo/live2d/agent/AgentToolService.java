@@ -14,6 +14,14 @@ import run.halo.live2d.ai.ConditionalOnHaloAiFoundation;
 @ConditionalOnHaloAiFoundation
 @RequiredArgsConstructor
 public class AgentToolService {
+    private static final String RESPONSE_FORMAT_PROMPT = "\n\n【回复格式】\n"
+        + "- 默认使用 Markdown 格式回复，普通聊天也可以只写自然文本。\n"
+        + "- 除非回复很短，否则每句话单独成行；不要把多句话连续写在同一段里。\n"
+        + "- 每一行只表达一个意思，完整表达后立即换行，让气泡内容更容易阅读。\n"
+        + "- 需要分点说明时优先使用 Markdown 列表，每个列表项单独成行，列表前后保留空行。\n"
+        + "- 多个列表、段落或不同主题之间使用空行分隔，避免把内容挤在同一段里。\n"
+        + "- 不要输出 HTML 标签。";
+
     private final AgentToolNormalizer normalizer;
     private final HaloAgentPresetToolService haloPresetToolService;
 
@@ -152,10 +160,10 @@ public class AgentToolService {
 
     public String appendCapabilityPrompt(String systemMessage, AgentToolSet toolSet) {
         if (toolSet == null || !toolSet.agentEnabled() || toolSet.tools().isEmpty()) {
-            return systemMessage + "\n\n【Agent 能力边界】\n"
+            return systemMessage + RESPONSE_FORMAT_PROMPT + "\n\n【Agent 能力边界】\n"
                 + "当前站点未向访客开放 Agent 操作能力。你可以正常聊天，但不能承诺打开页面、提交内容或控制站点功能。";
         }
-        return systemMessage + "\n\n【Agent 能力】\n"
+        return systemMessage + RESPONSE_FORMAT_PROMPT + "\n\n【Agent 能力】\n"
             + "- 你可以在工具可用时协助访客执行已授权的站点操作。\n"
             + "- 只能调用当前已声明的工具；不要承诺未声明或未授权的能力。\n"
             + "- 执行评论、表单填写、页面定位等依赖当前页面结构的操作前，应先读取当前页面上下文；如果页面不具备对应能力，应如实说明。\n"

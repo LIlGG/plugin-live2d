@@ -22,6 +22,24 @@ class AgentToolServiceTest {
     }
 
     @Test
+    void appendsMarkdownResponseFormatPrompt() {
+        var service = new AgentToolService(normalizer, null);
+
+        var prompt = service.appendCapabilityPrompt("system", AgentToolSet.disabled());
+
+        assertThat(prompt)
+            .contains("【回复格式】")
+            .contains("默认使用 Markdown 格式回复")
+            .contains("每句话单独成行")
+            .contains("每一行只表达一个意思")
+            .contains("每个列表项单独成行")
+            .contains("列表前后保留空行")
+            .contains("多个列表、段落或不同主题之间使用空行分隔")
+            .contains("不要输出 HTML 标签")
+            .contains("【Agent 能力边界】");
+    }
+
+    @Test
     void filtersAuthenticatedCustomToolsForAnonymousVisitors() throws Exception {
         var service = new AgentToolService(normalizer, null);
         var settings = new AgentSettings(
