@@ -63,21 +63,6 @@ describe("renderMarkdown", () => {
     expect(renderMarkdown("第一行\n第二行")).toContain("第一行<br>\n第二行");
   });
 
-  it("normalizes collapsed chat markdown blocks", () => {
-    const html = renderMarkdown(
-      "总结一下叭！---##📚内容一览###📝文章：-**【Hello Halo】**—默认欢迎文章###📄页面：-**【关于】**—站点介绍",
-    );
-
-    expect(html).toContain("<hr>");
-    expect(html).toContain("<h2>📚内容一览</h2>");
-    expect(html).toContain("<h3>📝文章：</h3>");
-    expect(html).toContain(
-      "<li><strong>【Hello Halo】</strong>—默认欢迎文章</li>",
-    );
-    expect(html).toContain("<h3>📄页面：</h3>");
-    expect(html).toContain("<li><strong>【关于】</strong>—站点介绍</li>");
-  });
-
   it("detects markdown block output", () => {
     expect(hasMarkdownBlockElements(renderMarkdown("plain"))).toBe(true);
     expect(hasMarkdownBlockElements("plain")).toBe(false);

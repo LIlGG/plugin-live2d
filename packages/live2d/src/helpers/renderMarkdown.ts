@@ -39,19 +39,7 @@ markdown.renderer.rules.link_open = (tokens, idx, options, env, self) => {
   return defaultLinkOpenRenderer(tokens, idx, options, env, self);
 };
 
-const normalizeChatMarkdown = (value: string): string =>
-  value
-    .replace(/\r\n?/g, "\n")
-    .replace(/([^\n])---(?=#{1,6})/g, "$1\n\n---\n\n")
-    .replace(/(^|\n)---(?=#{1,6})/g, "$1---\n\n")
-    .replace(/([^\n#])(#{1,6})(?=[^\s#])/g, "$1\n\n$2")
-    .replace(/(^|\n)(#{1,6})(?=[^\s#])/g, "$1$2 ")
-    .replace(/([:：])-(?=(?:\*\*|【|[\p{L}\p{N}]))/gu, "$1\n- ")
-    .replace(/([^\n])-(?=\*\*)/g, "$1\n- ")
-    .replace(/(^|\n)-(?=\S)/g, "$1- ");
-
-export const renderMarkdown = (value: string): string =>
-  markdown.render(normalizeChatMarkdown(value));
+export const renderMarkdown = (value: string): string => markdown.render(value);
 
 export const hasMarkdownBlockElements = (html: string): boolean => {
   const match = html.trimStart().match(/^<([a-z0-9]+)/i);
