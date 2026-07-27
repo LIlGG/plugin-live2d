@@ -4,13 +4,14 @@ import {
   configContext,
 } from "@/live2d/context/config-context";
 import { ToggleCanvasEvent } from "@/live2d/events/toggle-canvas";
-import { WIDGET_DRAWER_DURATION_MS } from "@/live2d/helpers/widgetDrawer";
+import { getWidgetDrawerDuration } from "@/live2d/helpers/widgetDrawer";
 import {
   clearWidgetDismissal,
   readWidgetSuppression,
   rememberWidgetDismissal,
 } from "@/live2d/helpers/widgetVisibility";
 import { DraggableMixin } from "@/live2d/mixins/draggable";
+import { isCompactViewport } from "@/live2d/utils/responsive";
 import { consume } from "@lit/context";
 import { type TemplateResult, html } from "lit";
 import { property } from "lit/decorators.js";
@@ -41,7 +42,8 @@ export class Live2dToggle extends DraggableUnoLitElement {
     window.addEventListener("live2d:toggle-canvas", this.handleGlobalToggle);
 
     Promise.resolve().then(() => {
-      if (readWidgetSuppression(localStorage)) {
+      const widgetSuppressed = readWidgetSuppression(localStorage);
+      if (widgetSuppressed) {
         this._isShow = true;
         this.requestUpdate();
         return;
@@ -71,6 +73,7 @@ export class Live2dToggle extends DraggableUnoLitElement {
       role="button"
       tabindex="0"
       aria-label="打开看板娘"
+      style="bottom: calc(4rem + env(safe-area-inset-bottom, 0px));"
       @keydown=${this.handleKeydown}
     >
       <span
@@ -109,7 +112,7 @@ export class Live2dToggle extends DraggableUnoLitElement {
       this.revealTimer = undefined;
       this._isShow = true;
       this.requestUpdate();
-    }, WIDGET_DRAWER_DURATION_MS);
+    }, getWidgetDrawerDuration(isCompactViewport()));
   };
 
   private clearRevealTimer(): void {

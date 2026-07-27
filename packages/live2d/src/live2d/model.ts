@@ -7,11 +7,16 @@ import { isNotEmptyString } from "@/live2d/utils/isString";
 import * as PIXI from "pixi.js";
 import "@/live2d/libs/live2d.min.js";
 import "@/live2d/libs/live2dcubismcore.min.js";
-import { Live2DModel } from "untitled-pixi-live2d-engine";
-import { Live2dRuntimeController } from "@/live2d/runtime/controller";
-import { SemanticParameterLayer } from "@/live2d/runtime/semantic";
 import type { BehaviorFSM } from "@/live2d/runtime/behavior";
+import { Live2dRuntimeController } from "@/live2d/runtime/controller";
 import type { EmotionTimeline } from "@/live2d/runtime/emotion";
+import type { SemanticParameterLayer } from "@/live2d/runtime/semantic";
+import {
+  COMPACT_LIVE2D_CANVAS_SIZE,
+  DESKTOP_LIVE2D_CANVAS_SIZE,
+  getLive2dRenderResolution,
+} from "@/live2d/utils/responsive";
+import { Live2DModel } from "untitled-pixi-live2d-engine";
 
 declare global {
   interface Window {
@@ -38,7 +43,6 @@ interface EyeTrackingCleanup {
   _cleanupEyeTracking?: () => void;
 }
 
-const LIVE2D_CANVAS_SIZE = 300;
 const LIVE2D_MODEL_PADDING = 1;
 const LIVE2D_BOTTOM_OFFSET = 1;
 const MESSAGE_TIMEOUT_MS = 4000;
@@ -67,8 +71,13 @@ class Model {
   #hasLoggedConsoleStatus = false;
   #loadSequence = 0;
   #controller: Live2dRuntimeController;
+  #initialCanvasSize: number;
 
-  private constructor(root: HTMLCanvasElement, config: Live2dConfig) {
+  private constructor(
+    root: HTMLCanvasElement,
+    config: Live2dConfig,
+    canvasSize: number,
+  ) {
     const apiPath = config.apiPath;
     if (!isNotEmptyString(apiPath)) {
       throw new Error("Invalid initWidget argument!");
@@ -77,6 +86,7 @@ class Model {
     this.#apiPath = apiPath.endsWith("/") ? apiPath : `${apiPath}/`;
     this.#config = config;
     this.#live2dRootElement = root;
+    this.#initialCanvasSize = canvasSize;
     this.#controller = new Live2dRuntimeController({
       behaviorFSM: config.behaviorFSM,
       emotionTimeline: config.emotionTimeline,
@@ -90,21 +100,24 @@ class Model {
   static async create(
     root: HTMLCanvasElement,
     config: Live2dConfig,
+    canvasSize = DESKTOP_LIVE2D_CANVAS_SIZE,
   ): Promise<Model> {
-    const model = new Model(root, config);
+    const model = new Model(root, config, canvasSize);
     await model._loadingModel();
     return model;
   }
 
   private async initializeApplication(): Promise<PIXI.Application> {
     const app = new PIXI.Application();
+    const compactViewport =
+      this.#initialCanvasSize === COMPACT_LIVE2D_CANVAS_SIZE;
     await app.init({
       canvas: this.#live2dRootElement,
       autoStart: true,
-      height: LIVE2D_CANVAS_SIZE,
-      width: LIVE2D_CANVAS_SIZE,
+      height: this.#initialCanvasSize,
+      width: this.#initialCanvasSize,
       autoDensity: true,
-      resolution: window.devicePixelRatio || 1,
+      resolution: getLive2dRenderResolution(compactViewport),
       backgroundColor: 0x00000000,
       backgroundAlpha: 0,
       preference: "webgl",
@@ -179,29 +192,7 @@ class Model {
 
   private async replaceModel(nextModel: Live2DModel): Promise<void> {
     const app = await this.getApp();
-    const bounds = nextModel.getLocalBounds();
-    const modelWidth =
-      bounds.width || nextModel.internalModel.width || nextModel.width;
-    const modelHeight =
-      bounds.height || nextModel.internalModel.height || nextModel.height;
-    const scale = Math.min(
-      app.screen.width / modelWidth,
-      app.screen.height / modelHeight,
-    );
-
-    nextModel.scale.set(scale * LIVE2D_MODEL_PADDING);
-    nextModel.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height);
-    nextModel.position.set(
-      app.screen.width / 2,
-      app.screen.height * LIVE2D_BOTTOM_OFFSET,
-    );
-    const modelTopY = this.getSpeechAnchorTopY(nextModel, bounds);
-    window.dispatchEvent(
-      new ModelLayoutEvent({
-        topY: modelTopY,
-        canvasHeight: app.screen.height,
-      }),
-    );
+    this.layoutModel(nextModel, app);
 
     if (this.#currentModel) {
       this.#controller.destroy(app.ticker);
@@ -218,6 +209,39 @@ class Model {
 
     // Initialize controller with model
     this.#controller.initialize(nextModel, app.ticker);
+  }
+
+  private layoutModel(model: Live2DModel, app: PIXI.Application): void {
+    const bounds = model.getLocalBounds();
+    const modelWidth = bounds.width || model.internalModel.width || model.width;
+    const modelHeight =
+      bounds.height || model.internalModel.height || model.height;
+    const scale = Math.min(
+      app.screen.width / modelWidth,
+      app.screen.height / modelHeight,
+    );
+
+    model.scale.set(scale * LIVE2D_MODEL_PADDING);
+    model.pivot.set(bounds.x + bounds.width / 2, bounds.y + bounds.height);
+    model.position.set(
+      app.screen.width / 2,
+      app.screen.height * LIVE2D_BOTTOM_OFFSET,
+    );
+    const modelTopY = this.getSpeechAnchorTopY(model, bounds);
+    window.dispatchEvent(
+      new ModelLayoutEvent({
+        topY: modelTopY,
+        canvasHeight: app.screen.height,
+      }),
+    );
+  }
+
+  async resize(canvasSize: number): Promise<void> {
+    const app = await this.getApp();
+    app.renderer.resize(canvasSize, canvasSize);
+    if (this.#currentModel) {
+      this.layoutModel(this.#currentModel, app);
+    }
   }
 
   private stopEngineMotions(model: Live2DModel): void {
@@ -256,12 +280,16 @@ class Model {
 
   private getHeadTopY(_model: Live2DModel): number | undefined {
     // Use semantic layer for hit area lookup when available
-    const headIndex = this.#controller.getSemanticLayer().getHitAreaIndex(HEAD_HIT_AREA_PATTERN);
+    const headIndex = this.#controller
+      .getSemanticLayer()
+      .getHitAreaIndex(HEAD_HIT_AREA_PATTERN);
     if (headIndex === undefined) {
       return;
     }
 
-    const headBounds = this.#controller.getSemanticLayer().getDrawableBounds(headIndex);
+    const headBounds = this.#controller
+      .getSemanticLayer()
+      .getDrawableBounds(headIndex);
     if (!headBounds) {
       return;
     }
@@ -330,7 +358,9 @@ class Model {
       await this.replaceModel(model);
 
       if (this.#config.consoleShowStatus) {
-        const profile = this.#controller.getSemanticLayer().getCapabilityProfile();
+        const profile = this.#controller
+          .getSemanticLayer()
+          .getCapabilityProfile();
         const detectedNames = Array.from(profile.detected.keys()).join(", ");
         const missingNames = profile.missing.join(", ");
         console.log(
@@ -448,7 +478,9 @@ class Model {
   }
 
   private setupEyeTrackingEvents(): void {
-    const eyeTracking = this.#controller.getProceduralSystem()?.getEyeTrackingModule();
+    const eyeTracking = this.#controller
+      .getProceduralSystem()
+      ?.getEyeTrackingModule();
     if (!eyeTracking) return;
 
     const canvas = this.#live2dRootElement;

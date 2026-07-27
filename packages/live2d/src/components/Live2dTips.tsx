@@ -31,6 +31,9 @@ export class Live2dTips extends UnoLitElement {
   @property({ attribute: false })
   public config?: Live2dConfig;
 
+  @property({ type: Boolean })
+  public compact = false;
+
   @state()
   private _isShow = false;
   @state()
@@ -76,7 +79,7 @@ export class Live2dTips extends UnoLitElement {
       "animate-shake": true,
       "animate-delay-5s": true,
       "min-h-18": true,
-      "w-63": true,
+      "box-border": true,
       "bg-tips": true,
       border: true,
       "border-tips": true,
@@ -95,8 +98,15 @@ export class Live2dTips extends UnoLitElement {
       "opacity-0": !this._isShow,
       "select-none": true,
     };
+    const width = this.compact
+      ? "min(220px, calc(100vw - 1rem))"
+      : "min(15.75rem, calc(100vw - 1rem))";
     return html`
-      <div id="live2d-tips" class=${classMap(classes)}>
+      <div
+        id="live2d-tips"
+        class=${classMap(classes)}
+        style="width: ${width};"
+      >
         ${unsafeHTML(renderedMessage)}
       </div>
     `;

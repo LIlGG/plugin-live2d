@@ -13,10 +13,16 @@ import "@/live2d/components/Live2dTools";
 import "@/live2d/components/Live2dChatWindow";
 import type { ToggleCanvasEvent } from "@/live2d/events/toggle-canvas";
 import {
-  WIDGET_DRAWER_DURATION_MS,
   WIDGET_DRAWER_VISIBLE_BOTTOM,
+  getWidgetDrawerDuration,
 } from "@/live2d/helpers/widgetDrawer";
 import { DraggableMixin } from "@/live2d/mixins/draggable";
+import {
+  COMPACT_VIEWPORT_QUERY,
+  getLive2dCanvasSize,
+  getLive2dToolsLayoutClass,
+  isCompactViewport,
+} from "@/live2d/utils/responsive";
 
 const DraggableUnoLitElement = DraggableMixin(UnoLitElement, {
   storageKey: "widget",
@@ -37,8 +43,12 @@ export class Live2dWidget extends DraggableUnoLitElement {
   @state()
   private _isDrawerAnimating = false;
 
+  @state()
+  private _isCompactViewport = false;
+
   private showAnimationFrameId?: number;
   private drawerAnimationTimer?: number;
+  private compactViewportQuery?: MediaQueryList;
 
   render(): TemplateResult {
     return html`
@@ -52,8 +62,13 @@ export class Live2dWidget extends DraggableUnoLitElement {
 
   renderLive2dTools() {
     if (this.config?.isTools) {
+      const layoutClass = getLive2dToolsLayoutClass(
+        this._isCompactViewport,
+        this.config.live2dLocation,
+      );
       return html`<live2d-tools
-        class="absolute -right-5 bottom-0 opacity-0 transition-opacity-1000 group-hover:opacity-100"
+        class=${layoutClass}
+        .compact=${this._isCompactViewport}
       ></live2d-tools>`;
     }
   }
@@ -65,6 +80,7 @@ export class Live2dWidget extends DraggableUnoLitElement {
 
     return html`<live2d-tips
       class="pointer-events-none absolute left-1/2 -translate-x-1/2"
+      .compact=${this._isCompactViewport}
     ></live2d-tips>`;
   }
 
@@ -73,10 +89,9 @@ export class Live2dWidget extends DraggableUnoLitElement {
       return;
     }
 
-    const positionClass =
-      this.config?.live2dLocation === "right"
-        ? "right-[50px] left-auto"
-        : "left-0";
+    const positionClass = this.getPositionClass();
+    const canvasSize = getLive2dCanvasSize(this._isCompactViewport);
+    const drawerDuration = getWidgetDrawerDuration(this._isCompactViewport);
     const visibilityClass = this._isShow
       ? "pointer-events-auto"
       : "pointer-events-none";
@@ -92,15 +107,23 @@ export class Live2dWidget extends DraggableUnoLitElement {
       >
           <div
             class="linear transition-transform ${drawerClass}"
-            style="transition-duration: ${WIDGET_DRAWER_DURATION_MS}ms;"
+            style="transition-duration: ${drawerDuration}ms;"
           >
             <div
-              class="group flex flex-col items-center relative translate-y-1 transition-transform duration-300 hover:translate-y-0"
+              class="group flex items-end relative translate-y-1 transition-transform duration-300 hover:translate-y-0 ${
+                this.config?.live2dLocation === "right"
+                  ? "flex-row-reverse"
+                  : ""
+              }"
             >
-              ${this.renderLive2dTips()}
-              <live2d-canvas
-                class="inline-block h-[300px] w-[300px] z-1"
-              ></live2d-canvas>
+              <div class="relative flex flex-col items-center">
+                ${this.renderLive2dTips()}
+                <live2d-canvas
+                  class="inline-block z-1"
+                  style="width: ${canvasSize}px; height: ${canvasSize}px;"
+                  .canvasSize=${canvasSize}
+                ></live2d-canvas>
+              </div>
               ${this.renderLive2dTools()}
             </div>
           </div>
@@ -133,6 +156,12 @@ export class Live2dWidget extends DraggableUnoLitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.compactViewportQuery = window.matchMedia(COMPACT_VIEWPORT_QUERY);
+    this._isCompactViewport = isCompactViewport();
+    this.compactViewportQuery.addEventListener(
+      "change",
+      this.handleCompactViewportChange,
+    );
     // 应用保存的位置
     this.applySavedPosition();
     // 页面加载时清除历史消息
@@ -147,6 +176,11 @@ export class Live2dWidget extends DraggableUnoLitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.compactViewportQuery?.removeEventListener(
+      "change",
+      this.handleCompactViewportChange,
+    );
+    this.compactViewportQuery = undefined;
     this.cancelScheduledShow();
     this.cancelDrawerAnimation();
     window.removeEventListener("load", this.clearChatHistory);
@@ -161,6 +195,21 @@ export class Live2dWidget extends DraggableUnoLitElement {
    */
   private clearChatHistory(): void {
     localStorage.removeItem("historyMessages");
+  }
+
+  private readonly handleCompactViewportChange = (
+    event: MediaQueryListEvent,
+  ): void => {
+    this._isCompactViewport = event.matches;
+  };
+
+  private getPositionClass(): string {
+    if (this.config?.live2dLocation === "right") {
+      return this._isCompactViewport
+        ? "right-2 left-auto"
+        : "right-[50px] left-auto";
+    }
+    return this._isCompactViewport ? "left-2" : "left-0";
   }
 
   private scheduleShowAfterMount(): void {
@@ -188,7 +237,7 @@ export class Live2dWidget extends DraggableUnoLitElement {
     this.drawerAnimationTimer = window.setTimeout(() => {
       this.drawerAnimationTimer = undefined;
       this._isDrawerAnimating = false;
-    }, WIDGET_DRAWER_DURATION_MS);
+    }, getWidgetDrawerDuration(this._isCompactViewport));
   }
 
   private cancelDrawerAnimation(): void {
