@@ -17,10 +17,6 @@ export class Live2dRuntime {
   private rootElement?: Live2dContext;
 
   init(path: string, config: LegacyLive2dConfigInput = {}): void {
-    if (window.screen.width < 768) {
-      return;
-    }
-
     const rootElement = this.getOrCreateRoot();
     rootElement.config = normalizeLive2dConfig(path, config);
   }
