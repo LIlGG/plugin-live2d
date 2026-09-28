@@ -374,9 +374,9 @@ describe("ParameterCoordinator", () => {
     });
 
     it("keeps an override for one frame only unless it is written again", () => {
-      // A one-shot override (the DevTools parameter slider does this) is applied
-      // to the frame it was queued in. It does not reach the engine's baseline,
-      // so a caller that wants it to hold has to queue it every frame.
+      // A queued override is applied to the frame it was queued in. It does not
+      // reach the engine's baseline, so a caller that wants it to hold has to
+      // queue it every frame - or use holdOverride(), which does that for it.
       const rig = createEngineRig();
       rig.coordinator.queueWrite("angleX", 5, "override", "manual", SystemPriority.MANUAL);
 
@@ -399,6 +399,107 @@ describe("ParameterCoordinator", () => {
       rig.engineFrame();
 
       expect(rig.setValueCalls.length).toBe(callsBefore);
+    });
+
+    it("re-applies a held override on every frame", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+
+      for (let i = 0; i < 3; i++) {
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(5);
+      }
+
+      // The hold is re-applied per frame, it never reaches the engine's
+      // baseline.
+      expect(rig.baselineAngleX()).toBe(0);
+    });
+
+    it("keeps a held override against a lower-priority per-frame override", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+
+      for (let i = 0; i < 3; i++) {
+        rig.coordinator.queueWrite(
+          "angleX",
+          1,
+          "override",
+          "procedural",
+          SystemPriority.PROCEDURAL,
+        );
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(5);
+      }
+
+      // The hold suppresses the write every frame, so it is not logged as a
+      // conflict - that would flood the log.
+      expect(rig.coordinator.getConflictLog()).toEqual([]);
+    });
+
+    it("stacks add contributions on top of a held override", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+
+      for (let i = 0; i < 3; i++) {
+        rig.coordinator.queueWrite(
+          "angleX",
+          2,
+          "add",
+          "procedural",
+          SystemPriority.PROCEDURAL,
+        );
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(7);
+      }
+    });
+
+    it("releases a held override back to the engine", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(5);
+
+      rig.coordinator.releaseOverride("angleX", "manual");
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(0);
+    });
+
+    it("does not let a lower-priority hold replace a higher-priority one", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+      rig.coordinator.holdOverride("angleX", 9, "fsm", SystemPriority.FSM);
+
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(5);
+
+      const log = rig.coordinator.getConflictLog();
+      expect(log).toHaveLength(1);
+      expect(log[0].winningSystem).toBe("manual");
+      expect(log[0].losingSystem).toBe("fsm");
+    });
+
+    it("releaseOverride ignores a different source", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+
+      rig.coordinator.releaseOverride("angleX", "fsm");
+      rig.engineFrame();
+
+      expect(rig.angleX()).toBe(5);
+    });
+
+    it("reset() drops held overrides", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(5);
+
+      rig.coordinator.reset();
+      const callsBefore = rig.setValueCalls.length;
+      rig.engineFrame();
+
+      expect(rig.setValueCalls.length).toBe(callsBefore);
+      expect(rig.angleX()).toBe(0);
     });
   });
 });

@@ -279,9 +279,7 @@ export class Live2dDevTools extends UnoLitElement {
     this._controller?.getFilterPipeline().setIntensity(id, v);
   }
   private _setParamValue(p: string, v: number): void {
-    this._controller
-      ?.getSemanticLayer()
-      .setSemantic(p, v, "override", "manual", 1);
+    this._controller?.getSemanticLayer().holdSemantic(p, v, "manual", 1);
   }
 
   private _sectionHeader(

@@ -139,6 +139,37 @@ describe("Live2dRuntimeController", () => {
     expect(history.length).toBe(10);
   });
 
+  it("getSemanticParameters reports a held override", () => {
+    const controller = new Live2dRuntimeController();
+    const values = new Float32Array(1);
+    const coreModel = {
+      _model: {
+        parameters: {
+          ids: ["PARAM_ANGLE_X"],
+          values,
+          minimumValues: new Float32Array([-30]),
+          maximumValues: new Float32Array([30]),
+          defaultValues: new Float32Array(1),
+        },
+      },
+      getParameterValueByIndex: (index: number) => values[index] ?? 0,
+      setParameterValueByIndex: (index: number, value: number) => {
+        values[index] = value;
+      },
+    };
+
+    const layer = controller.getSemanticLayer();
+    layer.detectFromModel({ internalModel: { coreModel } });
+    layer.holdSemantic("angleX", 12, "manual", 1);
+
+    // The hold is applied per frame and the engine restores its own value
+    // afterwards, so the raw parameter still reads 0.
+    expect(layer.getSemantic("angleX")).toBe(0);
+    expect(controller.getSemanticParameters()).toEqual([
+      { name: "angleX", value: 12 },
+    ]);
+  });
+
   it("getSemanticParameters returns empty before detection", () => {
     const controller = new Live2dRuntimeController();
     expect(controller.getSemanticParameters()).toEqual([]);

@@ -209,14 +209,11 @@ export class BehaviorFSM {
 
     if (profile.semanticParameters && semanticLayer) {
       for (const [name, config] of Object.entries(profile.semanticParameters)) {
-        if (semanticLayer.hasSemantic(name)) {
-          semanticLayer.setSemantic(
-            name,
-            config.value,
-            config.blendMode ?? "override",
-            "fsm",
-            2,
-          );
+        if (!semanticLayer.hasSemantic(name)) continue;
+        if (config.blendMode === "add") {
+          semanticLayer.setSemantic(name, config.value, "add", "fsm", 2);
+        } else {
+          semanticLayer.holdSemantic(name, config.value, "fsm", 2);
         }
       }
     }
@@ -271,7 +268,7 @@ export class BehaviorFSM {
 
     if (profile.semanticParameters && semanticLayer) {
       for (const name of Object.keys(profile.semanticParameters)) {
-        semanticLayer.setSemantic(name, 0, "override", "fsm", 2);
+        semanticLayer.releaseSemantic(name, "fsm");
       }
     }
 

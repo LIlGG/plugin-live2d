@@ -82,11 +82,11 @@ describe("Live2dDevTools", () => {
       expect(clearSpy).toHaveBeenCalled();
     });
 
-    it("slider changes parameter value with manual priority", () => {
+    it("slider holds the parameter with manual priority", () => {
       const semanticLayer = controller.getSemanticLayer();
-      const setSemanticSpy = vi.spyOn(semanticLayer, "setSemantic");
+      const holdSpy = vi.spyOn(semanticLayer, "holdSemantic");
       asPrivate(devtools)._setParamValue("mouthOpen", 5.5);
-      expect(setSemanticSpy).toHaveBeenCalledWith("mouthOpen", 5.5, "override", "manual", 1);
+      expect(holdSpy).toHaveBeenCalledWith("mouthOpen", 5.5, "manual", 1);
     });
 
     it("filter intensity slider adjusts effect intensity", () => {

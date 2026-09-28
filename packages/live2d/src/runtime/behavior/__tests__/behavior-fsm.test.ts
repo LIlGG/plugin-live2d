@@ -20,6 +20,8 @@ describe("BehaviorFSM", () => {
       } as unknown as NonNullable<BehaviorContext["filterPipeline"]>,
       semanticLayer: {
         setSemantic: vi.fn(),
+        holdSemantic: vi.fn(),
+        releaseSemantic: vi.fn(),
         getSemantic: vi.fn(() => 0),
         hasSemantic: vi.fn(() => true),
         getCapabilityProfile: vi.fn(() => ({
@@ -215,13 +217,36 @@ describe("BehaviorFSM", () => {
 
       fsm.transitionTo("happy");
 
-      expect(ctx.semanticLayer!.setSemantic).toHaveBeenCalledWith(
+      expect(ctx.semanticLayer!.holdSemantic).toHaveBeenCalledWith(
         "mouthSmile",
         0.6,
-        "override",
         "fsm",
         2,
       );
+    });
+
+    it("keeps add-mode semantic parameters as per-frame writes", () => {
+      const ctx = createMockContext();
+      const fsm = new BehaviorFSM(ctx);
+      fsm.registerState({
+        name: "happy",
+        entryProfile: {
+          semanticParameters: {
+            mouthSmile: { value: 0.2, blendMode: "add" },
+          },
+        },
+      });
+
+      fsm.transitionTo("happy");
+
+      expect(ctx.semanticLayer!.setSemantic).toHaveBeenCalledWith(
+        "mouthSmile",
+        0.2,
+        "add",
+        "fsm",
+        2,
+      );
+      expect(ctx.semanticLayer!.holdSemantic).not.toHaveBeenCalled();
     });
 
     it("applies procedural overrides on state entry", () => {
@@ -280,7 +305,7 @@ describe("BehaviorFSM", () => {
       expect(ctx.filterPipeline!.remove).toHaveBeenCalledWith("handle-happy-glow");
     });
 
-    it("resets semantic parameters on state exit", () => {
+    it("releases held semantic parameters on state exit", () => {
       const ctx = createMockContext();
       const fsm = new BehaviorFSM(ctx);
       fsm.registerState({
@@ -296,12 +321,9 @@ describe("BehaviorFSM", () => {
       fsm.transitionTo("happy");
       fsm.transitionTo("idle");
 
-      expect(ctx.semanticLayer!.setSemantic).toHaveBeenCalledWith(
+      expect(ctx.semanticLayer!.releaseSemantic).toHaveBeenCalledWith(
         "mouthSmile",
-        0,
-        "override",
         "fsm",
-        2,
       );
     });
 

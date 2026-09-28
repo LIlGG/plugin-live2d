@@ -231,12 +231,21 @@ export class Live2dRuntimeController {
 
   /**
    * Get current semantic parameter values for DevTools display.
+   *
+   * A held override wins over the engine's value: held values are applied for
+   * one frame at a time and the engine restores its own baseline afterwards, so
+   * the raw parameter does not report what the runtime is applying.
    */
   getSemanticParameters(): Array<{ name: string; value: number | undefined }> {
     const profile = this.semanticLayer.getCapabilityProfile();
     const result: Array<{ name: string; value: number | undefined }> = [];
     for (const name of profile.detected.keys()) {
-      result.push({ name, value: this.semanticLayer.getSemantic(name) });
+      result.push({
+        name,
+        value:
+          this.coordinator.getHeldValue(name) ??
+          this.semanticLayer.getSemantic(name),
+      });
     }
     return result;
   }

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { ParameterCoordinator } from "../../controller/coordinator";
+import { SystemPriority } from "../../controller/types";
 import { SemanticParameterLayer } from "../semantic-parameter-layer";
 
 // Mock Cubism 2 (Legacy) core model
@@ -173,6 +175,41 @@ describe("SemanticParameterLayer", () => {
       // Should not throw
       layer.setSemantic("nonExistent", 10);
       expect(layer.getSemantic("nonExistent")).toBeUndefined();
+    });
+  });
+
+  describe("holdSemantic", () => {
+    it("delegates to the coordinator", () => {
+      const layer = new SemanticParameterLayer();
+      const core = createCubism4MockModel(["PARAM_ANGLE_X"]);
+      layer.detectFromModel(wrapModel(core));
+
+      const holdOverride = vi.fn();
+      const releaseOverride = vi.fn();
+      layer.setCoordinator({
+        holdOverride,
+        releaseOverride,
+      } as unknown as ParameterCoordinator);
+
+      layer.holdSemantic("angleX", 5, "manual", SystemPriority.MANUAL);
+      expect(holdOverride).toHaveBeenCalledWith(
+        "angleX",
+        5,
+        "manual",
+        SystemPriority.MANUAL,
+      );
+
+      layer.releaseSemantic("angleX", "manual");
+      expect(releaseOverride).toHaveBeenCalledWith("angleX", "manual");
+    });
+
+    it("writes and clamps without a coordinator", () => {
+      const layer = new SemanticParameterLayer();
+      const core = createCubism4MockModel(["PARAM_ANGLE_X"]);
+      layer.detectFromModel(wrapModel(core));
+
+      layer.holdSemantic("angleX", 100, "manual", SystemPriority.MANUAL);
+      expect(layer.getSemantic("angleX")).toBe(30); // clamped to max
     });
   });
 

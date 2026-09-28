@@ -144,6 +144,35 @@ export class SemanticParameterLayer {
   }
 
   /**
+   * Hold a semantic parameter at a value until it is replaced or released.
+   * Unlike `setSemantic`, the value is re-applied on every frame, so a writer
+   * that only knows its value once keeps taking effect.
+   */
+  holdSemantic(
+    name: SemanticName,
+    value: number,
+    source: string,
+    priority: SystemPriority,
+  ): void {
+    const param = this.resolved.get(name);
+    if (!param || !this.accessor) return;
+
+    if (this.coordinator) {
+      this.coordinator.holdOverride(name, value, source, priority);
+      return;
+    }
+
+    const min = this.accessor.getMin(param.index);
+    const max = this.accessor.getMax(param.index);
+    this.accessor.setValue(param.index, Math.max(min, Math.min(max, value)));
+  }
+
+  /** Release a held semantic parameter so the engine takes it back. */
+  releaseSemantic(name: SemanticName, source?: string): void {
+    this.coordinator?.releaseOverride(name, source);
+  }
+
+  /**
    * Get the capability profile from the last detection.
    */
   getCapabilityProfile(): CapabilityProfile {
