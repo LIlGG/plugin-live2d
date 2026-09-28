@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { SemanticParameterLayer } from "../../semantic";
 import { ProceduralAnimator } from "../animator";
 import { MutableParameterSet } from "../parameter-set";
+import { ProceduralAnimationSystem } from "../procedural-animation-system";
 
 describe("ProceduralAnimator", () => {
   it("starts from the last rendered value after the engine restores its baseline", () => {
@@ -78,5 +79,26 @@ describe("ProceduralAnimator", () => {
 
     expect(params.get("angleX")?.value).toBe(2.5);
     expect(params.get("angleY")?.value).toBe(5);
+  });
+
+  it("settles active animations and releases terminal holds when detached", async () => {
+    const layer = new SemanticParameterLayer();
+    vi.spyOn(layer, "getRenderedSemantic").mockReturnValue(0);
+    vi.spyOn(layer, "holdSemantic").mockImplementation(() => {});
+    const releaseSemantic = vi.spyOn(layer, "releaseSemantic").mockImplementation(() => {});
+    const system = new ProceduralAnimationSystem(layer, { enabled: false });
+    const animator = system.getAnimator();
+    void animator.animate({ target: "angleY", to: 10, duration: 1 });
+    animator.update(1, new MutableParameterSet());
+    let settled = false;
+    void animator.animate({ target: "angleX", to: 20, duration: 1000 }).then(() => {
+      settled = true;
+    });
+
+    system.detach();
+    await Promise.resolve();
+
+    expect(settled).toBe(true);
+    expect(releaseSemantic).toHaveBeenCalledWith("angleY", "animator");
   });
 });

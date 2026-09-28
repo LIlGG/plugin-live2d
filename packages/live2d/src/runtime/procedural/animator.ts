@@ -95,4 +95,12 @@ export class ProceduralAnimator implements ProceduralModule {
     }
     this.heldTargets.clear();
   }
+
+  stopAll(): void {
+    this.releaseHeldTargets();
+    for (const animation of this.animations) {
+      animation.settle?.();
+    }
+    this.animations = [];
+  }
 }
