@@ -21,6 +21,7 @@ export class SemanticParameterLayer {
   };
   private sourceModel: object | null = null;
   private coordinator?: ParameterCoordinator;
+  private renderedValues = new Map<SemanticName, number>();
 
   /**
    * Register a custom semantic mapping before model detection.
@@ -48,6 +49,7 @@ export class SemanticParameterLayer {
     }
 
     this.resolved.clear();
+    this.renderedValues.clear();
     const detected = new Map<SemanticName, ParameterId>();
     const missing: SemanticName[] = [];
     const notApplicable: SemanticName[] = [];
@@ -101,6 +103,26 @@ export class SemanticParameterLayer {
     return this.accessor.getValue(param.index);
   }
 
+  /** Snapshot the values that the engine will render, before it restores its baseline. */
+  captureRenderedValues(): void {
+    for (const name of this.resolved.keys()) {
+      const value = this.getSemantic(name);
+      if (value !== undefined) this.renderedValues.set(name, value);
+    }
+  }
+
+  getRenderedSemantic(name: SemanticName): number | undefined {
+    return this.renderedValues.get(name) ?? this.getSemantic(name);
+  }
+
+  hasHeldSemantic(name: SemanticName, source: string): boolean {
+    return this.coordinator?.hasHeldWrite(name, source) ?? false;
+  }
+
+  getHeldSemantic(name: SemanticName, source: string): number | undefined {
+    return this.coordinator?.getHeldValue(name, source);
+  }
+
   /**
    * Set the value of a semantic parameter.
    * blendMode: 'override' replaces the value, 'add' adds to the current value.
@@ -144,7 +166,7 @@ export class SemanticParameterLayer {
   }
 
   /**
-   * Hold a semantic parameter at a value until it is replaced or released.
+   * Hold an override or additive contribution until it is replaced or released.
    * Unlike `setSemantic`, the value is re-applied on every frame, so a writer
    * that only knows its value once keeps taking effect.
    */
@@ -153,18 +175,20 @@ export class SemanticParameterLayer {
     value: number,
     source: string,
     priority: SystemPriority,
+    blendMode: BlendMode = "override",
   ): void {
     const param = this.resolved.get(name);
     if (!param || !this.accessor) return;
 
     if (this.coordinator) {
-      this.coordinator.holdOverride(name, value, source, priority);
+      this.coordinator.holdWrite(name, value, blendMode, source, priority);
       return;
     }
 
     const min = this.accessor.getMin(param.index);
     const max = this.accessor.getMax(param.index);
-    this.accessor.setValue(param.index, Math.max(min, Math.min(max, value)));
+    const current = blendMode === "add" ? this.accessor.getValue(param.index) : 0;
+    this.accessor.setValue(param.index, Math.max(min, Math.min(max, current + value)));
   }
 
   /** Release a held semantic parameter so the engine takes it back. */

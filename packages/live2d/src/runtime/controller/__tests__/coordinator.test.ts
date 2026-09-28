@@ -266,6 +266,7 @@ describe("ParameterCoordinator", () => {
 
         // beforeModelUpdate: our writes are visible in this frame only.
         coordinator.flush();
+        layer.captureRenderedValues();
         rendered.set(values);
 
         // loadParameters()
@@ -288,6 +289,7 @@ describe("ParameterCoordinator", () => {
 
       return {
         coordinator,
+        layer,
         frame,
         engineFrame,
         /** Value the model was last rendered with. */
@@ -436,6 +438,16 @@ describe("ParameterCoordinator", () => {
       expect(rig.coordinator.getConflictLog()).toEqual([]);
     });
 
+    it("keeps an established hold over a same-source queued override on a priority tie", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+      rig.coordinator.queueWrite("angleX", 9, "override", "manual", SystemPriority.MANUAL);
+
+      rig.engineFrame();
+
+      expect(rig.angleX()).toBe(5);
+    });
+
     it("stacks add contributions on top of a held override", () => {
       const rig = createEngineRig();
       rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
@@ -451,6 +463,70 @@ describe("ParameterCoordinator", () => {
         rig.engineFrame();
         expect(rig.angleX()).toBe(7);
       }
+    });
+
+    it("keeps an FSM additive contribution for every frame and releases it", () => {
+      const rig = createEngineRig({ engineWrite: { PARAM_ANGLE_X: 3 } });
+      rig.coordinator.holdWrite("angleX", 5, "add", "fsm", SystemPriority.FSM);
+
+      for (let i = 0; i < 3; i++) {
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(8);
+        expect(rig.layer.getRenderedSemantic("angleX")).toBe(8);
+        expect(rig.layer.getSemantic("angleX")).toBe(3);
+      }
+
+      rig.coordinator.releaseOverride("angleX", "fsm");
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(3);
+    });
+
+    it("restores the FSM hold after a manual hold is released", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "fsm", SystemPriority.FSM);
+      rig.coordinator.holdOverride("angleX", 10, "manual", SystemPriority.MANUAL);
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(10);
+      expect(rig.coordinator.getHeldValue("angleX", "manual")).toBe(10);
+      expect(rig.coordinator.getHeldValue("angleX", "fsm")).toBe(5);
+      expect(rig.coordinator.getConflictLog()[0].winningSystem).toBe("manual");
+      expect(rig.coordinator.getConflictLog()[0].losingSystem).toBe("fsm");
+
+      rig.coordinator.releaseOverride("angleX", "manual");
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(5);
+      expect(rig.coordinator.getHeldValue("angleX", "manual")).toBeUndefined();
+    });
+
+    it("keeps a lower-priority hold registered while manual control is active", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 10, "manual", SystemPriority.MANUAL);
+      rig.coordinator.holdOverride("angleX", 5, "fsm", SystemPriority.FSM);
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(10);
+
+      rig.coordinator.releaseOverride("angleX", "manual");
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(5);
+    });
+
+    it("reports the clamped rendered value instead of the hold target", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 25, "manual", SystemPriority.MANUAL);
+      rig.coordinator.queueWrite("angleX", 10, "add", "procedural", SystemPriority.PROCEDURAL);
+      rig.engineFrame();
+
+      expect(rig.angleX()).toBe(30);
+      expect(rig.layer.getRenderedSemantic("angleX")).toBe(30);
+      expect(rig.layer.getSemantic("angleX")).toBe(0);
+    });
+
+    it("snapshots engine-only parameter changes even when the plugin has no writes", () => {
+      const rig = createEngineRig({ engineAdds: { PARAM_ANGLE_X: 3 } });
+      rig.engineFrame();
+
+      expect(rig.layer.getRenderedSemantic("angleX")).toBe(3);
+      expect(rig.layer.getSemantic("angleX")).toBe(0);
     });
 
     it("releases a held override back to the engine", () => {

@@ -58,8 +58,7 @@ export class Live2dRuntimeController {
 
     // 1. Semantic parameter detection
     this.semanticLayer.detectFromModel(model);
-    // Drop anything queued against the previous model, and the add
-    // contributions that describe its parameters.
+    // Drop writes queued against the previous model.
     this.coordinator.reset();
 
     // 2. Motion layer system
@@ -150,7 +149,10 @@ export class Live2dRuntimeController {
     // runs for a model that finished loading, so no runtime guard is needed; if
     // the engine ever makes it optional the type checker points at this line.
     const internalModel = model.internalModel;
-    const onBeforeModelUpdate = () => this.coordinator.flush();
+    const onBeforeModelUpdate = () => {
+      this.coordinator.flush();
+      this.semanticLayer.captureRenderedValues();
+    };
     internalModel.on("beforeModelUpdate", onBeforeModelUpdate);
     this._tickerCallbacks.push(() => {
       internalModel.off("beforeModelUpdate", onBeforeModelUpdate);
@@ -232,9 +234,8 @@ export class Live2dRuntimeController {
   /**
    * Get current semantic parameter values for DevTools display.
    *
-   * A held override wins over the engine's value: held values are applied for
-   * one frame at a time and the engine restores its own baseline afterwards, so
-   * the raw parameter does not report what the runtime is applying.
+   * The engine restores its baseline after rendering, so read the snapshot
+   * captured inside `beforeModelUpdate` instead of the restored raw value.
    */
   getSemanticParameters(): Array<{ name: string; value: number | undefined }> {
     const profile = this.semanticLayer.getCapabilityProfile();
@@ -242,9 +243,7 @@ export class Live2dRuntimeController {
     for (const name of profile.detected.keys()) {
       result.push({
         name,
-        value:
-          this.coordinator.getHeldValue(name) ??
-          this.semanticLayer.getSemantic(name),
+        value: this.semanticLayer.getRenderedSemantic(name),
       });
     }
     return result;

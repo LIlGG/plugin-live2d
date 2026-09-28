@@ -24,7 +24,7 @@ export class ProceduralAnimator implements ProceduralModule {
   }
 
   animate(options: AnimationOptions): Promise<void> {
-    const currentValue = this.semanticLayer.getSemantic(options.target) ?? 0;
+    const currentValue = this.semanticLayer.getRenderedSemantic(options.target) ?? 0;
     const easing =
       typeof options.easing === "string"
         ? getEasing(options.easing)

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Live2dRuntimeController } from "../controller";
 import type { BehaviorFSM } from "../../behavior";
+import type { ParameterCoordinator } from "../coordinator";
 
 describe("Live2dRuntimeController", () => {
   it("creates with default config", () => {
@@ -139,7 +140,7 @@ describe("Live2dRuntimeController", () => {
     expect(history.length).toBe(10);
   });
 
-  it("getSemanticParameters reports a held override", () => {
+  it("getSemanticParameters reports the last rendered value after engine restore", () => {
     const controller = new Live2dRuntimeController();
     const values = new Float32Array(1);
     const coreModel = {
@@ -161,12 +162,17 @@ describe("Live2dRuntimeController", () => {
     const layer = controller.getSemanticLayer();
     layer.detectFromModel({ internalModel: { coreModel } });
     layer.holdSemantic("angleX", 12, "manual", 1);
+    layer.setSemantic("angleX", 5, "add", "procedural", 4);
+    const coordinator = (controller as unknown as { coordinator: ParameterCoordinator }).coordinator;
+    coordinator.flush();
+    layer.captureRenderedValues();
+    values[0] = 0; // The engine restores its saved baseline after rendering.
 
     // The hold is applied per frame and the engine restores its own value
     // afterwards, so the raw parameter still reads 0.
     expect(layer.getSemantic("angleX")).toBe(0);
     expect(controller.getSemanticParameters()).toEqual([
-      { name: "angleX", value: 12 },
+      { name: "angleX", value: 17 },
     ]);
   });
 

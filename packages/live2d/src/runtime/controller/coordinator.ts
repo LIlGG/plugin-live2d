@@ -10,8 +10,9 @@ interface QueuedWrite {
   priority: SystemPriority;
 }
 
-interface HeldOverride {
+interface HeldWrite {
   value: number;
+  blendMode: BlendMode;
   source: string;
   priority: SystemPriority;
 }
@@ -36,13 +37,13 @@ interface HeldOverride {
  *
  * - `queueWrite()` - a one-frame contribution. Every `add`, and every override
  *   a subsystem re-sends each frame (blink, motion layers), belongs here.
- * - `holdOverride()` - an override that must survive frames the writer does not
+ * - `holdWrite()` - a contribution that must survive frames the writer does not
  *   know about: the DevTools slider or an FSM state profile sets its value once,
  *   so the coordinator re-applies it on every flush until `releaseOverride()`.
  */
 export class ParameterCoordinator {
   private queue = new Map<string, QueuedWrite[]>();
-  private held = new Map<string, HeldOverride>();
+  private held = new Map<string, Map<string, HeldWrite>>();
   private conflictLog: ConflictEntry[] = [];
   private semanticLayer: SemanticParameterLayer;
   private maxLogSize: number;
@@ -82,44 +83,76 @@ export class ParameterCoordinator {
   }
 
   /**
-   * Hold `parameter` at `value` until it is replaced or released.
+   * Hold a source's contribution until it is replaced or released.
    *
    * A held value is re-applied on every flush. That is what keeps a write that
    * happens only once - the DevTools slider, an FSM state profile - taking
    * effect: the engine restores its own baseline at the end of every frame, so
    * a queued write is only visible in the frame it was queued in.
    *
-   * A lower-priority hold never replaces a higher-priority one (MANUAL=1 is the
-   * highest); that suppression is logged like any other conflict.
+   * Keep suppressed sources so they can take over when a higher-priority
+   * source releases its hold. Additive holds contribute on every frame.
    */
+  holdWrite(
+    parameter: string,
+    value: number,
+    blendMode: BlendMode,
+    source: string,
+    priority: SystemPriority,
+  ): void {
+    const sources = this.held.get(parameter) ?? new Map<string, HeldWrite>();
+    if (blendMode === "override" && !sources.has(source)) {
+      let existingWinner: HeldWrite | undefined;
+      for (const held of sources.values()) {
+        if (
+          held.blendMode === "override" &&
+          (!existingWinner || held.priority < existingWinner.priority)
+        ) {
+          existingWinner = held;
+        }
+      }
+      if (existingWinner) {
+        const incoming = { value, source };
+        if (priority < existingWinner.priority) {
+          this.logConflict(parameter, incoming, existingWinner);
+        } else {
+          this.logConflict(parameter, existingWinner, incoming);
+        }
+      }
+    }
+    sources.set(source, { value, blendMode, source, priority });
+    this.held.set(parameter, sources);
+  }
+
   holdOverride(
     parameter: string,
     value: number,
     source: string,
     priority: SystemPriority,
   ): void {
-    const existing = this.held.get(parameter);
-    if (existing && existing.priority < priority) {
-      this.logConflict(parameter, existing, { value, source });
-      return;
-    }
-    this.held.set(parameter, { value, source, priority });
+    this.holdWrite(parameter, value, "override", source, priority);
   }
 
   /**
-   * Release a held override. With `source` given only that source's hold is
+   * Release a held write. With `source` given only that source's hold is
    * released, so one subsystem cannot drop another's.
    */
   releaseOverride(parameter: string, source?: string): void {
-    const existing = this.held.get(parameter);
-    if (!existing) return;
-    if (source !== undefined && existing.source !== source) return;
-    this.held.delete(parameter);
+    if (source === undefined) {
+      this.held.delete(parameter);
+      return;
+    }
+    const sources = this.held.get(parameter);
+    sources?.delete(source);
+    if (sources?.size === 0) this.held.delete(parameter);
   }
 
-  /** Value a held override currently pins `parameter` to, if any. */
-  getHeldValue(parameter: string): number | undefined {
-    return this.held.get(parameter)?.value;
+  hasHeldWrite(parameter: string, source: string): boolean {
+    return this.held.get(parameter)?.has(source) ?? false;
+  }
+
+  getHeldValue(parameter: string, source: string): number | undefined {
+    return this.held.get(parameter)?.get(source)?.value;
   }
 
   /**
@@ -131,13 +164,13 @@ export class ParameterCoordinator {
     for (const [parameter, writes] of this.queue) {
       this.resolveParameter(parameter, writes);
     }
-    // A held override whose parameter nobody wrote this frame still has to be
+    // A held contribution whose parameter nobody wrote this frame still has to be
     // re-applied: the engine restored its baseline at the end of the last frame.
     // The queue still holds this frame's parameters, so it doubles as the lookup.
     if (this.held.size > 0) {
-      for (const [parameter, held] of this.held) {
+      for (const parameter of this.held.keys()) {
         if (!this.queue.has(parameter)) {
-          this.applyAbsolute(parameter, held.value);
+          this.resolveParameter(parameter, []);
         }
       }
     }
@@ -174,7 +207,8 @@ export class ParameterCoordinator {
   private resolveParameter(parameter: string, writes: QueuedWrite[]): void {
     // Single pass: pick the highest-priority override and sum every add.
     // (filter/filter/reduce/reduce allocated four arrays per parameter per frame.)
-    let winner: QueuedWrite | null = null;
+    let winner: QueuedWrite | HeldWrite | null = null;
+    let winnerIsHeld = false;
     let addSum = 0;
     let hasAdd = false;
 
@@ -191,41 +225,33 @@ export class ParameterCoordinator {
     }
 
     const held = this.held.get(parameter);
-
-    if (winner === null) {
-      if (held === undefined) {
-        // Only relative writes: stack them on the engine's current value. The
-        // engine drops them when it restores its baseline, so they never
-        // accumulate across frames.
-        const current = this.semanticLayer.getSemantic(parameter) ?? 0;
-        this.applyAbsolute(parameter, current + addSum);
-        return;
+    if (held) {
+      for (const write of held.values()) {
+        if (write.blendMode === "add") {
+          addSum += write.value;
+          hasAdd = true;
+        } else if (
+          winner === null ||
+          write.priority < winner.priority ||
+          (write.priority === winner.priority && !winnerIsHeld)
+        ) {
+          // On a tie an established hold takes precedence over a queued write.
+          winner = write;
+          winnerIsHeld = true;
+        }
       }
-
-      // A hold with relative writes on top of it: no queued override left to
-      // resolve a conflict against, and every queued write here is an add.
-      this.applyAbsolute(parameter, held.value + addSum);
-      return;
     }
 
     // Resolve override conflicts: lowest priority number wins (MANUAL=1 is highest)
-    for (const write of writes) {
-      if (write !== winner && write.blendMode === "override") {
-        this.logConflict(parameter, winner, write);
+    if (winner && !winnerIsHeld) {
+      for (const write of writes) {
+        if (write !== winner && write.blendMode === "override") {
+          this.logConflict(parameter, winner, write);
+        }
       }
     }
-
-    // A held override outranks a queued one unless the queued one has a
-    // strictly higher priority; on a tie the held value - the established
-    // state - wins. Queued writes suppressed by a hold are not logged: the hold
-    // is re-applied every frame, so logging them would flood the conflict log.
-    const effective =
-      held !== undefined && held.priority <= winner.priority
-        ? held.value
-        : winner.value;
-
-    // Adds don't conflict, they accumulate on top of the winning override.
-    this.applyAbsolute(parameter, hasAdd ? effective + addSum : effective);
+    const current = this.semanticLayer.getSemantic(parameter) ?? 0;
+    this.applyAbsolute(parameter, (winner?.value ?? current) + (hasAdd ? addSum : 0));
   }
 
   private logConflict(

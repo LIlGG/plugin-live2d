@@ -184,17 +184,18 @@ describe("SemanticParameterLayer", () => {
       const core = createCubism4MockModel(["PARAM_ANGLE_X"]);
       layer.detectFromModel(wrapModel(core));
 
-      const holdOverride = vi.fn();
+      const holdWrite = vi.fn();
       const releaseOverride = vi.fn();
       layer.setCoordinator({
-        holdOverride,
+        holdWrite,
         releaseOverride,
       } as unknown as ParameterCoordinator);
 
       layer.holdSemantic("angleX", 5, "manual", SystemPriority.MANUAL);
-      expect(holdOverride).toHaveBeenCalledWith(
+      expect(holdWrite).toHaveBeenCalledWith(
         "angleX",
         5,
+        "override",
         "manual",
         SystemPriority.MANUAL,
       );
@@ -211,6 +212,17 @@ describe("SemanticParameterLayer", () => {
       layer.holdSemantic("angleX", 100, "manual", SystemPriority.MANUAL);
       expect(layer.getSemantic("angleX")).toBe(30); // clamped to max
     });
+  });
+
+  it("clears the rendered snapshot when a different model is detected", () => {
+    const layer = new SemanticParameterLayer();
+    layer.detectFromModel(wrapModel(createCubism4MockModel(["PARAM_ANGLE_X"])));
+    layer.setSemantic("angleX", 12);
+    layer.captureRenderedValues();
+    expect(layer.getRenderedSemantic("angleX")).toBe(12);
+
+    layer.detectFromModel(wrapModel(createCubism4MockModel(["PARAM_ANGLE_X"])));
+    expect(layer.getRenderedSemantic("angleX")).toBe(0);
   });
 
   describe("registerSemantic", () => {

@@ -18,6 +18,7 @@ export class BehaviorFSM {
   // Track applied effects so they can be reversed on exit
   private activeFilterHandles = new Map<EffectPreset, string>();
   private activeMotionLayers = new Set<LayerName>();
+  private activeSemanticParameters = new Set<string>();
   private proceduralModuleStates = new Map<string, boolean>();
 
   constructor(context: BehaviorContext, config: BehaviorFSMConfig = {}) {
@@ -122,6 +123,7 @@ export class BehaviorFSM {
     } else if (fromState?.entryProfile) {
       this.revertProfile(fromState.entryProfile);
     }
+    this.releaseActiveSemanticParameters();
 
     // 3. Call enter hook on new state
     if (toState.onEnter) {
@@ -210,11 +212,14 @@ export class BehaviorFSM {
     if (profile.semanticParameters && semanticLayer) {
       for (const [name, config] of Object.entries(profile.semanticParameters)) {
         if (!semanticLayer.hasSemantic(name)) continue;
-        if (config.blendMode === "add") {
-          semanticLayer.setSemantic(name, config.value, "add", "fsm", 2);
-        } else {
-          semanticLayer.holdSemantic(name, config.value, "fsm", 2);
-        }
+        semanticLayer.holdSemantic(
+          name,
+          config.value,
+          "fsm",
+          2,
+          config.blendMode ?? "override",
+        );
+        this.activeSemanticParameters.add(name);
       }
     }
 
@@ -245,7 +250,6 @@ export class BehaviorFSM {
     const {
       motionLayerSystem,
       filterPipeline,
-      semanticLayer,
       proceduralSystem,
     } = this.context;
 
@@ -266,12 +270,6 @@ export class BehaviorFSM {
       }
     }
 
-    if (profile.semanticParameters && semanticLayer) {
-      for (const name of Object.keys(profile.semanticParameters)) {
-        semanticLayer.releaseSemantic(name, "fsm");
-      }
-    }
-
     if (profile.proceduralOverrides && proceduralSystem) {
       for (const moduleName of Object.keys(profile.proceduralOverrides)) {
         const previousState = this.proceduralModuleStates.get(moduleName);
@@ -286,5 +284,12 @@ export class BehaviorFSM {
         }
       }
     }
+  }
+
+  private releaseActiveSemanticParameters(): void {
+    for (const name of this.activeSemanticParameters) {
+      this.context.semanticLayer?.releaseSemantic(name, "fsm");
+    }
+    this.activeSemanticParameters.clear();
   }
 }

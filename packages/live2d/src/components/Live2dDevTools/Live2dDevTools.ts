@@ -280,6 +280,11 @@ export class Live2dDevTools extends UnoLitElement {
   }
   private _setParamValue(p: string, v: number): void {
     this._controller?.getSemanticLayer().holdSemantic(p, v, "manual", 1);
+    this.requestUpdate();
+  }
+  private _resetParamValue(p: string): void {
+    this._controller?.getSemanticLayer().releaseSemantic(p, "manual");
+    this.requestUpdate();
   }
 
   private _sectionHeader(
@@ -764,9 +769,13 @@ export class Live2dDevTools extends UnoLitElement {
           <div class="flex items-center gap-2.5 px-2 py-1 rounded-lg bg-white/[0.015]">
             <span class="w-20 text-[11px] text-gray-500 font-mono truncate" title="${p.name}">${p.name}</span>
             <input class="flex-1 h-1 bg-white/[0.06] rounded-full outline-none appearance-none cursor-pointer"
-                   type="range" min="-30" max="30" step="0.1" .value=${String(p.value ?? 0)}
+                   type="range" min="-30" max="30" step="0.1" .value=${String(this._controller?.getSemanticLayer().getHeldSemantic(p.name, "manual") ?? p.value ?? 0)}
                    @input=${(e: Event) => this._setParamValue(p.name, Number((e.target as HTMLInputElement).value))}/>
             <span class="w-11 text-right font-mono text-[11px] font-semibold ${valueColor(p.value ?? 0)}">${(p.value ?? 0).toFixed(2)}</span>
+            ${this._controller?.getSemanticLayer().hasHeldSemantic(p.name, "manual")
+              ? html`<button type="button" class="text-[11px] text-orange-300 hover:text-orange-200 cursor-pointer" title="恢复自动控制" aria-label="恢复 ${p.name} 的自动控制"
+                  @click=${() => this._resetParamValue(p.name)}>恢复</button>`
+              : html``}
           </div>
         `,
         )}
