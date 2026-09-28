@@ -128,16 +128,17 @@ export class ParameterCoordinator {
    * part of that frame's render and are dropped by the engine afterwards.
    */
   flush(): void {
-    const handled = new Set<string>();
     for (const [parameter, writes] of this.queue) {
       this.resolveParameter(parameter, writes);
-      handled.add(parameter);
     }
     // A held override whose parameter nobody wrote this frame still has to be
     // re-applied: the engine restored its baseline at the end of the last frame.
-    for (const [parameter, held] of this.held) {
-      if (!handled.has(parameter)) {
-        this.applyAbsolute(parameter, held.value);
+    // The queue still holds this frame's parameters, so it doubles as the lookup.
+    if (this.held.size > 0) {
+      for (const [parameter, held] of this.held) {
+        if (!this.queue.has(parameter)) {
+          this.applyAbsolute(parameter, held.value);
+        }
       }
     }
     this.queue.clear();
