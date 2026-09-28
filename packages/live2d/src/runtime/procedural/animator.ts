@@ -10,7 +10,7 @@ interface ActiveAnimation {
   duration: number;
   elapsed: number;
   easing: EasingFunction;
-  onComplete?: () => void;
+  settle?: () => void;
 }
 
 export class ProceduralAnimator implements ProceduralModule {
@@ -29,6 +29,16 @@ export class ProceduralAnimator implements ProceduralModule {
     if (this.heldTargets.delete(options.target)) {
       this.semanticLayer.releaseSemantic(options.target, "animator");
     }
+    // A parameter has one animation owner. Settle replaced animations so their
+    // promises do not remain pending, and prevent them from writing or holding
+    // an older target after this animation takes over.
+    for (let index = this.animations.length - 1; index >= 0; index--) {
+      const active = this.animations[index];
+      if (active.target === options.target) {
+        this.animations.splice(index, 1);
+        active.settle?.();
+      }
+    }
     const easing =
       typeof options.easing === "string"
         ? getEasing(options.easing)
@@ -42,7 +52,7 @@ export class ProceduralAnimator implements ProceduralModule {
         duration: options.duration,
         elapsed: 0,
         easing,
-        onComplete: resolve,
+        settle: resolve,
       });
     });
   }
@@ -71,14 +81,11 @@ export class ProceduralAnimator implements ProceduralModule {
     }
 
     // A completed animation should leave its target visible after the engine
-    // restores the frame baseline. A newer animation for the same parameter
-    // still owns the target, so only the last completed writer can hold it.
+    // restores the frame baseline.
     for (const anim of completed) {
-      if (!this.animations.some((active) => active.target === anim.target)) {
-        this.semanticLayer.holdSemantic(anim.target, anim.to, "animator", 5);
-        this.heldTargets.add(anim.target);
-      }
-      anim.onComplete?.();
+      this.semanticLayer.holdSemantic(anim.target, anim.to, "animator", 5);
+      this.heldTargets.add(anim.target);
+      anim.settle?.();
     }
   }
 
