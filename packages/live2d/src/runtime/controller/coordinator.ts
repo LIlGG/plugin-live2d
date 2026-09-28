@@ -45,6 +45,8 @@ export class ParameterCoordinator {
   private queue = new Map<string, QueuedWrite[]>();
   private held = new Map<string, Map<string, HeldWrite>>();
   private conflictLog: ConflictEntry[] = [];
+  private activeHeldQueueConflicts = new Set<string>();
+  private nextHeldQueueConflicts = new Set<string>();
   private semanticLayer: SemanticParameterLayer;
   private maxLogSize: number;
 
@@ -65,6 +67,8 @@ export class ParameterCoordinator {
   reset(): void {
     this.queue.clear();
     this.held.clear();
+    this.activeHeldQueueConflicts.clear();
+    this.nextHeldQueueConflicts.clear();
   }
 
   /**
@@ -161,8 +165,10 @@ export class ParameterCoordinator {
    * part of that frame's render and are dropped by the engine afterwards.
    */
   flush(): void {
+    const heldQueueConflicts = this.nextHeldQueueConflicts;
+    heldQueueConflicts.clear();
     for (const [parameter, writes] of this.queue) {
-      this.resolveParameter(parameter, writes);
+      this.resolveParameter(parameter, writes, heldQueueConflicts);
     }
     // A held contribution whose parameter nobody wrote this frame still has to be
     // re-applied: the engine restored its baseline at the end of the last frame.
@@ -170,11 +176,13 @@ export class ParameterCoordinator {
     if (this.held.size > 0) {
       for (const parameter of this.held.keys()) {
         if (!this.queue.has(parameter)) {
-          this.resolveParameter(parameter, []);
+          this.resolveParameter(parameter, [], heldQueueConflicts);
         }
       }
     }
     this.queue.clear();
+    this.nextHeldQueueConflicts = this.activeHeldQueueConflicts;
+    this.activeHeldQueueConflicts = heldQueueConflicts;
   }
 
   /**
@@ -202,12 +210,18 @@ export class ParameterCoordinator {
    */
   clearConflictLog(): void {
     this.conflictLog = [];
+    this.activeHeldQueueConflicts.clear();
+    this.nextHeldQueueConflicts.clear();
   }
 
-  private resolveParameter(parameter: string, writes: QueuedWrite[]): void {
+  private resolveParameter(
+    parameter: string,
+    writes: QueuedWrite[],
+    heldQueueConflicts: Set<string>,
+  ): void {
     // Single pass: pick the highest-priority override and sum every add.
     // (filter/filter/reduce/reduce allocated four arrays per parameter per frame.)
-    let winner: QueuedWrite | HeldWrite | null = null;
+    let queuedWinner: QueuedWrite | null = null;
     let winnerIsHeld = false;
     let addSum = 0;
     let hasAdd = false;
@@ -215,8 +229,8 @@ export class ParameterCoordinator {
     for (const write of writes) {
       if (write.blendMode === "override") {
         // Lower priority number wins; on a tie keep the first one queued.
-        if (winner === null || write.priority < winner.priority) {
-          winner = write;
+        if (queuedWinner === null || write.priority < queuedWinner.priority) {
+          queuedWinner = write;
         }
       } else {
         addSum += write.value;
@@ -224,6 +238,16 @@ export class ParameterCoordinator {
       }
     }
 
+    // Preserve queued-vs-queued diagnostics even when a hold eventually wins.
+    if (queuedWinner) {
+      for (const write of writes) {
+        if (write !== queuedWinner && write.blendMode === "override") {
+          this.logConflict(parameter, queuedWinner, write);
+        }
+      }
+    }
+
+    let winner: QueuedWrite | HeldWrite | null = queuedWinner;
     const held = this.held.get(parameter);
     if (held) {
       for (const write of held.values()) {
@@ -242,16 +266,48 @@ export class ParameterCoordinator {
       }
     }
 
-    // Resolve override conflicts: lowest priority number wins (MANUAL=1 is highest)
-    if (winner && !winnerIsHeld) {
-      for (const write of writes) {
-        if (write !== winner && write.blendMode === "override") {
-          this.logConflict(parameter, winner, write);
+    // Held-vs-queued conflicts are useful diagnostics, but the same systems
+    // may compete on every frame. Report each pairing once until it stops.
+    if (winner && held) {
+      if (winnerIsHeld) {
+        for (const write of writes) {
+          if (write.blendMode === "override" && write.source !== winner.source) {
+            this.logHeldQueueConflict(
+              parameter,
+              winner,
+              write,
+              heldQueueConflicts,
+            );
+          }
+        }
+      } else {
+        for (const write of held.values()) {
+          if (write.blendMode === "override" && write.source !== winner.source) {
+            this.logHeldQueueConflict(
+              parameter,
+              winner,
+              write,
+              heldQueueConflicts,
+            );
+          }
         }
       }
     }
     const current = this.semanticLayer.getSemantic(parameter) ?? 0;
     this.applyAbsolute(parameter, (winner?.value ?? current) + (hasAdd ? addSum : 0));
+  }
+
+  private logHeldQueueConflict(
+    parameter: string,
+    winner: { value: number; source: string },
+    loser: { value: number; source: string },
+    currentConflicts: Set<string>,
+  ): void {
+    const key = JSON.stringify([parameter, winner.source, loser.source]);
+    currentConflicts.add(key);
+    if (!this.activeHeldQueueConflicts.has(key)) {
+      this.logConflict(parameter, winner, loser);
+    }
   }
 
   private logConflict(

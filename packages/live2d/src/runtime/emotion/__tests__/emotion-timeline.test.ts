@@ -115,6 +115,35 @@ describe("EmotionTimeline", () => {
   });
 
   describe("interpolation", () => {
+    it("retains a direct transition target until the next emotion starts", () => {
+      const ctx = createMockContext();
+      ctx.motionLayerSystem = undefined;
+      const holdSemantic = vi.fn();
+      const releaseSemantic = vi.fn();
+      Object.assign(ctx.semanticLayer!, { holdSemantic, releaseSemantic });
+      const timeline = new EmotionTimeline(ctx, {
+        defaultDuration: 100,
+        minDuration: 0,
+        defaultEasing: "linear",
+      });
+      timeline.registerEmotion("happy", { parameters: { mouthSmile: 0.6 } });
+      timeline.registerEmotion("neutral", { parameters: { mouthSmile: 0 } });
+
+      timeline.transitionTo("happy");
+      vi.advanceTimersByTime(100);
+      timeline.update();
+      expect(holdSemantic).toHaveBeenCalledWith("mouthSmile", 0.6, "emotion", 3);
+
+      timeline.transitionTo("neutral");
+      expect(releaseSemantic).toHaveBeenCalledWith("mouthSmile", "emotion");
+      vi.advanceTimersByTime(100);
+      timeline.update();
+      expect(holdSemantic).toHaveBeenLastCalledWith("mouthSmile", 0, "emotion", 3);
+
+      timeline.destroy();
+      expect(releaseSemantic).toHaveBeenCalledTimes(2);
+    });
+
     it("interpolates parameter values during transition", () => {
       const ctx = createMockContext();
       const timeline = new EmotionTimeline(ctx, {

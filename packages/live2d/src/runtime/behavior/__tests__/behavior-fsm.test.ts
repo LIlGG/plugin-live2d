@@ -374,6 +374,24 @@ describe("BehaviorFSM", () => {
       fsm.transitionTo("idle");
 
       expect(ctx.semanticLayer!.releaseSemantic).toHaveBeenCalledWith("mouthSmile", "fsm");
+      expect(ctx.semanticLayer!.holdSemantic).toHaveBeenCalledWith("angleX", 0, "fsm", 2);
+    });
+
+    it("keeps an explicit exit reset until a later state transition", () => {
+      const ctx = createMockContext();
+      const fsm = new BehaviorFSM(ctx, { defaultDebounceMs: 0 });
+      fsm.registerState({
+        name: "happy",
+        exitProfile: { semanticParameters: { browLY: { value: 0.8 } } },
+      });
+      fsm.registerState({ name: "idle" });
+      fsm.registerState({ name: "talking" });
+
+      fsm.transitionTo("happy");
+      fsm.transitionTo("idle");
+      expect(ctx.semanticLayer!.holdSemantic).toHaveBeenCalledWith("browLY", 0, "fsm", 2);
+      fsm.transitionTo("talking");
+      expect(ctx.semanticLayer!.releaseSemantic).toHaveBeenCalledWith("browLY", "fsm");
     });
 
     it("reverts procedural overrides on state exit", () => {

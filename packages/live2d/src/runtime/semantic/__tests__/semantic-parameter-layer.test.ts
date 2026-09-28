@@ -204,13 +204,14 @@ describe("SemanticParameterLayer", () => {
       expect(releaseOverride).toHaveBeenCalledWith("angleX", "manual");
     });
 
-    it("writes and clamps without a coordinator", () => {
+    it("requires a coordinator for persistent holds", () => {
       const layer = new SemanticParameterLayer();
       const core = createCubism4MockModel(["PARAM_ANGLE_X"]);
       layer.detectFromModel(wrapModel(core));
 
-      layer.holdSemantic("angleX", 100, "manual", SystemPriority.MANUAL);
-      expect(layer.getSemantic("angleX")).toBe(30); // clamped to max
+      expect(() => layer.holdSemantic("angleX", 100, "manual", SystemPriority.MANUAL))
+        .toThrow("holdSemantic requires a coordinator");
+      expect(layer.getSemantic("angleX")).toBe(0);
     });
   });
 

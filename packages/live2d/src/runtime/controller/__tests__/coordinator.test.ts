@@ -1,6 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ParameterCoordinator } from "../coordinator";
 import { SemanticParameterLayer } from "../../semantic";
+import { EmotionTimeline } from "../../emotion/timeline";
+import { ProceduralAnimator } from "../../procedural/animator";
+import { MutableParameterSet } from "../../procedural/parameter-set";
 import { SystemPriority } from "../types";
 
 function createMockSemanticLayer(): SemanticParameterLayer {
@@ -390,6 +393,60 @@ describe("ParameterCoordinator", () => {
       expect(rig.angleX()).toBe(0);
     });
 
+    it("keeps a completed direct emotion through later engine frames", () => {
+      const rig = createEngineRig();
+      const now = vi.spyOn(performance, "now").mockReturnValue(0);
+      try {
+        const timeline = new EmotionTimeline(
+          { semanticLayer: rig.layer },
+          { defaultDuration: 100, minDuration: 0, defaultEasing: "linear" },
+        );
+        timeline.registerEmotion("pose", { parameters: { angleX: 5 } });
+        timeline.transitionTo("pose");
+        now.mockReturnValue(100);
+        timeline.update();
+
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(5);
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(5);
+        expect(rig.baselineAngleX()).toBe(0);
+
+        timeline.destroy();
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(0);
+      } finally {
+        now.mockRestore();
+      }
+    });
+
+    it("keeps a completed animation and lets a new animation take over", () => {
+      const rig = createEngineRig();
+      const animator = new ProceduralAnimator(rig.layer);
+      const params = new MutableParameterSet();
+      const queueOutputs = () => {
+        params.forEach((name, value, blendMode) => {
+          rig.layer.setSemantic(name, value, blendMode, "procedural", SystemPriority.PROCEDURAL);
+        });
+      };
+
+      void animator.animate({ target: "angleX", to: 5, duration: 100, easing: (t) => t });
+      animator.update(100, params);
+      queueOutputs();
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(5);
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(5);
+
+      void animator.animate({ target: "angleX", to: 10, duration: 100, easing: (t) => t });
+      params.clear();
+      animator.update(50, params);
+      queueOutputs();
+      rig.engineFrame();
+      expect(rig.angleX()).toBe(7.5);
+      animator.releaseHeldTargets();
+    });
+
     it("reset() drops pending writes", () => {
       const rig = createEngineRig();
       for (let i = 0; i < 5; i++) rig.frame(15);
@@ -433,9 +490,45 @@ describe("ParameterCoordinator", () => {
         expect(rig.angleX()).toBe(5);
       }
 
-      // The hold suppresses the write every frame, so it is not logged as a
-      // conflict - that would flood the log.
-      expect(rig.coordinator.getConflictLog()).toEqual([]);
+      // A continuing held-vs-queued conflict is reported once, not per frame.
+      expect(rig.coordinator.getConflictLog()).toEqual([
+        expect.objectContaining({ winningSystem: "manual", losingSystem: "procedural" }),
+      ]);
+    });
+
+    it("preserves queued conflict diagnostics when a hold wins", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "manual", SystemPriority.MANUAL);
+      rig.coordinator.queueWrite("angleX", 3, "override", "emotion", SystemPriority.EMOTION);
+      rig.coordinator.queueWrite("angleX", 2, "override", "motion", SystemPriority.MOTION);
+      rig.engineFrame();
+
+      expect(rig.angleX()).toBe(5);
+      const log = rig.coordinator.getConflictLog();
+      expect(log).toEqual([
+        expect.objectContaining({ winningSystem: "emotion", losingSystem: "motion" }),
+        expect.objectContaining({ winningSystem: "manual", losingSystem: "emotion" }),
+        expect.objectContaining({ winningSystem: "manual", losingSystem: "motion" }),
+      ]);
+
+      rig.coordinator.queueWrite("angleX", 3, "override", "emotion", SystemPriority.EMOTION);
+      rig.coordinator.queueWrite("angleX", 2, "override", "motion", SystemPriority.MOTION);
+      rig.engineFrame();
+      expect(rig.coordinator.getConflictLog()).toHaveLength(4);
+    });
+
+    it("reports a held loser once when a higher-priority queue wins", () => {
+      const rig = createEngineRig();
+      rig.coordinator.holdOverride("angleX", 5, "fsm", SystemPriority.FSM);
+      for (let frame = 0; frame < 3; frame++) {
+        rig.coordinator.queueWrite("angleX", 9, "override", "manual", SystemPriority.MANUAL);
+        rig.engineFrame();
+        expect(rig.angleX()).toBe(9);
+      }
+
+      expect(rig.coordinator.getConflictLog()).toEqual([
+        expect.objectContaining({ winningSystem: "manual", losingSystem: "fsm" }),
+      ]);
     });
 
     it("keeps an established hold over a same-source queued override on a priority tie", () => {

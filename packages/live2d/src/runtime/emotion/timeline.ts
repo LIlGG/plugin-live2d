@@ -17,6 +17,7 @@ export class EmotionTimeline {
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private currentFilterHandle: string | null = null;
   private currentParameters = new Map<string, number>();
+  private heldParameters = new Set<string>();
 
   constructor(
     context: EmotionTimelineContext,
@@ -81,6 +82,15 @@ export class EmotionTimeline {
     // Capture current parameter values as starting point
     const fromParameters = this.captureCurrentParameters();
     const toParameters = profile.parameters;
+
+    // A completed direct transition owns its final values until another
+    // transition starts. Release those values before queueing the new curve.
+    if (!this.context.motionLayerSystem) {
+      for (const param of this.heldParameters) {
+        this.context.semanticLayer?.releaseSemantic(param, "emotion");
+      }
+      this.heldParameters.clear();
+    }
 
     this.transition = {
       fromEmotion: this.currentEmotion,
@@ -202,6 +212,10 @@ export class EmotionTimeline {
       this.context.filterPipeline.remove(this.currentFilterHandle);
       this.currentFilterHandle = null;
     }
+    for (const param of this.heldParameters) {
+      this.context.semanticLayer?.releaseSemantic(param, "emotion");
+    }
+    this.heldParameters.clear();
   }
 
   private finishTransition(): void {
@@ -211,6 +225,16 @@ export class EmotionTimeline {
     const profile = this.registry.get(toEmotion);
     this.currentEmotion = toEmotion;
     this.transition = null;
+
+    // Motion layers keep their expression track active. In direct mode there
+    // is no track, so retain the terminal pose across engine frame restores.
+    if (!this.context.motionLayerSystem && this.context.semanticLayer) {
+      for (const [param, value] of this.currentParameters) {
+        if (!this.context.semanticLayer.hasSemantic(param)) continue;
+        this.context.semanticLayer.holdSemantic(param, value, "emotion", 3);
+        this.heldParameters.add(param);
+      }
+    }
 
     // Apply filter preset for the new emotion
     this.applyFilterForEmotion(profile);

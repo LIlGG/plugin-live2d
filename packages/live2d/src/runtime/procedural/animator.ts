@@ -18,6 +18,7 @@ export class ProceduralAnimator implements ProceduralModule {
   enabled = true;
   private animations: ActiveAnimation[] = [];
   private semanticLayer: SemanticParameterLayer;
+  private heldTargets = new Set<string>();
 
   constructor(semanticLayer: SemanticParameterLayer) {
     this.semanticLayer = semanticLayer;
@@ -25,6 +26,9 @@ export class ProceduralAnimator implements ProceduralModule {
 
   animate(options: AnimationOptions): Promise<void> {
     const currentValue = this.semanticLayer.getRenderedSemantic(options.target) ?? 0;
+    if (this.heldTargets.delete(options.target)) {
+      this.semanticLayer.releaseSemantic(options.target, "animator");
+    }
     const easing =
       typeof options.easing === "string"
         ? getEasing(options.easing)
@@ -64,7 +68,24 @@ export class ProceduralAnimator implements ProceduralModule {
       if (index >= 0) {
         this.animations.splice(index, 1);
       }
+    }
+
+    // A completed animation should leave its target visible after the engine
+    // restores the frame baseline. A newer animation for the same parameter
+    // still owns the target, so only the last completed writer can hold it.
+    for (const anim of completed) {
+      if (!this.animations.some((active) => active.target === anim.target)) {
+        this.semanticLayer.holdSemantic(anim.target, anim.to, "animator", 5);
+        this.heldTargets.add(anim.target);
+      }
       anim.onComplete?.();
     }
+  }
+
+  releaseHeldTargets(): void {
+    for (const target of this.heldTargets) {
+      this.semanticLayer.releaseSemantic(target, "animator");
+    }
+    this.heldTargets.clear();
   }
 }

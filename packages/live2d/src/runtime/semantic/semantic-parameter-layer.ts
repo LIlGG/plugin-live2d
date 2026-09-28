@@ -167,8 +167,7 @@ export class SemanticParameterLayer {
 
   /**
    * Hold an override or additive contribution until it is replaced or released.
-   * Unlike `setSemantic`, the value is re-applied on every frame, so a writer
-   * that only knows its value once keeps taking effect.
+   * Requires a coordinator, which re-applies the value on every engine frame.
    */
   holdSemantic(
     name: SemanticName,
@@ -180,15 +179,12 @@ export class SemanticParameterLayer {
     const param = this.resolved.get(name);
     if (!param || !this.accessor) return;
 
-    if (this.coordinator) {
-      this.coordinator.holdWrite(name, value, blendMode, source, priority);
-      return;
+    if (!this.coordinator) {
+      throw new Error(
+        "SemanticParameterLayer: holdSemantic requires a coordinator",
+      );
     }
-
-    const min = this.accessor.getMin(param.index);
-    const max = this.accessor.getMax(param.index);
-    const current = blendMode === "add" ? this.accessor.getValue(param.index) : 0;
-    this.accessor.setValue(param.index, Math.max(min, Math.min(max, current + value)));
+    this.coordinator.holdWrite(name, value, blendMode, source, priority);
   }
 
   /** Release a held semantic parameter so the engine takes it back. */

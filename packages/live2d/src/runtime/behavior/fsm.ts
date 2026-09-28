@@ -117,13 +117,15 @@ export class BehaviorFSM {
       fromState.onExit(this.context);
     }
 
-    // 2. Revert effects from current state
+    // 2. Revert effects from current state. Release entry holds first so an
+    // explicit exit reset can survive in the following state.
+    this.releaseActiveSemanticParameters();
     if (fromState?.exitProfile) {
       this.revertProfile(fromState.exitProfile);
+      this.applyExitSemanticReset(fromState.exitProfile);
     } else if (fromState?.entryProfile) {
       this.revertProfile(fromState.entryProfile);
     }
-    this.releaseActiveSemanticParameters();
 
     // 3. Call enter hook on new state
     if (toState.onEnter) {
@@ -291,5 +293,16 @@ export class BehaviorFSM {
       this.context.semanticLayer?.releaseSemantic(name, "fsm");
     }
     this.activeSemanticParameters.clear();
+  }
+
+  private applyExitSemanticReset(profile: BehaviorProfile): void {
+    if (!profile.semanticParameters || !this.context.semanticLayer) return;
+    for (const name of Object.keys(profile.semanticParameters)) {
+      if (!this.context.semanticLayer.hasSemantic(name)) continue;
+      // Exit profiles historically reset named parameters to zero, regardless
+      // of their configured value. Keep that reset across engine frames.
+      this.context.semanticLayer.holdSemantic(name, 0, "fsm", 2);
+      this.activeSemanticParameters.add(name);
+    }
   }
 }
