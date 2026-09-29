@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { BehaviorFSM } from "../fsm";
 import { mergeProfiles, buildProfile } from "../profile";
 import type { BehaviorState, BehaviorProfile, BehaviorContext } from "../types";
+import { SemanticParameterLayer } from "../../semantic";
+import { ParameterCoordinator } from "../../controller/coordinator";
 
 describe("BehaviorFSM", () => {
   function createMockContext(): BehaviorContext {
@@ -20,6 +22,8 @@ describe("BehaviorFSM", () => {
       } as unknown as NonNullable<BehaviorContext["filterPipeline"]>,
       semanticLayer: {
         setSemantic: vi.fn(),
+        holdSemantic: vi.fn(),
+        releaseSemantic: vi.fn(),
         getSemantic: vi.fn(() => 0),
         hasSemantic: vi.fn(() => true),
         getCapabilityProfile: vi.fn(() => ({
@@ -162,6 +166,36 @@ describe("BehaviorFSM", () => {
   });
 
   describe("entry profile application", () => {
+    it("keeps an additive state value stable across frames and removes it on exit", () => {
+      const values = new Float32Array(1);
+      const layer = new SemanticParameterLayer();
+      (layer as unknown as { resolved: Map<string, { id: string; index: number }> }).resolved =
+        new Map([["angleX", { id: "PARAM_ANGLE_X", index: 0 }]]);
+      (layer as unknown as { accessor: object }).accessor = {
+        getValue: (index: number) => values[index],
+        setValue: (index: number, value: number) => { values[index] = value; },
+        getMin: () => -30,
+        getMax: () => 30,
+      };
+      const coordinator = new ParameterCoordinator(layer);
+      layer.setCoordinator(coordinator);
+      const fsm = new BehaviorFSM({ semanticLayer: layer }, { defaultDebounceMs: 0 });
+      fsm.registerState({ name: "happy", entryProfile: {
+        semanticParameters: { angleX: { value: 5, blendMode: "add" } },
+      } });
+      fsm.registerState({ name: "idle" });
+
+      fsm.transitionTo("happy");
+      for (let frame = 0; frame < 3; frame++) {
+        coordinator.flush();
+        expect(values[0]).toBe(5);
+        values[0] = 0; // engine loadParameters()
+      }
+
+      fsm.transitionTo("idle");
+      coordinator.flush();
+      expect(values[0]).toBe(0);
+    });
     it("applies motion layer effects on state entry", () => {
       const ctx = createMockContext();
       const fsm = new BehaviorFSM(ctx);
@@ -215,13 +249,37 @@ describe("BehaviorFSM", () => {
 
       fsm.transitionTo("happy");
 
-      expect(ctx.semanticLayer!.setSemantic).toHaveBeenCalledWith(
+      expect(ctx.semanticLayer!.holdSemantic).toHaveBeenCalledWith(
         "mouthSmile",
         0.6,
-        "override",
         "fsm",
         2,
+        "override",
       );
+    });
+
+    it("holds add-mode semantic parameters for the state's lifetime", () => {
+      const ctx = createMockContext();
+      const fsm = new BehaviorFSM(ctx);
+      fsm.registerState({
+        name: "happy",
+        entryProfile: {
+          semanticParameters: {
+            mouthSmile: { value: 0.2, blendMode: "add" },
+          },
+        },
+      });
+
+      fsm.transitionTo("happy");
+
+      expect(ctx.semanticLayer!.holdSemantic).toHaveBeenCalledWith(
+        "mouthSmile",
+        0.2,
+        "fsm",
+        2,
+        "add",
+      );
+      expect(ctx.semanticLayer!.setSemantic).not.toHaveBeenCalled();
     });
 
     it("applies procedural overrides on state entry", () => {
@@ -280,7 +338,7 @@ describe("BehaviorFSM", () => {
       expect(ctx.filterPipeline!.remove).toHaveBeenCalledWith("handle-happy-glow");
     });
 
-    it("resets semantic parameters on state exit", () => {
+    it("releases held semantic parameters on state exit", () => {
       const ctx = createMockContext();
       const fsm = new BehaviorFSM(ctx);
       fsm.registerState({
@@ -296,13 +354,44 @@ describe("BehaviorFSM", () => {
       fsm.transitionTo("happy");
       fsm.transitionTo("idle");
 
-      expect(ctx.semanticLayer!.setSemantic).toHaveBeenCalledWith(
+      expect(ctx.semanticLayer!.releaseSemantic).toHaveBeenCalledWith(
         "mouthSmile",
-        0,
-        "override",
         "fsm",
-        2,
       );
+    });
+
+    it("releases the entry parameter even when exitProfile names other parameters", () => {
+      const ctx = createMockContext();
+      const fsm = new BehaviorFSM(ctx);
+      fsm.registerState({
+        name: "happy",
+        entryProfile: { semanticParameters: { mouthSmile: { value: 0.2, blendMode: "add" } } },
+        exitProfile: { semanticParameters: { angleX: { value: 0 } } },
+      });
+      fsm.registerState({ name: "idle" });
+
+      fsm.transitionTo("happy");
+      fsm.transitionTo("idle");
+
+      expect(ctx.semanticLayer!.releaseSemantic).toHaveBeenCalledWith("mouthSmile", "fsm");
+      expect(ctx.semanticLayer!.holdSemantic).toHaveBeenCalledWith("angleX", 0, "fsm", 2);
+    });
+
+    it("keeps an explicit exit reset until a later state transition", () => {
+      const ctx = createMockContext();
+      const fsm = new BehaviorFSM(ctx, { defaultDebounceMs: 0 });
+      fsm.registerState({
+        name: "happy",
+        exitProfile: { semanticParameters: { browLY: { value: 0.8 } } },
+      });
+      fsm.registerState({ name: "idle" });
+      fsm.registerState({ name: "talking" });
+
+      fsm.transitionTo("happy");
+      fsm.transitionTo("idle");
+      expect(ctx.semanticLayer!.holdSemantic).toHaveBeenCalledWith("browLY", 0, "fsm", 2);
+      fsm.transitionTo("talking");
+      expect(ctx.semanticLayer!.releaseSemantic).toHaveBeenCalledWith("browLY", "fsm");
     });
 
     it("reverts procedural overrides on state exit", () => {

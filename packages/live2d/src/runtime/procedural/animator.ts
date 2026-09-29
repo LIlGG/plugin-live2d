@@ -10,7 +10,7 @@ interface ActiveAnimation {
   duration: number;
   elapsed: number;
   easing: EasingFunction;
-  onComplete?: () => void;
+  settle?: () => void;
 }
 
 export class ProceduralAnimator implements ProceduralModule {
@@ -18,13 +18,27 @@ export class ProceduralAnimator implements ProceduralModule {
   enabled = true;
   private animations: ActiveAnimation[] = [];
   private semanticLayer: SemanticParameterLayer;
+  private heldTargets = new Set<string>();
 
   constructor(semanticLayer: SemanticParameterLayer) {
     this.semanticLayer = semanticLayer;
   }
 
   animate(options: AnimationOptions): Promise<void> {
-    const currentValue = this.semanticLayer.getSemantic(options.target) ?? 0;
+    const currentValue = this.semanticLayer.getRenderedSemantic(options.target) ?? 0;
+    if (this.heldTargets.delete(options.target)) {
+      this.semanticLayer.releaseSemantic(options.target, "animator");
+    }
+    // A parameter has one animation owner. Settle replaced animations so their
+    // promises do not remain pending, and prevent them from writing or holding
+    // an older target after this animation takes over.
+    for (let index = this.animations.length - 1; index >= 0; index--) {
+      const active = this.animations[index];
+      if (active.target === options.target) {
+        this.animations.splice(index, 1);
+        active.settle?.();
+      }
+    }
     const easing =
       typeof options.easing === "string"
         ? getEasing(options.easing)
@@ -38,7 +52,7 @@ export class ProceduralAnimator implements ProceduralModule {
         duration: options.duration,
         elapsed: 0,
         easing,
-        onComplete: resolve,
+        settle: resolve,
       });
     });
   }
@@ -64,7 +78,29 @@ export class ProceduralAnimator implements ProceduralModule {
       if (index >= 0) {
         this.animations.splice(index, 1);
       }
-      anim.onComplete?.();
     }
+
+    // A completed animation should leave its target visible after the engine
+    // restores the frame baseline.
+    for (const anim of completed) {
+      this.semanticLayer.holdSemantic(anim.target, anim.to, "animator", 5);
+      this.heldTargets.add(anim.target);
+      anim.settle?.();
+    }
+  }
+
+  releaseHeldTargets(): void {
+    for (const target of this.heldTargets) {
+      this.semanticLayer.releaseSemantic(target, "animator");
+    }
+    this.heldTargets.clear();
+  }
+
+  stopAll(): void {
+    this.releaseHeldTargets();
+    for (const animation of this.animations) {
+      animation.settle?.();
+    }
+    this.animations = [];
   }
 }

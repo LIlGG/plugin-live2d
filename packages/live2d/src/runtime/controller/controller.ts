@@ -58,6 +58,8 @@ export class Live2dRuntimeController {
 
     // 1. Semantic parameter detection
     this.semanticLayer.detectFromModel(model);
+    // Drop writes queued against the previous model.
+    this.coordinator.reset();
 
     // 2. Motion layer system
     if (this.config.motionLayers?.enabled !== false) {
@@ -134,20 +136,27 @@ export class Live2dRuntimeController {
       this._tickerCallbacks.push(() => ticker.remove(emotionTicker));
     }
 
-    // 7. Hook engine's internalModel.update so our parameter flush runs AFTER
-    // engine auto-updates (physics, blink, expression, idle motion).
-    // This ensures manual effects override engine values instead of being overwritten.
-    const internalModel = this.extractInternalModel(model);
-    if (internalModel) {
-      const originalUpdate = internalModel.update.bind(internalModel);
-      internalModel.update = (dt: number, now?: number) => {
-        originalUpdate(dt, now);
-        this.coordinator.flush();
-      };
-      this._tickerCallbacks.push(() => {
-        internalModel.update = originalUpdate;
-      });
-    }
+    // 7. Apply our parameter writes from inside the engine's own update.
+    //
+    // `beforeModelUpdate` runs after the engine saved its parameter baseline and
+    // before the model is rendered with those parameters. The engine restores
+    // that baseline at the end of the same frame, so a write is visible for
+    // exactly one frame: an `add` write is applied on top of the engine's
+    // current value and is dropped afterwards, which is what keeps repeated
+    // `add` writes from accumulating.
+    //
+    // `Live2DModel.internalModel` is a required field and `initialize()` only
+    // runs for a model that finished loading, so no runtime guard is needed; if
+    // the engine ever makes it optional the type checker points at this line.
+    const internalModel = model.internalModel;
+    const onBeforeModelUpdate = () => {
+      this.coordinator.flush();
+      this.semanticLayer.captureRenderedValues();
+    };
+    internalModel.on("beforeModelUpdate", onBeforeModelUpdate);
+    this._tickerCallbacks.push(() => {
+      internalModel.off("beforeModelUpdate", onBeforeModelUpdate);
+    });
 
     // Attach filter pipeline to model
     this.filterPipeline.attachTo(model);
@@ -224,12 +233,18 @@ export class Live2dRuntimeController {
 
   /**
    * Get current semantic parameter values for DevTools display.
+   *
+   * The engine restores its baseline after rendering, so read the snapshot
+   * captured inside `beforeModelUpdate` instead of the restored raw value.
    */
   getSemanticParameters(): Array<{ name: string; value: number | undefined }> {
     const profile = this.semanticLayer.getCapabilityProfile();
     const result: Array<{ name: string; value: number | undefined }> = [];
     for (const name of profile.detected.keys()) {
-      result.push({ name, value: this.semanticLayer.getSemantic(name) });
+      result.push({
+        name,
+        value: this.semanticLayer.getRenderedSemantic(name),
+      });
     }
     return result;
   }
@@ -275,16 +290,6 @@ export class Live2dRuntimeController {
   }
 
   // ── Private helpers ─────────────────────────────────────────────
-
-  private extractInternalModel(
-    model: Live2DModel,
-  ): { update(dt: number, now?: number): void } | undefined {
-    const record = model as unknown as Record<string, unknown>;
-    const internalModel = record.internalModel as
-      | { update(dt: number, now?: number): void }
-      | undefined;
-    return internalModel;
-  }
 
   private getTransitionProgress(): number {
     return this.emotionTimeline?.getTransitionProgress() ?? 0;

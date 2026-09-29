@@ -21,6 +21,7 @@ export class SemanticParameterLayer {
   };
   private sourceModel: object | null = null;
   private coordinator?: ParameterCoordinator;
+  private renderedValues = new Map<SemanticName, number>();
 
   /**
    * Register a custom semantic mapping before model detection.
@@ -48,6 +49,7 @@ export class SemanticParameterLayer {
     }
 
     this.resolved.clear();
+    this.renderedValues.clear();
     const detected = new Map<SemanticName, ParameterId>();
     const missing: SemanticName[] = [];
     const notApplicable: SemanticName[] = [];
@@ -101,6 +103,26 @@ export class SemanticParameterLayer {
     return this.accessor.getValue(param.index);
   }
 
+  /** Snapshot the values that the engine will render, before it restores its baseline. */
+  captureRenderedValues(): void {
+    for (const name of this.resolved.keys()) {
+      const value = this.getSemantic(name);
+      if (value !== undefined) this.renderedValues.set(name, value);
+    }
+  }
+
+  getRenderedSemantic(name: SemanticName): number | undefined {
+    return this.renderedValues.get(name) ?? this.getSemantic(name);
+  }
+
+  hasHeldSemantic(name: SemanticName, source: string): boolean {
+    return this.coordinator?.hasHeldWrite(name, source) ?? false;
+  }
+
+  getHeldSemantic(name: SemanticName, source: string): number | undefined {
+    return this.coordinator?.getHeldValue(name, source);
+  }
+
   /**
    * Set the value of a semantic parameter.
    * blendMode: 'override' replaces the value, 'add' adds to the current value.
@@ -141,6 +163,33 @@ export class SemanticParameterLayer {
     targetValue = Math.max(min, Math.min(max, targetValue));
 
     this.accessor.setValue(param.index, targetValue);
+  }
+
+  /**
+   * Hold an override or additive contribution until it is replaced or released.
+   * Requires a coordinator, which re-applies the value on every engine frame.
+   */
+  holdSemantic(
+    name: SemanticName,
+    value: number,
+    source: string,
+    priority: SystemPriority,
+    blendMode: BlendMode = "override",
+  ): void {
+    const param = this.resolved.get(name);
+    if (!param || !this.accessor) return;
+
+    if (!this.coordinator) {
+      throw new Error(
+        "SemanticParameterLayer: holdSemantic requires a coordinator",
+      );
+    }
+    this.coordinator.holdWrite(name, value, blendMode, source, priority);
+  }
+
+  /** Release a held semantic parameter so the engine takes it back. */
+  releaseSemantic(name: SemanticName, source?: string): void {
+    this.coordinator?.releaseOverride(name, source);
   }
 
   /**

@@ -87,6 +87,7 @@ export class ProceduralAnimationSystem {
       ticker.remove(this.tickerCallback);
     }
     this.tickerCallback = undefined;
+    this.animator.stopAll();
     this.modules = [];
     this.parameterSet.clear();
   }

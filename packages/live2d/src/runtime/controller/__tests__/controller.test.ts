@@ -1,6 +1,9 @@
+import type { Ticker } from "pixi.js";
+import type { Live2DModel } from "untitled-pixi-live2d-engine";
 import { describe, expect, it, vi } from "vitest";
-import { Live2dRuntimeController } from "../controller";
 import type { BehaviorFSM } from "../../behavior";
+import { Live2dRuntimeController } from "../controller";
+import type { ParameterCoordinator } from "../coordinator";
 
 describe("Live2dRuntimeController", () => {
   it("creates with default config", () => {
@@ -137,6 +140,99 @@ describe("Live2dRuntimeController", () => {
     }
     const history = controller.getTransitionHistory();
     expect(history.length).toBe(10);
+  });
+
+  it("getSemanticParameters reports the last rendered value after engine restore", () => {
+    const controller = new Live2dRuntimeController();
+    const values = new Float32Array(1);
+    const coreModel = {
+      _model: {
+        parameters: {
+          ids: ["PARAM_ANGLE_X"],
+          values,
+          minimumValues: new Float32Array([-30]),
+          maximumValues: new Float32Array([30]),
+          defaultValues: new Float32Array(1),
+        },
+      },
+      getParameterValueByIndex: (index: number) => values[index] ?? 0,
+      setParameterValueByIndex: (index: number, value: number) => {
+        values[index] = value;
+      },
+    };
+
+    const layer = controller.getSemanticLayer();
+    layer.detectFromModel({ internalModel: { coreModel } });
+    layer.holdSemantic("angleX", 12, "manual", 1);
+    layer.setSemantic("angleX", 5, "add", "procedural", 4);
+    const coordinator = (controller as unknown as { coordinator: ParameterCoordinator }).coordinator;
+    coordinator.flush();
+    layer.captureRenderedValues();
+    values[0] = 0; // The engine restores its saved baseline after rendering.
+
+    // The hold is applied per frame and the engine restores its own value
+    // afterwards, so the raw parameter still reads 0.
+    expect(layer.getSemantic("angleX")).toBe(0);
+    expect(controller.getSemanticParameters()).toEqual([
+      { name: "angleX", value: 17 },
+    ]);
+  });
+
+  it("flushes and captures through the model event, then unsubscribes on destroy", () => {
+    const values = new Float32Array(1);
+    const listeners = new Set<() => void>();
+    const on = vi.fn((_event: string, listener: () => void) => listeners.add(listener));
+    const off = vi.fn((_event: string, listener: () => void) => listeners.delete(listener));
+    const model = {
+      internalModel: {
+        coreModel: {
+          _model: {
+            parameters: {
+              ids: ["PARAM_ANGLE_X"],
+              values,
+              minimumValues: new Float32Array([-30]),
+              maximumValues: new Float32Array([30]),
+              defaultValues: new Float32Array(1),
+            },
+          },
+          getParameterValueByIndex: (index: number) => values[index] ?? 0,
+          setParameterValueByIndex: (index: number, value: number) => {
+            values[index] = value;
+          },
+        },
+        on,
+        off,
+      },
+      filters: null,
+    } as unknown as Live2DModel;
+    const ticker = { add: vi.fn(), remove: vi.fn() } as unknown as Ticker;
+    const controller = new Live2dRuntimeController({
+      motionLayers: { enabled: false },
+      behaviorFSM: { enabled: false },
+      emotionTimeline: { enabled: false },
+      proceduralAnimation: { enabled: false },
+    });
+
+    controller.initialize(model, ticker);
+    expect(on).toHaveBeenCalledWith("beforeModelUpdate", expect.any(Function));
+    const layer = controller.getSemanticLayer();
+    layer.setSemantic("angleX", 5, "add", "test");
+    for (const listener of listeners) listener();
+    expect(values[0]).toBe(5);
+    expect(controller.getSemanticParameters()).toContainEqual({ name: "angleX", value: 5 });
+
+    values[0] = 0; // The engine restores its saved baseline after rendering.
+    layer.setSemantic("angleX", 5, "add", "test");
+    for (const listener of listeners) listener();
+    expect(values[0]).toBe(5);
+
+    controller.destroy(ticker);
+    expect(off).toHaveBeenCalledWith("beforeModelUpdate", expect.any(Function));
+    expect(listeners.size).toBe(0);
+    values[0] = 0;
+    layer.setSemantic("angleX", 5, "add", "test");
+    for (const listener of listeners) listener();
+    expect(values[0]).toBe(0);
   });
 
   it("getSemanticParameters returns empty before detection", () => {

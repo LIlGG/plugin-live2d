@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { ParameterCoordinator } from "../../controller/coordinator";
+import { SystemPriority } from "../../controller/types";
 import { SemanticParameterLayer } from "../semantic-parameter-layer";
 
 // Mock Cubism 2 (Legacy) core model
@@ -174,6 +176,54 @@ describe("SemanticParameterLayer", () => {
       layer.setSemantic("nonExistent", 10);
       expect(layer.getSemantic("nonExistent")).toBeUndefined();
     });
+  });
+
+  describe("holdSemantic", () => {
+    it("delegates to the coordinator", () => {
+      const layer = new SemanticParameterLayer();
+      const core = createCubism4MockModel(["PARAM_ANGLE_X"]);
+      layer.detectFromModel(wrapModel(core));
+
+      const holdWrite = vi.fn();
+      const releaseOverride = vi.fn();
+      layer.setCoordinator({
+        holdWrite,
+        releaseOverride,
+      } as unknown as ParameterCoordinator);
+
+      layer.holdSemantic("angleX", 5, "manual", SystemPriority.MANUAL);
+      expect(holdWrite).toHaveBeenCalledWith(
+        "angleX",
+        5,
+        "override",
+        "manual",
+        SystemPriority.MANUAL,
+      );
+
+      layer.releaseSemantic("angleX", "manual");
+      expect(releaseOverride).toHaveBeenCalledWith("angleX", "manual");
+    });
+
+    it("requires a coordinator for persistent holds", () => {
+      const layer = new SemanticParameterLayer();
+      const core = createCubism4MockModel(["PARAM_ANGLE_X"]);
+      layer.detectFromModel(wrapModel(core));
+
+      expect(() => layer.holdSemantic("angleX", 100, "manual", SystemPriority.MANUAL))
+        .toThrow("holdSemantic requires a coordinator");
+      expect(layer.getSemantic("angleX")).toBe(0);
+    });
+  });
+
+  it("clears the rendered snapshot when a different model is detected", () => {
+    const layer = new SemanticParameterLayer();
+    layer.detectFromModel(wrapModel(createCubism4MockModel(["PARAM_ANGLE_X"])));
+    layer.setSemantic("angleX", 12);
+    layer.captureRenderedValues();
+    expect(layer.getRenderedSemantic("angleX")).toBe(12);
+
+    layer.detectFromModel(wrapModel(createCubism4MockModel(["PARAM_ANGLE_X"])));
+    expect(layer.getRenderedSemantic("angleX")).toBe(0);
   });
 
   describe("registerSemantic", () => {

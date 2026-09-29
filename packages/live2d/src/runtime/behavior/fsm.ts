@@ -18,6 +18,7 @@ export class BehaviorFSM {
   // Track applied effects so they can be reversed on exit
   private activeFilterHandles = new Map<EffectPreset, string>();
   private activeMotionLayers = new Set<LayerName>();
+  private activeSemanticParameters = new Set<string>();
   private proceduralModuleStates = new Map<string, boolean>();
 
   constructor(context: BehaviorContext, config: BehaviorFSMConfig = {}) {
@@ -116,9 +117,12 @@ export class BehaviorFSM {
       fromState.onExit(this.context);
     }
 
-    // 2. Revert effects from current state
+    // 2. Revert effects from current state. Release entry holds first so an
+    // explicit exit reset can survive in the following state.
+    this.releaseActiveSemanticParameters();
     if (fromState?.exitProfile) {
       this.revertProfile(fromState.exitProfile);
+      this.applyExitSemanticReset(fromState.exitProfile);
     } else if (fromState?.entryProfile) {
       this.revertProfile(fromState.entryProfile);
     }
@@ -209,15 +213,15 @@ export class BehaviorFSM {
 
     if (profile.semanticParameters && semanticLayer) {
       for (const [name, config] of Object.entries(profile.semanticParameters)) {
-        if (semanticLayer.hasSemantic(name)) {
-          semanticLayer.setSemantic(
-            name,
-            config.value,
-            config.blendMode ?? "override",
-            "fsm",
-            2,
-          );
-        }
+        if (!semanticLayer.hasSemantic(name)) continue;
+        semanticLayer.holdSemantic(
+          name,
+          config.value,
+          "fsm",
+          2,
+          config.blendMode ?? "override",
+        );
+        this.activeSemanticParameters.add(name);
       }
     }
 
@@ -248,7 +252,6 @@ export class BehaviorFSM {
     const {
       motionLayerSystem,
       filterPipeline,
-      semanticLayer,
       proceduralSystem,
     } = this.context;
 
@@ -269,12 +272,6 @@ export class BehaviorFSM {
       }
     }
 
-    if (profile.semanticParameters && semanticLayer) {
-      for (const name of Object.keys(profile.semanticParameters)) {
-        semanticLayer.setSemantic(name, 0, "override", "fsm", 2);
-      }
-    }
-
     if (profile.proceduralOverrides && proceduralSystem) {
       for (const moduleName of Object.keys(profile.proceduralOverrides)) {
         const previousState = this.proceduralModuleStates.get(moduleName);
@@ -288,6 +285,24 @@ export class BehaviorFSM {
           this.proceduralModuleStates.delete(moduleName);
         }
       }
+    }
+  }
+
+  private releaseActiveSemanticParameters(): void {
+    for (const name of this.activeSemanticParameters) {
+      this.context.semanticLayer?.releaseSemantic(name, "fsm");
+    }
+    this.activeSemanticParameters.clear();
+  }
+
+  private applyExitSemanticReset(profile: BehaviorProfile): void {
+    if (!profile.semanticParameters || !this.context.semanticLayer) return;
+    for (const name of Object.keys(profile.semanticParameters)) {
+      if (!this.context.semanticLayer.hasSemantic(name)) continue;
+      // Exit profiles historically reset named parameters to zero, regardless
+      // of their configured value. Keep that reset across engine frames.
+      this.context.semanticLayer.holdSemantic(name, 0, "fsm", 2);
+      this.activeSemanticParameters.add(name);
     }
   }
 }
