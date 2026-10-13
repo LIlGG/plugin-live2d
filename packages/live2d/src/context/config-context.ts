@@ -100,6 +100,8 @@ export interface Live2dToolsConfig {
 }
 
 export interface Live2dConfig extends Live2dToolsConfig {
+  // 是否在移动端显示，默认开启
+  showOnMobile?: boolean;
   // Live2d API 路径
   apiPath: string;
   // Live2d 定位

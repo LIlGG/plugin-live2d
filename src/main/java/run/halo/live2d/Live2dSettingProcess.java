@@ -26,7 +26,7 @@ import run.halo.live2d.ai.HaloAiFoundationAvailability;
 @RequiredArgsConstructor
 public class Live2dSettingProcess implements Live2dSetting {
     private static final List<String> BASE_FIELDS = List.of(
-        "modelId", "modelTexturesId", "isForceUseDefaultConfig", "isTools", "tools");
+        "showOnMobile", "modelId", "modelTexturesId", "isForceUseDefaultConfig", "isTools", "tools");
     private static final List<String> API_FIELDS = List.of("apiPath", "hitokotoApi");
     private static final List<String> TIPS_FIELDS = List.of(
         "firstOpenSite", "backSite", "backSiteTip", "copyContent", "copyContentTip",

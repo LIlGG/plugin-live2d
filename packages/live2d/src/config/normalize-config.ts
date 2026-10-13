@@ -92,6 +92,7 @@ export const normalizeLive2dConfig = (
   return {
     ...defaults,
     ...input,
+    showOnMobile: pickBoolean(input.showOnMobile, defaults.showOnMobile),
     apiPath: ensureTrailingSlash(normalizedApiPath),
     live2dLocation: input.live2dLocation === "right" ? "right" : "left",
     consoleShowStatus: pickBoolean(
