@@ -104,6 +104,8 @@ export interface Live2dConfig extends Live2dToolsConfig {
   apiPath: string;
   // Live2d 定位
   live2dLocation: "left" | "right";
+  // 看板娘和工具栏的显示层级
+  zIndex?: number;
   // 是否在控制台显示状态
   consoleShowStatus?: boolean;
   // 兼容旧版控制台状态字段

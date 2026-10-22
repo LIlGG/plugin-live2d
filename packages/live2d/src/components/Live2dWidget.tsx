@@ -1,4 +1,5 @@
 import { UnoLitElement } from "@/live2d/common/UnoLitElement";
+import { normalizeLive2dZIndex } from "@/live2d/config/z-index";
 import {
   type Live2dConfig,
   configContext,
@@ -102,8 +103,8 @@ export class Live2dWidget extends DraggableUnoLitElement {
     const drawerClass = this._isShow ? "translate-y-0" : "translate-y-full";
     return html`<div
         id="live2d-plugin"
-        class="fixed z-9998 inline-block ${positionClass} ${visibilityClass}"
-        style=${drawerBoundaryStyle}
+        class="fixed inline-block ${positionClass} ${visibilityClass}"
+        style="${drawerBoundaryStyle} z-index: ${normalizeLive2dZIndex(this.config?.zIndex)};"
       >
           <div
             class="linear transition-transform ${drawerClass}"

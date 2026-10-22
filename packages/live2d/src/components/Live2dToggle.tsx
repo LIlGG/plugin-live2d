@@ -1,4 +1,5 @@
 import { UnoLitElement } from "@/live2d/common/UnoLitElement";
+import { normalizeLive2dZIndex } from "@/live2d/config/z-index";
 import {
   type Live2dConfig,
   configContext,
@@ -69,11 +70,11 @@ export class Live2dToggle extends DraggableUnoLitElement {
       : "pointer-events-none opacity-0 scale-90";
     return html`<div
       id="live2d-toggle"
-      class="fixed bottom-16 ${positionClass} z-9999 inline-flex cursor-grab select-none items-center gap-1.5 rounded-full border border-[#f3d7b8] bg-[#fffaf4]/96 px-2.5 py-1.5 text-3.25 color-[#8b5e34] shadow-[0_8px_22px_rgba(139,94,52,0.18)] backdrop-blur-sm transition-[opacity,transform,box-shadow] duration-300 hover:scale-105 hover:shadow-[0_10px_26px_rgba(139,94,52,0.24)] active:cursor-grabbing ${visibilityClass}"
+      class="fixed bottom-16 ${positionClass} inline-flex cursor-grab select-none items-center gap-1.5 rounded-full border border-[#f3d7b8] bg-[#fffaf4]/96 px-2.5 py-1.5 text-3.25 color-[#8b5e34] shadow-[0_8px_22px_rgba(139,94,52,0.18)] backdrop-blur-sm transition-[opacity,transform,box-shadow] duration-300 hover:scale-105 hover:shadow-[0_10px_26px_rgba(139,94,52,0.24)] active:cursor-grabbing ${visibilityClass}"
       role="button"
       tabindex="0"
       aria-label="打开看板娘"
-      style="bottom: calc(4rem + env(safe-area-inset-bottom, 0px));"
+      style="bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); z-index: ${normalizeLive2dZIndex(this.config?.zIndex) + 1};"
       @keydown=${this.handleKeydown}
     >
       <span

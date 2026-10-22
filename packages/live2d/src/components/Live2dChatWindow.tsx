@@ -4,6 +4,7 @@ import {
 } from "@/live2d/api/agent-navigation-intent";
 import { ChatApi, type ChatMessage } from "@/live2d/api/chat-api";
 import { UnoLitElement } from "@/live2d/common/UnoLitElement";
+import { normalizeLive2dZIndex } from "@/live2d/config/z-index";
 import {
   type Live2dConfig,
   configContext,
@@ -79,7 +80,7 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
 
   render(): TemplateResult {
     const panelClasses = [
-      "fixed z-[10000] overflow-hidden rounded-full border border-[#eadfce] bg-[#fffaf4]/96 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm will-change-[opacity]",
+      "fixed overflow-hidden rounded-full border border-[#eadfce] bg-[#fffaf4]/96 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm will-change-[opacity]",
       this._isShow
         ? "pointer-events-auto opacity-100"
         : "pointer-events-none opacity-0",
@@ -95,7 +96,7 @@ export class Live2dChatWindow extends DraggableUnoLitElement {
         id="live2d-chat-model"
         popover="manual"
         class=${panelClasses}
-        style="inset: auto auto ${CHAT_PANEL_BOTTOM} 50%; margin: 0; width: ${CHAT_PANEL_WIDTH}; transform: translateX(-50%); transition: opacity ${CHAT_PANEL_TRANSITION_MS}ms ease;"
+        style="inset: auto auto ${CHAT_PANEL_BOTTOM} 50%; margin: 0; width: ${CHAT_PANEL_WIDTH}; transform: translateX(-50%); transition: opacity ${CHAT_PANEL_TRANSITION_MS}ms ease; z-index: ${normalizeLive2dZIndex(this.config?.zIndex) + 2};"
       >
         <div class="flex items-center gap-1.5 px-1 py-1">
           <input
