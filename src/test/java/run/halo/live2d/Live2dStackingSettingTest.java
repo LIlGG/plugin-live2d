@@ -13,7 +13,7 @@ import run.halo.app.plugin.ReactiveSettingFetcher;
 import run.halo.live2d.agent.AgentToolNormalizer;
 import run.halo.live2d.ai.HaloAiFoundationAvailability;
 
-class Live2dSettingProcessTest {
+class Live2dStackingSettingTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 25, 9998})
