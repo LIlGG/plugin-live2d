@@ -7,6 +7,7 @@ import { isNotEmptyString } from "@/live2d/utils/isString";
 import * as PIXI from "pixi.js";
 import "@/live2d/libs/live2d.min.js";
 import "@/live2d/libs/live2dcubismcore.min.js";
+import { AspectRatioLive2DModel } from "@/live2d/live2d/aspect-ratio-model";
 import type { BehaviorFSM } from "@/live2d/runtime/behavior";
 import { Live2dRuntimeController } from "@/live2d/runtime/controller";
 import type { EmotionTimeline } from "@/live2d/runtime/emotion";
@@ -16,7 +17,7 @@ import {
   DESKTOP_LIVE2D_CANVAS_SIZE,
   getLive2dRenderResolution,
 } from "@/live2d/utils/responsive";
-import { Live2DModel } from "untitled-pixi-live2d-engine";
+import type { Live2DModel } from "untitled-pixi-live2d-engine";
 
 declare global {
   interface Window {
@@ -333,7 +334,7 @@ class Model {
       sendMessage(text, MESSAGE_TIMEOUT_MS, 3);
     }
     try {
-      const model = await Live2DModel.from(
+      const model = await AspectRatioLive2DModel.from(
         `${this.#apiPath}get/?id=${modelId}-${modelTexturesId}`,
         {
           ticker: app.ticker,
