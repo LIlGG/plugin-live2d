@@ -1,1 +1,3 @@
-export { escapeHtml } from "markdown-it/lib/common/utils.mjs";
+import MarkdownIt from "markdown-it";
+
+export const escapeHtml = new MarkdownIt().utils.escapeHtml;
