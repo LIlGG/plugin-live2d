@@ -11,6 +11,7 @@ export const DEFAULT_TOOL_NAMES = [
 ] as const;
 
 export const createDefaultLive2dConfig = (): Live2dConfig => ({
+  showOnMobile: true,
   apiPath: "https://live2d.fghrsh.net/api/",
   live2dLocation: "left",
   consoleShowStatus: import.meta.env.DEV ?? false,

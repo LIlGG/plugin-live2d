@@ -3,6 +3,7 @@ import {
   type LegacyLive2dConfigInput,
   normalizeLive2dConfig,
 } from "@/live2d/config/normalize-config";
+import { shouldShowLive2d } from "@/live2d/utils/mobile-visibility";
 import "@/live2d/components/Live2dContext";
 
 const LIVE2D_CONTEXT_ID = "plugin-live2d-root";
@@ -17,6 +18,12 @@ export class Live2dRuntime {
   private rootElement?: Live2dContext;
 
   init(path: string, config: LegacyLive2dConfigInput = {}): void {
+    if (!shouldShowLive2d(config)) {
+      this.rootElement?.remove();
+      document.getElementById(LIVE2D_CONTEXT_ID)?.remove();
+      this.rootElement = undefined;
+      return;
+    }
     const rootElement = this.getOrCreateRoot();
     rootElement.config = normalizeLive2dConfig(path, config);
   }
