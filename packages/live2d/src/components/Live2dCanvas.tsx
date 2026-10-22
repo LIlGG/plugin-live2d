@@ -14,6 +14,7 @@ import { DESKTOP_LIVE2D_CANVAS_SIZE } from "@/live2d/utils/responsive";
 import { consume } from "@lit/context";
 import { type PropertyValues, type TemplateResult, html } from "lit";
 import { property, query, state } from "lit/decorators.js";
+import { keyed } from "lit/directives/keyed.js";
 
 export class Live2dCanvas extends UnoLitElement {
   @consume({ context: configContext })
@@ -31,21 +32,34 @@ export class Live2dCanvas extends UnoLitElement {
 
   private _modelInitialized = false;
 
+  @state()
+  private _canvasGeneration = 0;
+
   render(): TemplateResult {
     return html`
-      <canvas id="live2d" class="block h-full w-full cursor-grab"></canvas>
+      ${keyed(
+        this._canvasGeneration,
+        html`<canvas id="live2d" class="block h-full w-full cursor-grab"></canvas>`,
+      )}
     `;
   }
 
   connectedCallback(): void {
     super.connectedCallback();
     window.dispatchEvent(new BeforeInitEvent({ config: this.config }));
+    if (this.hasUpdated) {
+      void this.updateComplete.then(() => this.initializeModel());
+    }
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    clearCurrentLive2dModel(this.model);
-    this.model?.destroy();
+    // Reconnecting must not reuse a canvas still owned by an old renderer.
+    this._canvasGeneration++;
+    if (this.model) {
+      clearCurrentLive2dModel(this.model);
+      this.model.destroy();
+    }
     this.model = null;
     this._modelInitialized = false;
   }
@@ -70,25 +84,39 @@ export class Live2dCanvas extends UnoLitElement {
   }
 
   private async initializeModel(): Promise<void> {
-    if (!this.config || !this._live2d || this._modelInitialized) {
+    if (
+      !this.isConnected ||
+      !this.config ||
+      !this._live2d ||
+      this._modelInitialized
+    ) {
       return;
     }
 
     this._modelInitialized = true;
+    const canvasGeneration = this._canvasGeneration;
+    let model: Model | undefined;
 
     try {
-      const initialCanvasSize = this.canvasSize;
-      this.model = await Model.create(
-        this._live2d,
-        this.config,
-        initialCanvasSize,
-      );
-      if (initialCanvasSize !== this.canvasSize) {
-        await this.model.resize(this.canvasSize);
+      let canvasSize = this.canvasSize;
+      model = await Model.create(this._live2d, this.config, canvasSize);
+      while (true) {
+        if (!this.isConnected || canvasGeneration !== this._canvasGeneration) {
+          model.destroy();
+          return;
+        }
+        if (canvasSize === this.canvasSize) break;
+        canvasSize = this.canvasSize;
+        await model.resize(canvasSize);
       }
-      setCurrentLive2dModel(this.model);
-      window.dispatchEvent(new ModelReadyEvent({ model: this.model }));
+      this.model = model;
+      setCurrentLive2dModel(model);
+      window.dispatchEvent(new ModelReadyEvent({ model }));
     } catch (error) {
+      model?.destroy();
+      if (canvasGeneration !== this._canvasGeneration) {
+        return;
+      }
       this._modelInitialized = false;
       throw error;
     }

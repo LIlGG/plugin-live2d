@@ -20,6 +20,7 @@ export class Live2dRuntime {
   init(path: string, config: LegacyLive2dConfigInput = {}): void {
     if (!shouldShowLive2d(config)) {
       this.rootElement?.remove();
+      document.getElementById(LIVE2D_CONTEXT_ID)?.remove();
       this.rootElement = undefined;
       return;
     }
