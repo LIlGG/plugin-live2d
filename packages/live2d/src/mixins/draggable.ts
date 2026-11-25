@@ -295,6 +295,7 @@ export const DraggableMixin = <T extends HTMLElementConstructor>(
       // 检查是否在工具栏内部
       if (
         el.closest("#live2d-tools") ||
+        el.closest("#live2d-tips") ||
         el.closest("#live2d-chat-input") ||
         el.closest("#live2d-chat-send")
       ) {

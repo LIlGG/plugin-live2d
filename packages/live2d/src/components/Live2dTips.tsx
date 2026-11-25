@@ -18,7 +18,7 @@ import { renderTipMessage } from "@/live2d/helpers/renderTipMessage";
 import { isNotEmpty } from "@/live2d/utils/isNotEmpty";
 import { randomSelection } from "@/live2d/utils/randomSelection";
 import { consume } from "@lit/context";
-import { type TemplateResult, html } from "lit";
+import { type PropertyValues, type TemplateResult, html } from "lit";
 import { property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
@@ -27,6 +27,7 @@ export class Live2dTips extends UnoLitElement {
   private static readonly DEFAULT_BOTTOM_OFFSET = 250;
   private static readonly MODEL_OVERLAP_OFFSET = 20;
   private static readonly OPACITY_TRANSITION_MS = 1000;
+  private static readonly VIEWPORT_MARGIN = 12;
 
   @consume({ context: configContext })
   @property({ attribute: false })
@@ -43,8 +44,19 @@ export class Live2dTips extends UnoLitElement {
   private _bottomOffset = Live2dTips.DEFAULT_BOTTOM_OFFSET;
   private priority = -1;
   private messageTimer: number | null = null;
+  private messageTimerRemaining: number | null = null;
+  private messageTimerStartedAt: number | null = null;
+  private messageHideResetsStreamMode = false;
   private streamModeResetTimer: number | null = null;
   private streamInactivityTimeout = 60_000;
+  private followStream = false;
+  private lastContentScrollTop = 0;
+  private isPointerOverContent = false;
+  private isFocusWithinContent = false;
+  private isReadingScrollback = false;
+  private positionFrame?: number;
+  private resizeObserver?: ResizeObserver;
+  private positionObserver?: MutationObserver;
   // 流式消息模式标志
   @state()
   private isStreamMode = false;
@@ -88,16 +100,16 @@ export class Live2dTips extends UnoLitElement {
       "rounded-xl": true,
       "shadow-tips": true,
       "text-size-sm": true,
-      "overflow-hidden": true,
+      "live2d-tips-content": true,
       "px-2.5": true,
       "py-1.5": true,
-      "text-ellipsis": true,
       "transition-opacity-1000": true,
       "break-all": true,
       "live2d-tips-markdown": isMarkdownBlock,
       "opacity-100": this._isShow,
       "opacity-0": !this._isShow,
-      "select-none": true,
+      "pointer-events-auto": this._isShow,
+      "pointer-events-none": !this._isShow,
     };
     const width = this.compact
       ? "min(220px, calc(100vw - 1rem))"
@@ -107,6 +119,16 @@ export class Live2dTips extends UnoLitElement {
         id="live2d-tips"
         class=${classMap(classes)}
         style="width: ${width};"
+        role="region"
+        aria-label="看板娘消息"
+        aria-hidden=${!this._isShow}
+        tabindex=${this._isShow ? 0 : -1}
+        ?inert=${!this._isShow}
+        @mouseenter=${this.handleContentMouseEnter}
+        @mouseleave=${this.handleContentMouseLeave}
+        @focusin=${this.handleContentFocusIn}
+        @focusout=${this.handleContentFocusOut}
+        @scroll=${this.handleContentScroll}
       >
         ${unsafeHTML(renderedMessage)}
       </div>
@@ -115,12 +137,32 @@ export class Live2dTips extends UnoLitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.style.zIndex = "2";
     this.applyHostPosition();
     window.addEventListener("live2d:send-message", this.onMessage);
     window.addEventListener("live2d:stream-message-start", this.onStreamStart);
     window.addEventListener("live2d:stream-message", this.onStreamMessage);
     window.addEventListener("live2d:stream-message-stop", this.onStreamStop);
     window.addEventListener("live2d:model-layout", this.onModelLayout);
+    window.addEventListener("resize", this.schedulePosition);
+    window.visualViewport?.addEventListener("resize", this.schedulePosition);
+    window.visualViewport?.addEventListener("scroll", this.schedulePosition);
+    this.shadowRoot?.addEventListener("load", this.handleContentLoad, true);
+    if (typeof ResizeObserver !== "undefined") {
+      this.resizeObserver = new ResizeObserver(this.schedulePosition);
+      this.resizeObserver.observe(this);
+    }
+    const root = this.getRootNode();
+    const widget =
+      root instanceof ShadowRoot ? root.getElementById("live2d-plugin") : null;
+    if (widget) {
+      this.resizeObserver?.observe(widget);
+      this.positionObserver = new MutationObserver(this.schedulePosition);
+      this.positionObserver.observe(widget, {
+        attributes: true,
+        attributeFilter: ["style", "class"],
+      });
+    }
   }
 
   disconnectedCallback(): void {
@@ -135,6 +177,33 @@ export class Live2dTips extends UnoLitElement {
     window.removeEventListener("live2d:model-layout", this.onModelLayout);
     this.clearMessageTimer();
     this.clearStreamModeResetTimer();
+    window.removeEventListener("resize", this.schedulePosition);
+    window.visualViewport?.removeEventListener("resize", this.schedulePosition);
+    window.visualViewport?.removeEventListener("scroll", this.schedulePosition);
+    this.shadowRoot?.removeEventListener("load", this.handleContentLoad, true);
+    this.resizeObserver?.disconnect();
+    this.positionObserver?.disconnect();
+    if (this.positionFrame !== undefined) {
+      window.cancelAnimationFrame(this.positionFrame);
+      this.positionFrame = undefined;
+    }
+  }
+
+  protected updated(changed: PropertyValues): void {
+    super.updated(changed);
+    const content = this.shadowRoot?.getElementById("live2d-tips");
+    if (content && changed.has("_message") && this.followStream) {
+      content.scrollTop = content.scrollHeight;
+    }
+    const focused = this.shadowRoot?.activeElement;
+    if (
+      !this._isShow &&
+      focused instanceof HTMLElement &&
+      content?.contains(focused)
+    ) {
+      focused.blur();
+    }
+    this.schedulePosition();
   }
 
   handleMessage(e: SendMessageEvent): void {
@@ -156,13 +225,16 @@ export class Live2dTips extends UnoLitElement {
       return;
     }
     this.priority = priority;
+    this.followStream = false;
+    this.isReadingScrollback = false;
+    this.lastContentScrollTop = 0;
+    this.syncContentInteractionState();
+    const content = this.shadowRoot?.getElementById("live2d-tips");
+    if (content) content.scrollTop = 0;
     this.isStreamMode = false;
     this._message = message;
     this._isShow = true;
-    this.messageTimer = setTimeout(() => {
-      this._isShow = false;
-      this.priority = -1;
-    }, timeout);
+    this.startMessageTimer(timeout, false);
   }
 
   /**
@@ -174,6 +246,10 @@ export class Live2dTips extends UnoLitElement {
     this.clearStreamModeResetTimer();
     this.priority = STREAM_PRIORITY;
     this.isStreamMode = true;
+    this.followStream = true;
+    this.isReadingScrollback = false;
+    this.lastContentScrollTop = 0;
+    this.syncContentInteractionState();
     this.streamInactivityTimeout = timeout;
 
     // 清空消息并显示
@@ -191,6 +267,7 @@ export class Live2dTips extends UnoLitElement {
       return;
     }
     const { text } = e.detail;
+    if (e.detail.mode === "replace") this.followStream = true;
     this.scheduleStreamInactivityTimeout(this.streamInactivityTimeout);
     if (e.detail.mode === "replace") {
       this._message = text;
@@ -208,14 +285,8 @@ export class Live2dTips extends UnoLitElement {
     }
     const { showTimeout } = e.detail;
 
-    this.clearMessageTimer();
-
     // 设置新的定时器，在指定时间后关闭
-    this.messageTimer = setTimeout(() => {
-      this._isShow = false;
-      this.priority = -1;
-      this.scheduleStreamModeReset();
-    }, showTimeout);
+    this.startMessageTimer(showTimeout, true);
   }
 
   handleModelLayout(e: ModelLayoutEvent): void {
@@ -228,24 +299,195 @@ export class Live2dTips extends UnoLitElement {
 
   private applyHostPosition(): void {
     this.style.bottom = `${this._bottomOffset}px`;
+    this.schedulePosition();
+  }
+
+  private readonly handleContentScroll = (event: Event): void => {
+    const content = event.currentTarget as HTMLElement;
+    const atBottom =
+      content.scrollHeight - content.scrollTop - content.clientHeight <= 24;
+    this.followStream = atBottom;
+
+    const canScroll = content.scrollHeight > content.clientHeight;
+    const scrolledUp = content.scrollTop < this.lastContentScrollTop;
+    if (atBottom || !canScroll) {
+      this.isReadingScrollback = false;
+    } else if (content.scrollTop > 0 || scrolledUp) {
+      this.isReadingScrollback = true;
+    }
+    this.lastContentScrollTop = content.scrollTop;
+    this.syncMessageTimer();
+  };
+
+  private readonly handleContentMouseEnter = (): void => {
+    this.isPointerOverContent = true;
+    this.syncMessageTimer();
+  };
+
+  private readonly handleContentMouseLeave = (): void => {
+    this.isPointerOverContent = false;
+    this.syncMessageTimer();
+  };
+
+  private readonly handleContentFocusIn = (): void => {
+    this.isFocusWithinContent = true;
+    this.syncMessageTimer();
+  };
+
+  private readonly handleContentFocusOut = (event: FocusEvent): void => {
+    const content = event.currentTarget;
+    const nextTarget = event.relatedTarget;
+    if (
+      nextTarget instanceof Node &&
+      content instanceof HTMLElement &&
+      content.contains(nextTarget)
+    ) {
+      return;
+    }
+    this.isFocusWithinContent = false;
+    this.syncMessageTimer();
+  };
+
+  private syncContentInteractionState(): void {
+    const content = this.shadowRoot?.getElementById("live2d-tips");
+    if (!content) {
+      return;
+    }
+    this.isPointerOverContent = content.matches(":hover");
+    const activeElement = this.shadowRoot?.activeElement;
+    this.isFocusWithinContent =
+      activeElement instanceof Node && content.contains(activeElement);
+  }
+
+  private readonly handleContentLoad = (): void => {
+    const content = this.shadowRoot?.getElementById("live2d-tips");
+    if (content && this._isShow && this.isStreamMode && this.followStream) {
+      content.scrollTop = content.scrollHeight;
+    }
+    this.schedulePosition();
+  };
+
+  private readonly schedulePosition = (): void => {
+    if (!this.isConnected || !this._isShow || this.positionFrame !== undefined)
+      return;
+    this.positionFrame = window.requestAnimationFrame(() => {
+      this.positionFrame = undefined;
+      this.keepInViewport();
+    });
+  };
+
+  private keepInViewport(): void {
+    const content = this.shadowRoot?.getElementById("live2d-tips");
+    if (!content || !this.isConnected || !this._isShow) return;
+    const viewport = window.visualViewport;
+    const width = viewport?.width ?? window.innerWidth;
+    const height = viewport?.height ?? window.innerHeight;
+    const left = (viewport?.offsetLeft ?? 0) + Live2dTips.VIEWPORT_MARGIN;
+    const top = (viewport?.offsetTop ?? 0) + Live2dTips.VIEWPORT_MARGIN;
+    content.style.maxWidth = `${Math.max(0, width - 2 * Live2dTips.VIEWPORT_MARGIN)}px`;
+    content.style.maxHeight = `min(20rem, ${Math.max(0, height - 2 * Live2dTips.VIEWPORT_MARGIN)}px)`;
+    // Measure the model's original anchor again so dragging back restores it.
+    this.style.translate = "0px 0px";
+    const rect = this.getBoundingClientRect();
+    const x = Math.max(
+      left,
+      Math.min(
+        rect.left,
+        left + width - 2 * Live2dTips.VIEWPORT_MARGIN - rect.width,
+      ),
+    );
+    const y = Math.max(
+      top,
+      Math.min(
+        rect.top,
+        top + height - 2 * Live2dTips.VIEWPORT_MARGIN - rect.height,
+      ),
+    );
+    this.style.translate = `${x - rect.left}px ${y - rect.top}px`;
   }
 
   private clearMessageTimer(): void {
-    if (this.messageTimer) {
+    if (this.messageTimer !== null) {
       clearTimeout(this.messageTimer);
       this.messageTimer = null;
+    }
+    this.messageTimerRemaining = null;
+    this.messageTimerStartedAt = null;
+    this.messageHideResetsStreamMode = false;
+  }
+
+  private startMessageTimer(duration: number, resetStreamMode: boolean): void {
+    this.clearMessageTimer();
+    this.messageHideResetsStreamMode = resetStreamMode;
+    this.messageTimerRemaining = Math.max(0, duration);
+    this.syncMessageTimer();
+  }
+
+  private syncMessageTimer(): void {
+    if (this.messageTimerRemaining === null) {
+      return;
+    }
+    if (this.isMessageTimerPaused()) {
+      this.pauseMessageTimer();
+      return;
+    }
+    this.resumeMessageTimer();
+  }
+
+  private isMessageTimerPaused(): boolean {
+    return (
+      this.isPointerOverContent ||
+      this.isFocusWithinContent ||
+      this.isReadingScrollback
+    );
+  }
+
+  private pauseMessageTimer(): void {
+    if (this.messageTimer === null) {
+      return;
+    }
+    if (
+      this.messageTimerRemaining !== null &&
+      this.messageTimerStartedAt !== null
+    ) {
+      const elapsed = Date.now() - this.messageTimerStartedAt;
+      this.messageTimerRemaining = Math.max(
+        0,
+        this.messageTimerRemaining - elapsed,
+      );
+    }
+    clearTimeout(this.messageTimer);
+    this.messageTimer = null;
+    this.messageTimerStartedAt = null;
+  }
+
+  private resumeMessageTimer(): void {
+    if (this.messageTimer !== null || this.messageTimerRemaining === null) {
+      return;
+    }
+    this.messageTimerStartedAt = Date.now();
+    this.messageTimer = setTimeout(
+      () => this.hideMessage(),
+      this.messageTimerRemaining,
+    );
+  }
+
+  private hideMessage(): void {
+    const resetStreamMode = this.messageHideResetsStreamMode;
+    this.clearMessageTimer();
+    this._isShow = false;
+    this.priority = -1;
+    this.isReadingScrollback = false;
+    this.isFocusWithinContent = false;
+    if (resetStreamMode) {
+      this.scheduleStreamModeReset();
     }
   }
 
   private scheduleStreamInactivityTimeout(timeout?: number): void {
-    this.clearMessageTimer();
-    this.messageTimer = setTimeout(
-      () => {
-        this._isShow = false;
-        this.priority = -1;
-        this.scheduleStreamModeReset();
-      },
+    this.startMessageTimer(
       timeout ?? Number(this.config?.chunkTimeout || 60) * 1000,
+      true,
     );
   }
 

@@ -1,5 +1,25 @@
 @unocss;
 
+.live2d-tips-content {
+  max-height: min(20rem, calc(100dvh - 1.5rem));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.live2d-tips-markdown :is(img, table) {
+  max-width: 100%;
+}
+
+.live2d-tips-markdown table {
+  display: block;
+  overflow-x: auto;
+}
+
+.live2d-tips-markdown img {
+  height: auto;
+}
+
 .live2d-tips-markdown {
   text-align: left;
   line-height: 1.55;
