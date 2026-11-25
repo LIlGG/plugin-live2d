@@ -85,12 +85,16 @@ describe("Live2dTips long messages", () => {
     expect(content.getAttribute("aria-hidden")).toBe("false");
   });
 
-  it("disables interaction and releases focus when the message expires", async () => {
+  it("keeps the message while focused and disables interaction after blur", async () => {
     const { tips, content } = await createTips();
     message("消息", 50);
     await tips.updateComplete;
     content.focus();
     expect(tips.shadowRoot?.activeElement).toBe(content);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    content.blur();
     await vi.advanceTimersByTimeAsync(50);
     await tips.updateComplete;
     expect(content.tabIndex).toBe(-1);
@@ -149,7 +153,7 @@ describe("Live2dTips long messages", () => {
     expect(content.scrollTop).toBe(100);
   });
 
-  it("makes hidden Markdown links inert and releases their focus", async () => {
+  it("keeps focused Markdown links visible and makes them inert after blur", async () => {
     const { tips, content } = await createTips();
     startStream();
     window.dispatchEvent(
@@ -160,6 +164,11 @@ describe("Live2dTips long messages", () => {
     link?.focus();
     expect(tips.shadowRoot?.activeElement).toBe(link);
     window.dispatchEvent(new StreamMessageStopEvent({ showTimeout: 50 }));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(content.hasAttribute("inert")).toBe(false);
+    expect(tips.shadowRoot?.activeElement).toBe(link);
+
+    link?.blur();
     await vi.advanceTimersByTimeAsync(50);
     await tips.updateComplete;
     expect(content.hasAttribute("inert")).toBe(true);
@@ -205,6 +214,97 @@ describe("Live2dTips long messages", () => {
     expect(frames.size).toBe(0);
     window.dispatchEvent(new Event("resize"));
     expect(frames.size).toBe(0);
+  });
+
+  it("pauses the ordinary message timer while hovered", async () => {
+    const { tips, content } = await createTips();
+    message("消息", 1000);
+    await tips.updateComplete;
+    await vi.advanceTimersByTimeAsync(300);
+
+    content.dispatchEvent(new MouseEvent("mouseenter"));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    content.dispatchEvent(new MouseEvent("mouseleave"));
+    await vi.advanceTimersByTimeAsync(699);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    await vi.advanceTimersByTimeAsync(1);
+    await tips.updateComplete;
+    expect(content.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("pauses the ordinary message timer while focused", async () => {
+    const { tips, content } = await createTips();
+    message("消息", 1000);
+    await tips.updateComplete;
+    await vi.advanceTimersByTimeAsync(200);
+
+    content.focus();
+    expect(tips.shadowRoot?.activeElement).toBe(content);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    content.blur();
+    await vi.advanceTimersByTimeAsync(799);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    await vi.advanceTimersByTimeAsync(1);
+    await tips.updateComplete;
+    expect(content.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("pauses the ordinary message timer while scrolled away from the end", async () => {
+    const { tips, content } = await createTips();
+    message("长消息", 1000);
+    await tips.updateComplete;
+    Object.defineProperty(content, "scrollHeight", {
+      value: 1000,
+      configurable: true,
+    });
+    Object.defineProperty(content, "clientHeight", {
+      value: 200,
+      configurable: true,
+    });
+    content.scrollTop = 800;
+    content.dispatchEvent(new Event("scroll"));
+    await vi.advanceTimersByTimeAsync(200);
+
+    content.scrollTop = 100;
+    content.dispatchEvent(new Event("scroll"));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    content.scrollTop = 800;
+    content.dispatchEvent(new Event("scroll"));
+    await vi.advanceTimersByTimeAsync(799);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    await vi.advanceTimersByTimeAsync(1);
+    await tips.updateComplete;
+    expect(content.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("pauses the post-stream timer while hovered", async () => {
+    const { tips, content } = await createTips();
+    startStream();
+    window.dispatchEvent(new StreamMessageEvent({ text: "回复" }));
+    await tips.updateComplete;
+    window.dispatchEvent(new StreamMessageStopEvent({ showTimeout: 1000 }));
+    await tips.updateComplete;
+
+    content.dispatchEvent(new MouseEvent("mouseenter"));
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    content.dispatchEvent(new MouseEvent("mouseleave"));
+    await vi.advanceTimersByTimeAsync(999);
+    expect(content.getAttribute("aria-hidden")).toBe("false");
+
+    await vi.advanceTimersByTimeAsync(1);
+    await tips.updateComplete;
+    expect(content.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("allows reading gestures inside the bubble without dragging the widget", async () => {

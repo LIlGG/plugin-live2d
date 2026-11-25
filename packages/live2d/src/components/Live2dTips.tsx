@@ -43,9 +43,16 @@ export class Live2dTips extends UnoLitElement {
   private _bottomOffset = Live2dTips.DEFAULT_BOTTOM_OFFSET;
   private priority = -1;
   private messageTimer: number | null = null;
+  private messageTimerRemaining: number | null = null;
+  private messageTimerStartedAt: number | null = null;
+  private messageHideResetsStreamMode = false;
   private streamModeResetTimer: number | null = null;
   private streamInactivityTimeout = 60_000;
   private followStream = false;
+  private lastContentScrollTop = 0;
+  private isPointerOverContent = false;
+  private isFocusWithinContent = false;
+  private isReadingScrollback = false;
   private positionFrame?: number;
   private resizeObserver?: ResizeObserver;
   private positionObserver?: MutationObserver;
@@ -116,6 +123,10 @@ export class Live2dTips extends UnoLitElement {
         aria-hidden=${!this._isShow}
         tabindex=${this._isShow ? 0 : -1}
         ?inert=${!this._isShow}
+        @mouseenter=${this.handleContentMouseEnter}
+        @mouseleave=${this.handleContentMouseLeave}
+        @focusin=${this.handleContentFocusIn}
+        @focusout=${this.handleContentFocusOut}
         @scroll=${this.handleContentScroll}
       >
         ${unsafeHTML(renderedMessage)}
@@ -214,15 +225,15 @@ export class Live2dTips extends UnoLitElement {
     }
     this.priority = priority;
     this.followStream = false;
+    this.isReadingScrollback = false;
+    this.lastContentScrollTop = 0;
+    this.syncContentInteractionState();
     const content = this.shadowRoot?.getElementById("live2d-tips");
     if (content) content.scrollTop = 0;
     this.isStreamMode = false;
     this._message = message;
     this._isShow = true;
-    this.messageTimer = setTimeout(() => {
-      this._isShow = false;
-      this.priority = -1;
-    }, timeout);
+    this.startMessageTimer(timeout, false);
   }
 
   /**
@@ -235,6 +246,9 @@ export class Live2dTips extends UnoLitElement {
     this.priority = STREAM_PRIORITY;
     this.isStreamMode = true;
     this.followStream = true;
+    this.isReadingScrollback = false;
+    this.lastContentScrollTop = 0;
+    this.syncContentInteractionState();
     this.streamInactivityTimeout = timeout;
 
     // 清空消息并显示
@@ -270,14 +284,8 @@ export class Live2dTips extends UnoLitElement {
     }
     const { showTimeout } = e.detail;
 
-    this.clearMessageTimer();
-
     // 设置新的定时器，在指定时间后关闭
-    this.messageTimer = setTimeout(() => {
-      this._isShow = false;
-      this.priority = -1;
-      this.scheduleStreamModeReset();
-    }, showTimeout);
+    this.startMessageTimer(showTimeout, true);
   }
 
   handleModelLayout(e: ModelLayoutEvent): void {
@@ -295,9 +303,60 @@ export class Live2dTips extends UnoLitElement {
 
   private readonly handleContentScroll = (event: Event): void => {
     const content = event.currentTarget as HTMLElement;
-    this.followStream =
+    const atBottom =
       content.scrollHeight - content.scrollTop - content.clientHeight <= 24;
+    this.followStream = atBottom;
+
+    const canScroll = content.scrollHeight > content.clientHeight;
+    const scrolledUp = content.scrollTop < this.lastContentScrollTop;
+    if (atBottom || !canScroll) {
+      this.isReadingScrollback = false;
+    } else if (content.scrollTop > 0 || scrolledUp) {
+      this.isReadingScrollback = true;
+    }
+    this.lastContentScrollTop = content.scrollTop;
+    this.syncMessageTimer();
   };
+
+  private readonly handleContentMouseEnter = (): void => {
+    this.isPointerOverContent = true;
+    this.syncMessageTimer();
+  };
+
+  private readonly handleContentMouseLeave = (): void => {
+    this.isPointerOverContent = false;
+    this.syncMessageTimer();
+  };
+
+  private readonly handleContentFocusIn = (): void => {
+    this.isFocusWithinContent = true;
+    this.syncMessageTimer();
+  };
+
+  private readonly handleContentFocusOut = (event: FocusEvent): void => {
+    const content = event.currentTarget;
+    const nextTarget = event.relatedTarget;
+    if (
+      nextTarget instanceof Node &&
+      content instanceof HTMLElement &&
+      content.contains(nextTarget)
+    ) {
+      return;
+    }
+    this.isFocusWithinContent = false;
+    this.syncMessageTimer();
+  };
+
+  private syncContentInteractionState(): void {
+    const content = this.shadowRoot?.getElementById("live2d-tips");
+    if (!content) {
+      return;
+    }
+    this.isPointerOverContent = content.matches(":hover");
+    const activeElement = this.shadowRoot?.activeElement;
+    this.isFocusWithinContent =
+      activeElement instanceof Node && content.contains(activeElement);
+  }
 
   private readonly handleContentLoad = (): void => {
     const content = this.shadowRoot?.getElementById("live2d-tips");
@@ -347,21 +406,87 @@ export class Live2dTips extends UnoLitElement {
   }
 
   private clearMessageTimer(): void {
-    if (this.messageTimer) {
+    if (this.messageTimer !== null) {
       clearTimeout(this.messageTimer);
       this.messageTimer = null;
+    }
+    this.messageTimerRemaining = null;
+    this.messageTimerStartedAt = null;
+    this.messageHideResetsStreamMode = false;
+  }
+
+  private startMessageTimer(duration: number, resetStreamMode: boolean): void {
+    this.clearMessageTimer();
+    this.messageHideResetsStreamMode = resetStreamMode;
+    this.messageTimerRemaining = Math.max(0, duration);
+    this.syncMessageTimer();
+  }
+
+  private syncMessageTimer(): void {
+    if (this.messageTimerRemaining === null) {
+      return;
+    }
+    if (this.isMessageTimerPaused()) {
+      this.pauseMessageTimer();
+      return;
+    }
+    this.resumeMessageTimer();
+  }
+
+  private isMessageTimerPaused(): boolean {
+    return (
+      this.isPointerOverContent ||
+      this.isFocusWithinContent ||
+      this.isReadingScrollback
+    );
+  }
+
+  private pauseMessageTimer(): void {
+    if (this.messageTimer === null) {
+      return;
+    }
+    if (
+      this.messageTimerRemaining !== null &&
+      this.messageTimerStartedAt !== null
+    ) {
+      const elapsed = Date.now() - this.messageTimerStartedAt;
+      this.messageTimerRemaining = Math.max(
+        0,
+        this.messageTimerRemaining - elapsed,
+      );
+    }
+    clearTimeout(this.messageTimer);
+    this.messageTimer = null;
+    this.messageTimerStartedAt = null;
+  }
+
+  private resumeMessageTimer(): void {
+    if (this.messageTimer !== null || this.messageTimerRemaining === null) {
+      return;
+    }
+    this.messageTimerStartedAt = Date.now();
+    this.messageTimer = setTimeout(
+      () => this.hideMessage(),
+      this.messageTimerRemaining,
+    );
+  }
+
+  private hideMessage(): void {
+    const resetStreamMode = this.messageHideResetsStreamMode;
+    this.clearMessageTimer();
+    this._isShow = false;
+    this.priority = -1;
+    this.isReadingScrollback = false;
+    this.isFocusWithinContent = false;
+    if (resetStreamMode) {
+      this.scheduleStreamModeReset();
     }
   }
 
   private scheduleStreamInactivityTimeout(timeout?: number): void {
-    this.clearMessageTimer();
-    this.messageTimer = setTimeout(
-      () => {
-        this._isShow = false;
-        this.priority = -1;
-        this.scheduleStreamModeReset();
-      },
+    this.startMessageTimer(
       timeout ?? Number(this.config?.chunkTimeout || 60) * 1000,
+      true,
     );
   }
 
