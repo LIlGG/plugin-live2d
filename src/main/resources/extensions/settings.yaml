@@ -522,6 +522,15 @@ spec:
     - group: advanced
       label: 高级设置
       formSchema:
+        - $formkit: number
+          name: zIndex
+          label: 显示层级
+          help: 看板娘和工具栏的显示层级，值越大越靠前；遮挡音乐按钮等控件时可调低。
+          value: 9998
+          min: 0
+          max: 2147483645
+          step: 1
+          validation: 'required|number|min:0|max:2147483645|matches:/^[0-9]+$/'
         - $formkit: switch
           name: consoleShowStatu
           key: consoleShowStatu

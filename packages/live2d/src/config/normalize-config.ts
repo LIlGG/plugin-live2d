@@ -7,6 +7,7 @@ import {
   pickNumber,
   pickString,
 } from "@/live2d/config/normalize-helpers";
+import { normalizeLive2dZIndex } from "@/live2d/config/z-index";
 import type { Live2dConfig } from "@/live2d/context/config-context";
 import { isNotEmptyString } from "@/live2d/utils/isString";
 
@@ -94,6 +95,7 @@ export const normalizeLive2dConfig = (
     ...input,
     apiPath: ensureTrailingSlash(normalizedApiPath),
     live2dLocation: input.live2dLocation === "right" ? "right" : "left",
+    zIndex: normalizeLive2dZIndex(input.zIndex),
     consoleShowStatus: pickBoolean(
       input.consoleShowStatus,
       input.consoleShowStatu,
