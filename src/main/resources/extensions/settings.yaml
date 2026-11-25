@@ -7,6 +7,11 @@ spec:
     - group: base
       label: 基本设置
       formSchema:
+        - $formkit: switch
+          name: showOnMobile
+          label: 在移动端显示
+          help: 关闭后，手机和平板访问时不会加载看板娘模型，减少屏幕占用和性能开销；桌面端不受影响。保存后刷新前台页面生效。
+          value: true
         - $formkit: text
           label: 默认模型编号
           help: 默认模型编号为访客首次浏览网站时所展示的模型
