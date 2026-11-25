@@ -14,6 +14,7 @@ import {
   hasMarkdownBlockElements,
   renderMarkdown,
 } from "@/live2d/helpers/renderMarkdown";
+import { renderTipMessage } from "@/live2d/helpers/renderTipMessage";
 import { isNotEmpty } from "@/live2d/utils/isNotEmpty";
 import { randomSelection } from "@/live2d/utils/randomSelection";
 import { consume } from "@lit/context";
@@ -72,7 +73,7 @@ export class Live2dTips extends UnoLitElement {
   render(): TemplateResult {
     const renderedMessage = this.isStreamMode
       ? renderMarkdown(this._message)
-      : this._message;
+      : renderTipMessage(this._message);
     const isMarkdownBlock =
       this.isStreamMode && hasMarkdownBlockElements(renderedMessage);
     const classes = {

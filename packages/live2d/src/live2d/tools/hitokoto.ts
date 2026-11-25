@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/live2d/helpers/escapeHtml";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { Tool } from "@/live2d/live2d/tools/tools";
 import { isNotEmptyString } from "@/live2d/utils/isString";
@@ -48,8 +49,8 @@ export class HitokotoTool extends Tool {
     const { hitokoto, from, creator } = await this._fetchHitokoto(hitokotoApi);
     if (isNotEmptyString(hitokoto)) {
       return {
-        hitokoto,
-        description: `这句一言来自 <span>「${from}」</span>，是 <span>${creator}</span> 在 hitokoto.cn 投稿的。`,
+        hitokoto: escapeHtml(hitokoto),
+        description: `这句一言来自 <span>「${escapeHtml(String(from))}」</span>，是 <span>${escapeHtml(String(creator))}</span> 在 hitokoto.cn 投稿的。`,
       };
     }
   }

@@ -16,6 +16,7 @@ import {
 } from "@/live2d/events/before-init";
 import { MODEL_READY_EVENT_NAME } from "@/live2d/events/model-ready";
 import { dataWithinRange } from "@/live2d/helpers/dateWithinRange";
+import { escapeHtml } from "@/live2d/helpers/escapeHtml";
 import { loadMergedTips } from "@/live2d/helpers/loadMergedTips";
 import { sendMessage } from "@/live2d/helpers/sendMessage";
 import { timeWithinRange } from "@/live2d/helpers/timeWithinRange";
@@ -38,10 +39,10 @@ const _getWelComeMessage = (times: TipTime[]) => {
     }
   }
 
-  const message = `欢迎阅读<span>「${documentTitle}」</span>`;
+  const message = `欢迎阅读<span>「${escapeHtml(documentTitle)}」</span>`;
   const domain = getReferrerDomain();
   return domain
-    ? `Hello！来自 <span>${domain}</span> 的朋友<br>${message}`
+    ? `Hello！来自 <span>${escapeHtml(domain)}</span> 的朋友<br>${message}`
     : message;
 };
 
@@ -110,7 +111,9 @@ const _userClickEvent = (clicks: TipClick[], signal: AbortSignal) => {
         if (!message) {
           continue;
         }
-        message = message.replace("{text}", target.innerText);
+        message = message.replace(/\{text\}/g, () =>
+          escapeHtml(target.innerText),
+        );
         sendMessage(message, 4000, 1);
         return;
       }
@@ -139,7 +142,9 @@ const _userMouseoverEvent = (
         if (!message) {
           continue;
         }
-        message = message.replace("{text}", target.innerText);
+        message = message.replace(/\{text\}/g, () =>
+          escapeHtml(target.innerText),
+        );
         sendMessage(message, 4000, 1);
         return;
       }
